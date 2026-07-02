@@ -6,25 +6,25 @@ Phase 1 — Working daily AI coding environment
 
 ## Current milestone
 
-Shot 3B attempted: connectivity test **BLOCKED** — OpenRouter key not available to agent shell.
+Brew 1 / Coffee Status MVP runtime verification completed.
 
 ## What matters right now
 
-- House Blend default Bean (planned): `nvidia/nemotron-3-super-120b-a12b` via OpenRouter
-- First Roastery scorecard created (blocked status): `roastery/model_scorecards/shot-3b-nemotron-connectivity.md`
-- Ledger entries logged with pre-flight estimates only
-- **Blocker:** Cursor-stored API keys are not visible to Barista terminal; Shot 3B retry needs `OPENROUTER_API_KEY` in User environment OR manual test in Cursor UI
+- Current phase remains Phase 1.
+- Coffee Status MVP exists under `apps/coffee-status/`.
+- Shot 4C.2 passed after fixing Project Coffee root resolution.
+- Runtime verification confirmed Coffee Status displays the repo root, checks required status files, and previews only approved docs.
+- Earlier Shot 3B OpenRouter connectivity work is historical context, not the current active blocker.
 
 ## Next actions
 
-1. Retry Shot 3B: set `OPENROUTER_API_KEY` in Windows User env (not repo) **or** run connectivity prompt manually with Nemotron in Cursor
-2. On success: update scorecard, ledger, and ROADMAP exit criteria
-3. Shot 4 — first Roastery bake-off (fast coding Bean TBD)
+1. Closeout documentation and artifacts.
+2. Prepare retrospective, ledger estimate, and workflow scorecard.
 
 ## Blockers
 
-OpenRouter authentication from agent shell.
+None for Coffee Status MVP closeout.
 
 ## Last updated
 
-2026-07-02 — Shot 3B blocked (documented)
+2026-07-02 — Coffee Status MVP runtime verification completed

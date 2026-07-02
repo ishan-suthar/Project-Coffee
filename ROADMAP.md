@@ -11,9 +11,10 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Shot 3B blocked — retry needed |
-| Next shot | Shot 3B retry or Shot 4 (after live test succeeds) |
-| Blockers | `OPENROUTER_API_KEY` not available to agent shell |
+| Current shot | Brew 1 closeout after Coffee Status MVP verification |
+| Current milestone | Coffee Status MVP passed manual runtime verification |
+| Next shot | Shot 4D.2 closeout artifacts: retrospective, ledger estimate, and workflow scorecard |
+| Blockers | None for Coffee Status MVP closeout |
 
 ## Phase 1 goal
 
@@ -106,6 +107,10 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 1 | Complete operational skeleton | Complete | 2026-07-02 |
 | 2 | Barista becomes operational | Complete | 2026-07-02 |
 | 3A | House Blend policy and setup docs | Complete | 2026-07-02 |
-| 3B | Live OpenRouter connectivity test | Blocked — retry | 2026-07-02 |
-| 4 | First Roastery bake-off | Planned | — |
+| 3B | Live OpenRouter connectivity test | Historical blocked context | 2026-07-02 |
+| 4B | Coffee Status MVP build | Complete | 2026-07-02 |
+| 4C | Coffee Status MVP verification | Complete | 2026-07-02 |
+| 4D.1 | Coffee Status MVP status docs | In progress | 2026-07-02 |
+| 4D.2 | Coffee Status MVP closeout artifacts | Planned | — |
+| 4 | First Roastery bake-off | Deferred | — |
 | 5 | End-to-end Barista workflow test | Planned | — |

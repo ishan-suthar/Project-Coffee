@@ -24,3 +24,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - `config/house_blend.md` — House Blend model-routing policy
 - `DECISIONS/ADR-0004-house-blend-routing.md`
 - `tools/cursor_openrouter_setup.md` — Cursor + OpenRouter setup (no secrets in repo)
+
+### Added (Brew 1 / Coffee Status MVP)
+
+- Coffee Status app skeleton, minimal Streamlit page, project root display, safe Markdown readers, and previews for Active Context, Roadmap, and House Blend.
+- Static and manual runtime verification completed; root-resolution bug found and fixed.
