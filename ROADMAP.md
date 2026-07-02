@@ -11,10 +11,10 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 1 closeout after Coffee Status MVP verification |
-| Current milestone | Coffee Status MVP passed manual runtime verification |
-| Next shot | Shot 4D.2 closeout artifacts: retrospective, ledger estimate, and workflow scorecard |
-| Blockers | None for Coffee Status MVP closeout |
+| Current shot | Brew 1 complete; next Brew planning |
+| Current milestone | Brew 1 / Coffee Status MVP complete |
+| Next step | Choose Brew 2 or design the next Coffee Status improvement |
+| Blockers | None for Brew 1 closeout |
 
 ## Phase 1 goal
 
@@ -110,7 +110,9 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 3B | Live OpenRouter connectivity test | Historical blocked context | 2026-07-02 |
 | 4B | Coffee Status MVP build | Complete | 2026-07-02 |
 | 4C | Coffee Status MVP verification | Complete | 2026-07-02 |
-| 4D.1 | Coffee Status MVP status docs | In progress | 2026-07-02 |
-| 4D.2 | Coffee Status MVP closeout artifacts | Planned | — |
+| 4D.1 | Coffee Status MVP status docs | Complete | 2026-07-02 |
+| 4D.2 | Coffee Status MVP closeout artifacts | Complete | 2026-07-02 |
+| 4D.3 | Final Brew 1 closeout update | Complete | 2026-07-02 |
+| Brew 2 | Next Brew planning | Planned | — |
 | 4 | First Roastery bake-off | Deferred | — |
 | 5 | End-to-end Barista workflow test | Planned | — |

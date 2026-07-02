@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Coffee Status MVP verified. Closeout documentation and artifacts are next.
+Current status: Brew 1 / Coffee Status MVP complete.
 
 ## Completed
 
@@ -22,6 +22,11 @@ Current status: Coffee Status MVP verified. Closeout documentation and artifacts
 | 2026-07-02 | Brew 1 / Shots 4B.3b-4B.3c — Status previews | Active Context, Roadmap, and House Blend previews completed |
 | 2026-07-02 | Brew 1 / Shot 4C.1 — Static verification | Coffee Status static verification completed |
 | 2026-07-02 | Brew 1 / Shot 4C.2 — Runtime verification | Manual Streamlit runtime verification completed; root path bug found and fixed |
+| 2026-07-02 | Brew 1 / Shot 4D.1 — Status docs update | Current project status docs updated |
+| 2026-07-02 | Brew 1 / Shot 4D.2a — Retrospective | Coffee Status MVP retrospective created |
+| 2026-07-02 | Brew 1 / Shot 4D.2b — Ledger estimate | Coffee Ledger estimate added |
+| 2026-07-02 | Brew 1 / Shot 4D.2c — Workflow scorecard | Roastery workflow scorecard added |
+| 2026-07-02 | Brew 1 / Shot 4D.3 — Final closeout update | Brew 1 marked complete in live status docs |
 
 ## Attempted (blocked)
 
@@ -31,14 +36,14 @@ Current status: Coffee Status MVP verified. Closeout documentation and artifacts
 
 ## In progress
 
-Coffee Status MVP closeout documentation and artifacts.
+Next Brew planning.
 
 ## Up next
 
-1. Shot 4D.2 — closeout artifacts: retrospective, ledger estimate, and workflow scorecard
-2. Track F1 — End-to-end workflow test
-3. Historical follow-up: retry Shot 3B connectivity when ready
+1. Choose Brew 2 or design the next Coffee Status improvement.
+2. Track F1 — End-to-end workflow test.
+3. Historical follow-up: retry Shot 3B connectivity when ready.
 
 ## Blockers
 
-None for Coffee Status MVP. Shot 3B OpenRouter shell authentication remains historical context.
+None for Brew 1. Shot 3B OpenRouter shell authentication remains historical context.

@@ -29,3 +29,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Coffee Status app skeleton, minimal Streamlit page, project root display, safe Markdown readers, and previews for Active Context, Roadmap, and House Blend.
 - Static and manual runtime verification completed; root-resolution bug found and fixed.
+
+### Changed (Brew 1 closeout)
+
+- Marked Coffee Status MVP complete after static and runtime verification, including the project-root fix.
+- Added closeout coverage through status docs, retrospective, ledger estimate, and Roastery workflow scorecard.
