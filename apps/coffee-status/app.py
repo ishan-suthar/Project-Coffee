@@ -1,9 +1,10 @@
 import streamlit as st
 from pathlib import Path
+from src.readers import resolve_project_root, file_exists, read_first_lines
 
 # Determine Project Coffee root (two levels up from this file)
 APP_DIR = Path(__file__).parent
-PROJECT_ROOT = APP_DIR.parent.parent
+PROJECT_ROOT = resolve_project_root(__file__)
 
 st.title("Project Coffee Status")
 st.code(f"Project Coffee root: {PROJECT_ROOT}")
@@ -18,15 +19,14 @@ files_to_check = [
 ]
 
 for file_rel in files_to_check:
-    file_path = PROJECT_ROOT / file_rel
-    if file_path.exists():
+    if file_exists(PROJECT_ROOT, file_rel):
         st.success(f"✅ {file_rel} exists")
         if file_rel == "brew-log/active_context.md":
             # Display first 20 lines of active_context.md
-            try:
-                lines = file_path.read_text(encoding="utf-8").splitlines()[:20]
+            lines = read_first_lines(PROJECT_ROOT, file_rel)
+            if lines is not None:
                 st.text("\n".join(lines))
-            except Exception as e:
-                st.error(f"Error reading {file_rel}: {e}")
+            else:
+                st.error(f"Error reading {file_rel}")
     else:
         st.warning(f"❌ {file_rel} is missing")
