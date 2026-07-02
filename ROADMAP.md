@@ -11,9 +11,9 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Shot 3A complete |
-| Next shot | Shot 3B — Live OpenRouter connectivity test |
-| Blockers | None |
+| Current shot | Shot 3B blocked — retry needed |
+| Next shot | Shot 3B retry or Shot 4 (after live test succeeds) |
+| Blockers | `OPENROUTER_API_KEY` not available to agent shell |
 
 ## Phase 1 goal
 
@@ -62,10 +62,10 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | # | Task | Status |
 | --- | --- | --- |
 | D1 | Confirm Cursor as Coffee Counter | Documented (Shot 3A) |
-| D2 | Connect OpenRouter API | Shot 3B (credentials in Cursor only) |
+| D2 | Connect OpenRouter API | Blocked in shell (Cursor UI only); retry Shot 3B |
 | D3 | Create House Blend routing policy | Done (Shot 3A) |
 | D4 | Document model choices as ADR | Done (Shot 3A — ADR-0004) |
-| D5 | Test Beans on trivial prompt | Shot 3B |
+| D5 | Test Beans on trivial prompt | Blocked (Shot 3B) — retry |
 | D6 | Evaluate Continue and/or Cline | Deferred |
 
 ### Track E — Roastery and evaluation
@@ -74,9 +74,9 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | --- | --- | --- |
 | E1 | Define starter benchmark tasks | Planned |
 | E2 | Run first model bake-off | Deferred |
-| E3 | Record Tasting Notes | Deferred |
+| E3 | Record Tasting Notes | Partial (Shot 3B blocked scorecard) |
 | E4 | Update House Blend from evidence | Deferred |
-| E5 | Log costs in Coffee Ledger | Deferred |
+| E5 | Log costs in Coffee Ledger | Partial (Shot 3B estimates only) |
 
 ### Track F — Verification and Phase 1 exit
 
@@ -84,7 +84,7 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | --- | --- | --- |
 | F1 | Run Barista on a real small coding task | Planned |
 | F2 | Verify Brew Log updated | Planned |
-| F3 | Verify Roastery has at least one scorecard | Planned |
+| F3 | Verify Roastery has at least one scorecard | Partial (blocked scorecard) |
 | F4 | Phase 1 retrospective | Planned |
 | F5 | Human can explain Coffee in one paragraph | Open |
 
@@ -94,7 +94,7 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 - [ ] OpenRouter routes to at least one tested Bean
 - [x] House Blend policy exists and is documented
 - [ ] Brew Log, Pantry, Roastery, and Ledger structures are usable
-- [ ] At least one model bake-off recorded with Tasting Notes
+- [x] At least one Roastery scorecard exists (Shot 3B blocked — live metrics pending)
 - [ ] At least one real task completed through the full brewing cycle
 - [ ] Spill Guard files protect secrets; no credentials in repo
 - [ ] Human can describe what Coffee is, what it is not, and how Barista works
@@ -106,6 +106,6 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 1 | Complete operational skeleton | Complete | 2026-07-02 |
 | 2 | Barista becomes operational | Complete | 2026-07-02 |
 | 3A | House Blend policy and setup docs | Complete | 2026-07-02 |
-| 3B | Live OpenRouter connectivity test | Next | — |
+| 3B | Live OpenRouter connectivity test | Blocked — retry | 2026-07-02 |
 | 4 | First Roastery bake-off | Planned | — |
 | 5 | End-to-end Barista workflow test | Planned | — |

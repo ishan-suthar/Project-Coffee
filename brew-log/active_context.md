@@ -6,28 +6,25 @@ Phase 1 — Working daily AI coding environment
 
 ## Current milestone
 
-Shot 3A complete: House Blend policy and OpenRouter/Cursor setup docs (no credentials, no live tests).
+Shot 3B attempted: connectivity test **BLOCKED** — OpenRouter key not available to agent shell.
 
 ## What matters right now
 
-- House Blend: `config/house_blend.md`
-- Setup guide: `tools/cursor_openrouter_setup.md`
-- ADR: `DECISIONS/ADR-0004-house-blend-routing.md`
-- Fast coding Bean exact model ID still TBD (Roastery bake-off)
-- Next: Shot 3B — live connectivity test (requires API key in Cursor only + your approval)
-- API keys: Cursor settings or local env only — never in repo
+- House Blend default Bean (planned): `nvidia/nemotron-3-super-120b-a12b` via OpenRouter
+- First Roastery scorecard created (blocked status): `roastery/model_scorecards/shot-3b-nemotron-connectivity.md`
+- Ledger entries logged with pre-flight estimates only
+- **Blocker:** Cursor-stored API keys are not visible to Barista terminal; Shot 3B retry needs `OPENROUTER_API_KEY` in User environment OR manual test in Cursor UI
 
 ## Next actions
 
-1. Review Shot 3A policy and setup doc
-2. Configure OpenRouter key in Cursor per `tools/cursor_openrouter_setup.md`
-3. Approve Shot 3B for trivial live model test
-4. Then Shot 4 — first Roastery bake-off
+1. Retry Shot 3B: set `OPENROUTER_API_KEY` in Windows User env (not repo) **or** run connectivity prompt manually with Nemotron in Cursor
+2. On success: update scorecard, ledger, and ROADMAP exit criteria
+3. Shot 4 — first Roastery bake-off (fast coding Bean TBD)
 
 ## Blockers
 
-None for documentation. Live routing blocked until Shot 3B.
+OpenRouter authentication from agent shell.
 
 ## Last updated
 
-2026-07-02 — Shot 3A complete
+2026-07-02 — Shot 3B blocked (documented)
