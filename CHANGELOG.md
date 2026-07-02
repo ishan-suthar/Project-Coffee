@@ -34,3 +34,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 - Marked Coffee Status MVP complete after static and runtime verification, including the project-root fix.
 - Added closeout coverage through status docs, retrospective, ledger estimate, and Roastery workflow scorecard.
+
+### Added (Brew 2 / Prompt Library MVP)
+
+- Added `prompts/` skeleton for local prompt artifacts.
+- Added reusable Espresso Shot prompt template.
+- Added first approved Espresso Shot prompt artifact.
+- Completed Prompt Library verification for structure, clarity, safety, and reuse value.

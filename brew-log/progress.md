@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 1 / Coffee Status MVP complete.
+Current status: Prompt Library MVP built and verified; closeout artifacts pending.
 
 ## Completed
 
@@ -27,6 +27,11 @@ Current status: Brew 1 / Coffee Status MVP complete.
 | 2026-07-02 | Brew 1 / Shot 4D.2b — Ledger estimate | Coffee Ledger estimate added |
 | 2026-07-02 | Brew 1 / Shot 4D.2c — Workflow scorecard | Roastery workflow scorecard added |
 | 2026-07-02 | Brew 1 / Shot 4D.3 — Final closeout update | Brew 1 marked complete in live status docs |
+| 2026-07-02 | Brew 2 / Shot 5A — Prompt Library planning | Prompt Library / Espresso Shot Archive selected |
+| 2026-07-02 | Brew 2 / Shot 5B — Prompt Library skeleton | `prompts/` README skeleton completed |
+| 2026-07-02 | Brew 2 / Shot 5C — Espresso Shot template | Reusable Espresso Shot prompt template completed |
+| 2026-07-02 | Brew 2 / Shot 5D — First prompt artifact | First approved Espresso Shot prompt artifact completed |
+| 2026-07-02 | Brew 2 / Shot 5E — Prompt Library verification | Prompt Library structure, clarity, safety, and reuse value verified |
 
 ## Attempted (blocked)
 
@@ -36,14 +41,15 @@ Current status: Brew 1 / Coffee Status MVP complete.
 
 ## In progress
 
-Next Brew planning.
+Brew 2 closeout artifacts.
 
 ## Up next
 
-1. Choose Brew 2 or design the next Coffee Status improvement.
-2. Track F1 — End-to-end workflow test.
-3. Historical follow-up: retry Shot 3B connectivity when ready.
+1. Brew 2 / Shot 5F.2 — retrospective only.
+2. Brew 2 ledger estimate and workflow scorecard.
+3. Final Brew 2 closeout.
+4. Historical follow-up: retry Shot 3B connectivity when ready.
 
 ## Blockers
 
-None for Brew 1. Shot 3B OpenRouter shell authentication remains historical context.
+None for Prompt Library MVP closeout. Shot 3B OpenRouter shell authentication remains historical context.

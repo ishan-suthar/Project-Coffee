@@ -11,10 +11,10 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 1 complete; next Brew planning |
-| Current milestone | Brew 1 / Coffee Status MVP complete |
-| Next step | Choose Brew 2 or design the next Coffee Status improvement |
-| Blockers | None for Brew 1 closeout |
+| Current shot | Brew 2 closeout |
+| Current milestone | Brew 2 / Prompt Library MVP built and verified |
+| Next shot | Brew 2 / Shot 5F.2 retrospective only |
+| Blockers | None for Brew 2 closeout |
 
 ## Phase 1 goal
 
@@ -113,6 +113,12 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 4D.1 | Coffee Status MVP status docs | Complete | 2026-07-02 |
 | 4D.2 | Coffee Status MVP closeout artifacts | Complete | 2026-07-02 |
 | 4D.3 | Final Brew 1 closeout update | Complete | 2026-07-02 |
-| Brew 2 | Next Brew planning | Planned | — |
+| 5A | Brew 2 planning | Complete | 2026-07-02 |
+| 5B | Prompt Library skeleton | Complete | 2026-07-02 |
+| 5C | Reusable Espresso Shot template | Complete | 2026-07-02 |
+| 5D | First approved prompt artifact | Complete | 2026-07-02 |
+| 5E | Prompt Library verification | Complete | 2026-07-02 |
+| 5F.1 | Prompt Library MVP status docs | In progress | 2026-07-02 |
+| 5F.2 | Prompt Library MVP retrospective | Planned | — |
 | 4 | First Roastery bake-off | Deferred | — |
 | 5 | End-to-end Barista workflow test | Planned | — |
