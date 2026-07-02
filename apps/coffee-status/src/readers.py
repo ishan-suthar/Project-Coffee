@@ -16,10 +16,10 @@ def resolve_project_root(app_file: str) -> Path:
         app_file: The __file__ variable from app.py
         
     Returns:
-        Path object pointing to the project root (two levels up from app.py)
+        Path object pointing to the project root (parents[2] from app.py)
     """
     app_path = Path(app_file).resolve()
-    return app_path.parent.parent
+    return app_path.parents[2]
 
 
 def file_exists(project_root: Path, relative_path: str) -> bool:
