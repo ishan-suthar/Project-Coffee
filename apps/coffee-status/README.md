@@ -1,3 +1,5 @@
 # Coffee Status
 
-Placeholder description for Coffee Status project.
+A local-only status dashboard for Project Coffee.
+
+Future run instructions will be added here.
