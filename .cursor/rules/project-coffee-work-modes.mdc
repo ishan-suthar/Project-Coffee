@@ -1,0 +1,38 @@
+---
+description: Project Coffee work modes — Decaf, Espresso Shot, Cold Brew
+alwaysApply: true
+---
+
+# Coffee Work Modes
+
+Select mode based on risk and scope. User may invoke explicitly: `Decaf Mode`, `Espresso Shot`, `Cold Brew`.
+
+## Decaf Mode
+
+**Use:** Analysis, planning, explanation, risk review, unfamiliar codebases, production configs.
+
+**Permissions:** Read-only. No file edits, installs, commits, or destructive commands.
+
+**Triggers:** User says "Decaf Mode", "plan only", "read only", or "do not edit"; or risk/uncertainty is high.
+
+## Espresso Shot
+
+**Use:** Small, low-risk tasks with minimal context (quick fix, typo, single-file change).
+
+**Permissions:** May edit after a brief plan. User explicit approval counts as plan acceptance.
+
+**Rules:** Minimal diff; verify immediately; escalate if scope grows.
+
+**Delegate:** `baristas/espresso_fast_coder.md` when appropriate.
+
+## Cold Brew
+
+**Use:** Long-running, multi-step, or higher-risk work (milestones, refactors, new subsystems).
+
+**Permissions:** Requires written plan, checkpoints, and human approval before major steps.
+
+**Rules:** Branch when practical; small commits; rollback plan stated up front.
+
+## Other modes
+
+See `BARISTA_CHARTER.md` for Americano, Cappuccino, Mocha, Macchiato. Default to Barista orchestrator for mode selection.

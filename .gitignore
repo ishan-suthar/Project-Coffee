@@ -1,0 +1,43 @@
+# Spill Guard — secrets and credentials
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+**/secrets/**
+**/secret/**
+**/credentials/**
+**/private/**
+**/*key*
+**/*token*
+**/*password*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+
+# Dependencies and caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Local config overrides (keep templates in repo)
+config/local.*
+**/local_config.*

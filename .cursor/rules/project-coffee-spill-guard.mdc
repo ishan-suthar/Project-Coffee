@@ -1,0 +1,30 @@
+---
+description: Spill Guard — secrets, privacy, and sensitive content handling
+alwaysApply: true
+---
+
+# Spill Guard
+
+Privacy and safety are design features. Never expose secrets to chat, commits, or remote models.
+
+## Never expose or commit
+
+- API keys, tokens, passwords, credentials, private keys
+- `.env` and secret files (see `.gitignore`, `.cursorignore`)
+- Medical, personal, financial, or proprietary sensitive data
+
+## Ignore files
+
+Respect `.gitignore`, `.cursorignore`, and `.cursorindexingignore`. Do not read or index ignored secret paths.
+
+**Exception:** `ledger/token_log.md` is allowed — it tracks usage metrics, not credentials.
+
+## Sensitive domains
+
+Medical, legal, financial, safety-critical, and hardware-critical work: assist with organization and drafts; human expert review is mandatory before relying on outputs.
+
+## On discovery of secrets in repo
+
+Stop, warn the human, do not repeat the secret, recommend rotation and Spill Guard review.
+
+Reference: `GOVERNANCE_AND_SAFETY.md`.

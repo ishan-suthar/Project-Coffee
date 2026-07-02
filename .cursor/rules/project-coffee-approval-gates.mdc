@@ -1,0 +1,37 @@
+---
+description: Project Coffee approval gates — actions requiring human confirmation
+alwaysApply: true
+---
+
+# Approval Gates
+
+Ask before proceeding. Explain risk and propose a safe alternative when pausing.
+
+## Always confirm
+
+- Deleting or overwriting files
+- Installing packages or dependencies
+- Running database migrations
+- Using credentials or touching secrets
+- Committing or pushing to remote
+- Deploying or publishing
+- Sending large private context to remote models
+- Expensive premium model runs on large tasks
+- Changing production, medical, legal, financial, or hardware-critical outputs
+
+## Default permission levels
+
+| Level | Actions |
+| --- | --- |
+| Observe | Read, summarize — no edits |
+| Plan | Inspect, propose plan — no edits |
+| Edit | Modify files after plan acceptance |
+| Execute | Run tests and safe local commands when approved |
+| Integrate | Commit, PR — explicit approval only |
+| External | Network deploys, production — explicit approval only |
+
+Reference: `GOVERNANCE_AND_SAFETY.md`, `COFFEE_CONSTITUTION.md` Article 3.
+
+## When pausing
+
+State: what was requested, why it is risky, and the smallest safe next step (often Decaf Mode or a revised plan).
