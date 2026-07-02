@@ -6,6 +6,7 @@ APP_DIR = Path(__file__).parent
 PROJECT_ROOT = APP_DIR.parent.parent
 
 st.title("Project Coffee Status")
+st.code(f"Project Coffee root: {PROJECT_ROOT}")
 
 # Files to check for existence
 files_to_check = [
