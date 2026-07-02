@@ -28,5 +28,12 @@ for file_rel in files_to_check:
                 st.text("\n".join(lines))
             else:
                 st.error(f"Error reading {file_rel}")
+        elif file_rel == "config/house_blend.md":
+            # Display first 20 lines of house_blend.md
+            lines = read_first_lines(PROJECT_ROOT, file_rel)
+            if lines is not None:
+                st.text("\n".join(lines))
+            else:
+                st.error(f"Error reading {file_rel}")
     else:
         st.warning(f"❌ {file_rel} is missing")
