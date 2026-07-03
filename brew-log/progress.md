@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 2 / Prompt Library MVP complete.
+Current status: Brew 3 / Coffee Status hardening complete.
 
 ## Completed
 
@@ -37,6 +37,11 @@ Current status: Brew 2 / Prompt Library MVP complete.
 | 2026-07-02 | Brew 2 / Shot 5F.3 — Ledger estimate | Prompt Library MVP ledger estimate added |
 | 2026-07-02 | Brew 2 / Shot 5F.4 — Workflow scorecard | Roastery workflow scorecard added |
 | 2026-07-02 | Brew 2 / Shot 5F.5 — Final closeout update | Brew 2 marked complete in live status docs |
+| 2026-07-03 | Brew 3 / Shot 6B — Coffee Status data model contract | Plain Python status model defined |
+| 2026-07-03 | Brew 3 / Shot 6C — Coffee Status data model tests | Focused unit tests added for the data model |
+| 2026-07-03 | Brew 3 / Shot 6D — Coffee Status status builder | Local builder added for the MVP tracked files and preview privacy contract |
+| 2026-07-03 | Brew 3 / Shot 6E — Wire Coffee Status app to status builder | Streamlit app refactored to consume the builder/model |
+| 2026-07-03 | Brew 3 / Shot 6F — Runtime verification and closeout | Coffee Status tests, syntax check, and Streamlit AppTest runtime verification passed; Brew 3 marked complete in live status docs |
 
 ## Attempted (blocked)
 
@@ -46,14 +51,14 @@ Current status: Brew 2 / Prompt Library MVP complete.
 
 ## In progress
 
-Brew 3 planning.
+None.
 
 ## Up next
 
-1. Choose Brew 3.
-2. Consider Coffee Status hardening, a local Brew Runner / shot checklist, Roastery evaluation workflow improvements, or House Blend routing refinement.
+1. Human review and commit Brew 3 / Shot 6F closeout docs.
+2. Choose the next small, local-first Project Coffee Brew.
 3. Historical follow-up: retry Shot 3B connectivity when ready.
 
 ## Blockers
 
-None for Brew 2. Shot 3B OpenRouter shell authentication remains historical context.
+None for Brew 3. Shot 3B OpenRouter shell authentication remains historical context.

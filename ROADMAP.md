@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 2 complete; Brew 3 planning next |
-| Current milestone | Brew 2 / Prompt Library MVP complete |
-| Next step | Choose Brew 3 |
-| Brew 3 candidates | Coffee Status hardening; local Brew Runner / shot checklist; Roastery evaluation workflow improvements; House Blend routing refinement |
-| Blockers | None for Brew 2 closeout |
+| Current shot | Brew 3 complete; next Brew planning next |
+| Current milestone | Brew 3 / Coffee Status hardening complete |
+| Next step | Choose the next small, local-first Brew |
+| Recent Brew 3 result | Coffee Status model, tests, builder, app wiring, and runtime verification complete |
+| Blockers | None for Brew 3 closeout |
 
 ## Phase 1 goal
 
@@ -124,6 +124,11 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 5F.3 | Prompt Library MVP ledger estimate | Complete | 2026-07-02 |
 | 5F.4 | Prompt Library MVP workflow scorecard | Complete | 2026-07-02 |
 | 5F.5 | Final Prompt Library MVP closeout update | Complete | 2026-07-02 |
-| Brew 3 | Next Brew planning | Planned | — |
+| 6B | Coffee Status data model contract | Complete | 2026-07-03 |
+| 6C | Coffee Status data model tests | Complete | 2026-07-03 |
+| 6D | Coffee Status status builder | Complete | 2026-07-03 |
+| 6E | Wire Coffee Status app to status builder | Complete | 2026-07-03 |
+| 6F | Coffee Status runtime verification and closeout | Complete | 2026-07-03 |
+| Brew 4 | Next Brew planning | Planned | — |
 | 4 | First Roastery bake-off | Deferred | — |
 | 5 | End-to-end Barista workflow test | Planned | — |

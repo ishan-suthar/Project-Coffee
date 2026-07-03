@@ -47,3 +47,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Marked Prompt Library MVP complete after adding the `prompts/` skeleton, reusable Espresso Shot template, first approved prompt artifact, and verification.
 - Recorded that verification caught and fixed an untracked prompt artifact gap.
 - Added closeout coverage through status docs, retrospective, ledger estimate, and Roastery workflow scorecard.
+
+### Changed (Brew 3 / Coffee Status hardening)
+
+- Added a plain Python Coffee Status data model, focused unit tests, and a local status builder for the MVP tracked files.
+- Refactored the Streamlit app to consume the status builder/model while preserving the existing dashboard behavior.
+- Runtime verified the refactored dashboard with Streamlit AppTest; Ledger and Roastery contents remain hidden.
