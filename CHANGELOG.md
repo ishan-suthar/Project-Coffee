@@ -41,3 +41,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added reusable Espresso Shot prompt template.
 - Added first approved Espresso Shot prompt artifact.
 - Completed Prompt Library verification for structure, clarity, safety, and reuse value.
+
+### Changed (Brew 2 closeout)
+
+- Marked Prompt Library MVP complete after adding the `prompts/` skeleton, reusable Espresso Shot template, first approved prompt artifact, and verification.
+- Recorded that verification caught and fixed an untracked prompt artifact gap.
+- Added closeout coverage through status docs, retrospective, ledger estimate, and Roastery workflow scorecard.

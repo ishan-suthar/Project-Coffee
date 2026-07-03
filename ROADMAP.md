@@ -11,9 +11,10 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 2 closeout |
-| Current milestone | Brew 2 / Prompt Library MVP built and verified |
-| Next shot | Brew 2 / Shot 5F.2 retrospective only |
+| Current shot | Brew 2 complete; Brew 3 planning next |
+| Current milestone | Brew 2 / Prompt Library MVP complete |
+| Next step | Choose Brew 3 |
+| Brew 3 candidates | Coffee Status hardening; local Brew Runner / shot checklist; Roastery evaluation workflow improvements; House Blend routing refinement |
 | Blockers | None for Brew 2 closeout |
 
 ## Phase 1 goal
@@ -118,7 +119,11 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 5C | Reusable Espresso Shot template | Complete | 2026-07-02 |
 | 5D | First approved prompt artifact | Complete | 2026-07-02 |
 | 5E | Prompt Library verification | Complete | 2026-07-02 |
-| 5F.1 | Prompt Library MVP status docs | In progress | 2026-07-02 |
-| 5F.2 | Prompt Library MVP retrospective | Planned | — |
+| 5F.1 | Prompt Library MVP status docs | Complete | 2026-07-02 |
+| 5F.2 | Prompt Library MVP retrospective | Complete | 2026-07-02 |
+| 5F.3 | Prompt Library MVP ledger estimate | Complete | 2026-07-02 |
+| 5F.4 | Prompt Library MVP workflow scorecard | Complete | 2026-07-02 |
+| 5F.5 | Final Prompt Library MVP closeout update | Complete | 2026-07-02 |
+| Brew 3 | Next Brew planning | Planned | — |
 | 4 | First Roastery bake-off | Deferred | — |
 | 5 | End-to-end Barista workflow test | Planned | — |
