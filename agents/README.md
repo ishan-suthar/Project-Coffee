@@ -20,3 +20,4 @@ role definitions, not a full agent framework.
 | `agents/barista-main.md` | Main Project Coffee planning, routing, verification, and closeout role. |
 | `agents/espresso-fast-coder.md` | Tiny code fixes, small tests, simple scripts, and minimal refactors. |
 | `agents/mocha-python-ai.md` | Python, AI/ML, data, notebook, Streamlit, and small evaluation utility work. |
+| `agents/cappuccino-research.md` | Source-grounded research summaries, literature maps, and method extraction. |
