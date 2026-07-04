@@ -2,6 +2,13 @@
 
 Use model scorecards to record model performance.
 
+## Recording Rules
+
+- Add entries only after a real model run.
+- Do not invent scores, costs, token counts, latency, or outputs.
+- Use `scorecard-template.md` for reusable Bean scorecards.
+- Use `cup-test-template.md` for per-run evidence capture.
+
 ## Entries
 
 | Date | Bean | Task | Verdict | Scorecard |
