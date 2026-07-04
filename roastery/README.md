@@ -26,6 +26,7 @@ tokens, latency, or model outputs.
 
 | File | Use |
 | --- | --- |
+| `run_cup_test.py` | Local CLI runner for executing the same Order against configured Beans. |
 | `openrouter_client.py` | Tiny stdlib OpenRouter wrapper for future Cup Test model calls. |
 | `cup_test_plan.md` | Plan for the first repeatable Roastery Cup Test. |
 | `cup-test-template.md` | Blank run template for each Bean in a Cup Test. |
@@ -40,3 +41,16 @@ tokens, latency, or model outputs.
 `openrouter_client.py` reads credentials only from `OPENROUTER_API_KEY` and
 returns structured results from one model/order call. It does not store or print
 credentials, choose routes, create scorecards, or run Cup Tests by itself.
+
+## Local Cup Test Runner
+
+Run the local Cup Test runner from the repository root:
+
+```powershell
+python roastery/run_cup_test.py
+```
+
+The runner checks whether `OPENROUTER_API_KEY` is available at runtime, sends the
+same default Order to each configured Bean, and prints a comparison table. It
+does not write Roastery files, calculate scores, update the Ledger, or change
+House Blend routing.
