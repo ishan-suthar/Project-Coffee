@@ -26,6 +26,7 @@ tokens, latency, or model outputs.
 
 | File | Use |
 | --- | --- |
+| `openrouter_client.py` | Tiny stdlib OpenRouter wrapper for future Cup Test model calls. |
 | `cup_test_plan.md` | Plan for the first repeatable Roastery Cup Test. |
 | `cup-test-template.md` | Blank run template for each Bean in a Cup Test. |
 | `scorecard-template.md` | Blank reusable scorecard for comparing a Bean run. |
@@ -33,3 +34,9 @@ tokens, latency, or model outputs.
 | `model_scorecards/` | Individual Bean/model scorecards. |
 | `workflow_scorecards/` | Workflow-level scorecards. |
 | `benchmark_tasks/` | Repeatable benchmark task definitions. |
+
+## OpenRouter Client
+
+`openrouter_client.py` reads credentials only from `OPENROUTER_API_KEY` and
+returns structured results from one model/order call. It does not store or print
+credentials, choose routes, create scorecards, or run Cup Tests by itself.
