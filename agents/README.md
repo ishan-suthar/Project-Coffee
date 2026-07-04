@@ -23,3 +23,4 @@ role definitions, not a full agent framework.
 | `agents/cappuccino-research.md` | Source-grounded research summaries, literature maps, and method extraction. |
 | `agents/macchiato-embedded.md` | Embedded firmware planning, review, sensor interfaces, and datasheet-driven reasoning. |
 | `agents/flat-white-code-review.md` | Diff, maintainability, test coverage, security/privacy, and risk review. |
+| `agents/cortado-devops-infra.md` | DevOps, infrastructure config, deployment planning, and cost/risk review. |
