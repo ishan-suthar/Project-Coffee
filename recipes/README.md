@@ -17,4 +17,5 @@ recipe" instead of restating the full workflow every time.
 
 | Recipe | Use |
 | --- | --- |
+| `recipes/decaf-planning-recipe.md` | Read-only planning shots before implementation. |
 | `recipes/coding/small-feature-with-tests.md` | Small scoped implementation with tests and closeout. |
