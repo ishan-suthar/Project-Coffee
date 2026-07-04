@@ -8,10 +8,15 @@ role definitions, not a full agent framework.
 
 ## Start Here
 
+- Use `agents/role-selection-guide.md` to choose the smallest role for a task.
 - Use `agents/templates/barista-role-template.md` when creating a new role card.
 - Create specialized roles one at a time only when repeated work justifies them.
 - Keep role cards short and link to source docs instead of copying them.
 - Do not store secrets, credentials, API keys, or private data in role cards.
+
+## Selection Guide
+
+- `agents/role-selection-guide.md`
 
 ## Current Roles
 
