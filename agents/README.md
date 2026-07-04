@@ -15,5 +15,6 @@ role definitions, not a full agent framework.
 
 ## Current Roles
 
-No specialized role cards have been added here yet.
-
+| Role card | Use |
+| --- | --- |
+| `agents/barista-main.md` | Main Project Coffee planning, routing, verification, and closeout role. |
