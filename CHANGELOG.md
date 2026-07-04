@@ -53,3 +53,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added a plain Python Coffee Status data model, focused unit tests, and a local status builder for the MVP tracked files.
 - Refactored the Streamlit app to consume the status builder/model while preserving the existing dashboard behavior.
 - Runtime verified the refactored dashboard with Streamlit AppTest; Ledger and Roastery contents remain hidden.
+
+### Added (Brew 4 / Token efficiency foundation)
+
+- Added Pantry Lite under `knowledge/` with a context index, Project Coffee foundation summary, and usage verification.
+- Added Recipes and Baristas skeletons, including a reusable Decaf planning Recipe.
+- Added Barista role cards for Main Barista, Espresso Fast Coder, Mocha Python/AI, Cappuccino Research, Macchiato Embedded, Flat White Code Review, and Cortado DevOps/Infra.
+- Added a Barista role selection guide and read-only role usage test to support short, focused Orders.

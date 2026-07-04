@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 3 complete; next Brew planning next |
-| Current milestone | Brew 3 / Coffee Status hardening complete |
-| Next step | Choose the next small, local-first Brew |
-| Recent Brew 3 result | Coffee Status model, tests, builder, app wiring, and runtime verification complete |
-| Blockers | None for Brew 3 closeout |
+| Current shot | Brew 4 complete; Brew 5 planning next |
+| Current milestone | Brew 4 / Token efficiency foundation complete |
+| Next step | Brew 5 / Shot 8A — Roastery Cup Test planning only |
+| Recent Brew 4 result | Pantry Lite, reusable Recipes, Barista role cards, role selection guide, and read-only usage verification complete |
+| Blockers | None for Brew 4 closeout |
 
 ## Phase 1 goal
 
@@ -129,6 +129,22 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 6D | Coffee Status status builder | Complete | 2026-07-03 |
 | 6E | Wire Coffee Status app to status builder | Complete | 2026-07-03 |
 | 6F | Coffee Status runtime verification and closeout | Complete | 2026-07-03 |
-| Brew 4 | Next Brew planning | Planned | — |
+| 7A | Token efficiency foundation planning | Complete | 2026-07-04 |
+| 7B | Pantry Lite context index | Complete | 2026-07-04 |
+| 7C | Pantry Lite usage verification | Complete | 2026-07-04 |
+| 7D | Recipes and Baristas skeleton | Complete | 2026-07-04 |
+| 7E | Reusable Decaf planning Recipe | Complete | 2026-07-04 |
+| 7F | Main Barista role card | Complete | 2026-07-04 |
+| 7G | Main Barista role usage verification | Complete | 2026-07-04 |
+| 7H | Espresso Fast Coder role card | Complete | 2026-07-04 |
+| 7I | Mocha Python/AI role card | Complete | 2026-07-04 |
+| 7J | Cappuccino Research role card | Complete | 2026-07-04 |
+| 7K | Macchiato Embedded role card | Complete | 2026-07-04 |
+| 7L | Flat White Code Review role card | Complete | 2026-07-04 |
+| 7M | Cortado DevOps/Infra role card | Complete | 2026-07-04 |
+| 7N | Barista role selection guide | Complete | 2026-07-04 |
+| 7O | Barista role read-only usage test | Complete | 2026-07-04 |
+| 7P | Token efficiency foundation closeout docs | Complete | 2026-07-04 |
+| 8A | Roastery Cup Test planning | Planned | — |
 | 4 | First Roastery bake-off | Deferred | — |
 | 5 | End-to-end Barista workflow test | Planned | — |

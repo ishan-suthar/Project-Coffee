@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 3 / Coffee Status hardening complete.
+Current status: Brew 4 / Token efficiency foundation complete.
 
 ## Completed
 
@@ -42,6 +42,22 @@ Current status: Brew 3 / Coffee Status hardening complete.
 | 2026-07-03 | Brew 3 / Shot 6D — Coffee Status status builder | Local builder added for the MVP tracked files and preview privacy contract |
 | 2026-07-03 | Brew 3 / Shot 6E — Wire Coffee Status app to status builder | Streamlit app refactored to consume the builder/model |
 | 2026-07-03 | Brew 3 / Shot 6F — Runtime verification and closeout | Coffee Status tests, syntax check, and Streamlit AppTest runtime verification passed; Brew 3 marked complete in live status docs |
+| 2026-07-04 | Brew 4 / Shot 7A — Token efficiency foundation planning | Pantry Lite / context index selected as the next token-saving foundation |
+| 2026-07-04 | Brew 4 / Shot 7B — Pantry Lite context index | `knowledge/` index and Project Coffee foundation summary added |
+| 2026-07-04 | Brew 4 / Shot 7C — Pantry Lite usage verification | Pantry Lite verified as sufficient for core orientation questions |
+| 2026-07-04 | Brew 4 / Shot 7D — Recipes and Baristas skeleton | `recipes/templates/` and `agents/templates/` skeletons added |
+| 2026-07-04 | Brew 4 / Shot 7E — Reusable Decaf planning Recipe | `recipes/decaf-planning-recipe.md` added |
+| 2026-07-04 | Brew 4 / Shot 7F — Main Barista role card | `agents/barista-main.md` added |
+| 2026-07-04 | Brew 4 / Shot 7G — Main Barista role usage verification | Main Barista role verified as sufficient for short planning Orders |
+| 2026-07-04 | Brew 4 / Shot 7H — Espresso Fast Coder role card | `agents/espresso-fast-coder.md` added |
+| 2026-07-04 | Brew 4 / Shot 7I — Mocha Python/AI role card | `agents/mocha-python-ai.md` added |
+| 2026-07-04 | Brew 4 / Shot 7J — Cappuccino Research role card | `agents/cappuccino-research.md` added |
+| 2026-07-04 | Brew 4 / Shot 7K — Macchiato Embedded role card | `agents/macchiato-embedded.md` added |
+| 2026-07-04 | Brew 4 / Shot 7L — Flat White Code Review role card | `agents/flat-white-code-review.md` added |
+| 2026-07-04 | Brew 4 / Shot 7M — Cortado DevOps/Infra role card | `agents/cortado-devops-infra.md` added |
+| 2026-07-04 | Brew 4 / Shot 7N — Barista role selection guide | `agents/role-selection-guide.md` added |
+| 2026-07-04 | Brew 4 / Shot 7O — Barista role read-only usage test | `agents/role-usage-test.md` verified short read-only Orders for selected roles |
+| 2026-07-04 | Brew 4 / Shot 7P — Token efficiency foundation closeout docs | Brew 4 marked complete in live status docs |
 
 ## Attempted (blocked)
 
@@ -55,10 +71,10 @@ None.
 
 ## Up next
 
-1. Human review and commit Brew 3 / Shot 6F closeout docs.
-2. Choose the next small, local-first Project Coffee Brew.
+1. Human review and commit Brew 4 / Shot 7P closeout docs.
+2. Brew 5 / Shot 8A — Roastery Cup Test planning only.
 3. Historical follow-up: retry Shot 3B connectivity when ready.
 
 ## Blockers
 
-None for Brew 3. Shot 3B OpenRouter shell authentication remains historical context.
+None for Brew 4. Shot 3B OpenRouter shell authentication remains historical context.
