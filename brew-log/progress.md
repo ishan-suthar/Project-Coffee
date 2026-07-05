@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 5 / Roastery Cup Test evidence gathering in progress.
+Current status: Brew 5 / Roastery MVP complete.
 
 ## Completed
 
@@ -71,6 +71,7 @@ Current status: Brew 5 / Roastery Cup Test evidence gathering in progress.
 | 2026-07-05 | Brew 5 / Shot 8L — Choose initial House Blend | Provisional recommendation selected from 8J/8K evidence |
 | 2026-07-05 | Brew 5 / Shot 8M — Record provisional House Blend | `config/house_blend.md` updated with provisional Nemotron default, Cohere fallback, and Poolside comparison Bean |
 | 2026-07-05 | Brew 5 / Shot 8N — ADR for local OpenRouter Coffee Core pivot | ADR-0005 accepted: local OpenRouter runner is current Coffee Core for Roastery tests |
+| 2026-07-05 | Brew 5 / Shot 8O — Roastery MVP closeout | Brew 5 marked complete with provisional House Blend and honest remaining quality/cost limitations |
 
 ## Attempted (blocked)
 
@@ -80,14 +81,14 @@ Current status: Brew 5 / Roastery Cup Test evidence gathering in progress.
 
 ## In progress
 
-Brew 5 / Roastery Cup Test evidence gathering.
+None.
 
 ## Up next
 
-1. Brew 5 / Shot 8O — Roastery MVP closeout.
+1. Brew 6 / Shot 9A — Safety / Constitution gap check.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for basic runner execution. Quality scoring remains blocked until full model outputs are available for review. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 5 closeout. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.

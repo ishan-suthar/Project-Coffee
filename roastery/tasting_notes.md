@@ -103,3 +103,24 @@ Recommendation recorded from 8J/8K evidence:
 This House Blend is provisional. Full-output quality and actual cost remain
 unknown. Qwen and the tested DeepSeek free slugs should not be default routes
 until availability improves and a future Roastery run succeeds.
+
+### 2026-07-05 - Brew 5 / Shot 8O: Roastery MVP Closeout
+
+Brew 5 reached Roastery MVP:
+
+- At least two Beans were compared on the same Order; the 8J rerun compared
+  Poolside, Cohere, and Nemotron.
+- Roastery recorded the partial first run, successful rerun, and provisional
+  House Blend recommendation.
+- Ledger recorded observed token totals and used `unknown` where actual costs
+  were unavailable.
+- House Blend now has a provisional evidence-based recommendation:
+  `nvidia/nemotron-3-ultra-550b-a55b:free` as default and
+  `cohere/north-mini-code:free` as fallback.
+
+Known limitations:
+
+- Full outputs were not captured and scored.
+- Actual costs remain unknown.
+- Evidence is based on one tiny coding Order.
+- Future Cup Tests should preserve full outputs and add human quality scoring.
