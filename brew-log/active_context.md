@@ -19,6 +19,7 @@ Brew 5 / Roastery Cup Test evidence gathering.
 - Observed 8J latencies: Poolside 0.81s, Cohere 3.77s, Nemotron 0.42s.
 - Brew 5 / Shot 8L selected a provisional initial House Blend from evidence: Nemotron default, Cohere fallback, Poolside secondary fallback/comparison Bean.
 - The House Blend remains provisional because only one tiny coding Order was tested, full outputs were not captured/scored, quality is unknown beyond previews, and actual cost is unknown.
+- Brew 5 / Shot 8N accepted ADR-0005: the local OpenRouter client/runner is the current Coffee Core for Roastery tests and routing experiments.
 - Brew 4 added the token efficiency foundation: Pantry Lite, reusable Recipes, Barista role cards, a role selection guide, and read-only role usage verification.
 - Brew 3 / Coffee Status hardening remains completed historical context.
 - Brew 2 / Prompt Library MVP remains completed historical context.
@@ -27,9 +28,9 @@ Brew 5 / Roastery Cup Test evidence gathering.
 
 ## Next actions
 
-1. Brew 5 / Shot 8N — ADR for local OpenRouter Coffee Core pivot.
-2. Brew 5 / Shot 8O — Roastery MVP closeout.
-3. Preserve full model outputs in future Cup Tests before scoring quality.
+1. Brew 5 / Shot 8O — Roastery MVP closeout.
+2. Preserve full model outputs in future Cup Tests before scoring quality.
+3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
@@ -37,4 +38,4 @@ No active blocker for basic runner execution. Quality scoring remains blocked un
 
 ## Last updated
 
-2026-07-05 — Brew 5 / Shot 8M provisional House Blend recorded
+2026-07-05 — Brew 5 / Shot 8N ADR-0005 local OpenRouter Coffee Core pivot recorded
