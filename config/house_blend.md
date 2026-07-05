@@ -1,205 +1,89 @@
-# House Blend — Model Routing Policy
+# House Blend
 
-Version: v0.1 Phase 1 Draft  
-Date: 2026-07-02  
-Status: Active (documentation only; live routing TBD after Roastery bake-off)
+Status: Provisional
+Date: 2026-07-05
+Scope: Initial evidence-based routing for local Project Coffee work
 
-House Blend is Project Coffee's default model-routing policy. It is **configuration**, not identity. Models are Beans; this file describes how Barista chooses them.
+House Blend is Project Coffee's model-routing policy. It is configuration, not
+identity. Models are replaceable Beans, and routing should change only when
+Roastery evidence supports the change.
 
-Reference: `DECISIONS/ADR-0002-model-and-vendor-independence.md`, `DECISIONS/ADR-0004-house-blend-routing.md`, `BARISTA_CHARTER.md`.
+Reference evidence:
 
----
+- `roastery/tasting_notes.md`
+- `ledger/cost_log.md`
+- `brew-log/progress.md`
+- `brew-log/active_context.md`
 
-## What Beans are
+## Current Blend
 
-**Beans** are replaceable language models accessed through a gateway (currently OpenRouter). Examples: Nemotron, Qwen, DeepSeek, Claude, GPT, Codex-class models, and future providers.
-
-- Bean names belong in configuration and the Roastery, not in Coffee's identity.
-- Routing decisions should be explainable and revisable after evaluation.
-- The House Blend is updated from evidence in `roastery/` and `ledger/`, not from hype.
-
----
-
-## Routing overview
-
-| Role | Bean (draft) | Gateway | Notes |
+| Route | Bean | Status | Why |
 | --- | --- | --- | --- |
-| Default reasoning / long-context | Nemotron | OpenRouter | Primary daily Bean for planning, synthesis, multi-file context |
-| Fast coding | Qwen Coder or DeepSeek Coder | OpenRouter | Exact model ID TBD after bake-off |
-| Review / sentinel | Nemotron first | OpenRouter | Claude only with explicit human approval |
-| Expensive escalation | Claude or Codex-class | OpenRouter | When Barista cannot proceed confidently |
-| Free / testing | Free-tier endpoints only | OpenRouter | Small tests only; never sensitive data |
+| Default Bean | `nvidia/nemotron-3-ultra-550b-a55b:free` | Provisional | Succeeded twice; fastest and lowest-token Bean in the 8J rerun. |
+| Fallback Bean | `cohere/north-mini-code:free` | Provisional | Succeeded on the same Order and used fewer tokens than Poolside, though it was slower. |
+| Secondary fallback / comparison Bean | `poolside/laguna-m.1:free` | Provisional | Succeeded on the same Order, but used the most tokens in the 8J rerun. |
 
-**Current gateway:** OpenRouter (implementation choice; replaceable per ADR-0002).
+Do not use these failed candidates as default routes until availability improves
+and a new Roastery test succeeds:
 
----
+- `qwen/qwen3-coder:free`
+- `deepseek/deepseek-r1:free`
+- `deepseek/deepseek-r1-0528-qwen3-8b:free`
 
-## Default Bean
+## Evidence Summary
 
-**Default reasoning / long-context Bean: Nemotron via OpenRouter.**
+The first local Cup Test was partial:
 
-Use Nemotron as the House Blend default when:
+- `qwen/qwen3-coder:free` returned a provider/rate-limit error.
+- `deepseek/deepseek-r1:free` was unavailable for free.
+- `nvidia/nemotron-3-ultra-550b-a55b:free` succeeded.
 
-- the task needs multi-file or long-context reasoning;
-- Barista is planning, routing, or synthesizing across docs;
-- routine implementation is moderate scope (Americano mode);
-- review work does not yet require premium escalation.
+The 8J rerun used the same local runner Order with replacement Beans:
 
-Do **not** use Nemotron (or any remote Bean) as default when:
+| Bean | Status | Latency | Usage |
+| --- | --- | ---: | ---: |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.42s | 726 total |
+| `cohere/north-mini-code:free` | ok | 3.77s | 1316 total |
+| `poolside/laguna-m.1:free` | ok | 0.81s | 3525 total |
 
-- Decaf Mode is active (no API calls required for read-only work);
-- the task is trivial and a fast coding Bean suffices;
-- sensitive private data would be sent to a remote model without approval.
+Quality remains unknown beyond response previews looking on-task. Actual cost is
+unknown because no cost value was shown in the recorded runner output.
 
----
+## Routing Policy By Task Type
 
-## When to use cheap / fast Beans
+| Task type | Default route | Fallback route | Notes |
+| --- | --- | --- | --- |
+| Decaf planning, explanation, or read-only review | No remote Bean required | `nvidia/nemotron-3-ultra-550b-a55b:free` if a remote Bean is explicitly approved | Prefer local docs and Pantry first. |
+| Routine code and small implementation tasks | `nvidia/nemotron-3-ultra-550b-a55b:free` | `cohere/north-mini-code:free` | Based on first same-Order Cup Test evidence. |
+| If Nemotron fails or is unavailable | `cohere/north-mini-code:free` | `poolside/laguna-m.1:free` | Continue to record failures and usage in Roastery. |
+| If both default and fallback fail, or a comparison run is needed | `poolside/laguna-m.1:free` | Human chooses next Bean | Treat Poolside as comparison or secondary fallback, not primary default. |
+| Research, architecture, security-sensitive, or production-risky work | Decaf first | Human-approved Bean only | Human review remains mandatory. |
+| Premium escalation | Human-approved premium Bean only | None automatic | Premium Beans require explicit human approval. |
 
-Route to **Qwen Coder, DeepSeek Coder, or comparable fast coding Beans** when:
+## Operating Rules
 
-- Espresso Shot mode: small, isolated code edits;
-- scope is one or few files with clear acceptance criteria;
-- latency and cost matter more than deep architecture reasoning;
-- the Recipe or specialist is `espresso_fast_coder.md`.
+- Keep Project Coffee local-first and model-agnostic.
+- Do not send secrets, credentials, private keys, or sensitive data to remote Beans.
+- Do not route to Qwen or failed DeepSeek free slugs by default until a future
+  Roastery test shows they are available and useful.
+- Do not update House Blend from vibes, marketing, or single-run impressions
+  alone.
+- Record model usage and results in Roastery and Ledger when available.
+- Premium escalation requires explicit human approval before use.
 
-**Exact fast coding model:** TBD — select after Roastery bake-off on a small coding benchmark. Until then, Barista states which candidate Bean it would use and why.
+## Uncertainty And Limitations
 
-**Do not** use cheap Beans for:
+- Only one tiny coding Order has a complete three-Bean rerun.
+- Full model outputs were not captured and scored.
+- Quality is unknown beyond response previews looking on-task.
+- Actual cost is unknown.
+- Free endpoint availability can change.
+- Performance may vary by task type, context length, and provider load.
 
-- security-sensitive review without Sentinel follow-up;
-- large refactors or Cold Brew milestones;
-- tasks where a previous cheap attempt failed.
+## Next Evidence Needed
 
----
-
-## When to use Nemotron
-
-Use **Nemotron** when:
-
-- long context or cross-document reasoning is needed;
-- Barista orchestrator is running the full brewing cycle;
-- Cappuccino-style research synthesis with Pantry context;
-- Sentinel Review at standard tier (before premium escalation);
-- default daily work where no cheaper Bean is clearly sufficient.
-
----
-
-## When to escalate to Claude / Codex-level models
-
-Escalate to **Claude, Codex-class, or strongest available premium Bean** only when:
-
-- architecture or subtle correctness risk is high;
-- cheaper Beans disagree or failed verification;
-- security, safety, or production impact is significant;
-- the codebase is large or unfamiliar and Nemotron is insufficient;
-- Barista **cannot proceed confidently** with the current Bean.
-
-**Requirements before escalation:**
-
-1. State why escalation is needed.
-2. Estimate rough cost (context size × model tier).
-3. Name cheaper alternatives already considered.
-4. Obtain **explicit human approval** before running large expensive tasks.
-
-Premium Beans are **escalation specialists**, not defaults.
-
----
-
-## When to stay in Decaf Mode
-
-Stay in **Decaf Mode** (read-only; no remote model required for local inspection) when:
-
-- user requests "Decaf Mode", "plan only", "read only", or "do not edit";
-- risk or uncertainty is high (unfamiliar repo, production, secrets);
-- the task is planning, explanation, or review of a proposal only;
-- credentials, migrations, or destructive actions are under consideration;
-- sensitive data must not leave the machine.
-
-Decaf does not forbid using a model for *analysis* if the human approves and context is safe — but **no file edits, installs, commits, or destructive commands**.
-
----
-
-## Cost and risk estimation (before each task)
-
-Before acting, Barista should briefly state:
-
-| Factor | What to estimate |
-| --- | --- |
-| Work mode | Decaf / Espresso / Americano / Cold Brew |
-| Bean | Which model and why |
-| Context size | Small / medium / large (files and docs in scope) |
-| Risk | Low / medium / high (data, production, scope) |
-| Cost | Rough tier: negligible / low / moderate / high |
-| Approval | Needed? (yes/no and for what) |
-
-**Pause and ask** when risk is medium-high, cost is moderate-high, or sensitive data may enter the prompt.
-
----
-
-## Coffee Ledger — logging model usage
-
-After tasks with known or estimable API usage, log to:
-
-- `ledger/cost_log.md` — date, task, model, task type, est./actual cost, value notes
-- `ledger/token_log.md` — date, task, model, input/output tokens, total, notes
-
-**Never log:** API keys, tokens as credentials, or secret values.
-
-Log even rough estimates when exact billing is unknown — improves routing over time.
-
----
-
-## Roastery — recording model quality
-
-When comparing Beans or after notable model performance:
-
-1. Use `TEMPLATES/model_scorecard.md`
-2. Save to `roastery/model_scorecards/`
-3. Add summary pointers in `roastery/tasting_notes.md` if useful
-
-Record: correctness, completeness, code quality, instruction following, cost, latency, supervision needed, risk behavior, reuse potential.
-
-**Promote or demote** Beans in this file only after evidence from bake-offs (Shot 4+).
-
----
-
-## Free / testing Beans
-
-Use **free-tier OpenRouter endpoints** only when:
-
-- running small connectivity or trivial prompts (Shot 3B);
-- Roastery benchmark dry runs on non-sensitive fixtures;
-- cost exploration with explicit human approval.
-
-**Never** use free/testing Beans for:
-
-- private credentials, medical, financial, or proprietary data;
-- production decisions;
-- large context dumps.
-
----
-
-## Revision policy
-
-Update this file when:
-
-- Roastery bake-off results favor a different fast coding Bean;
-- pricing or availability changes materially;
-- a Bean repeatedly fails verification for a task class.
-
-Record substantive changes in `DECISIONS/` and `brew-log/decisions.md`.
-
----
-
-## Quick routing table
-
-| Task type | Mode | Bean (draft) |
-| --- | --- | --- |
-| Plan, explain, review proposal | Decaf | None required (local); or Nemotron if analysis approved |
-| Tiny code fix | Espresso Shot | Fast coding Bean (TBD) |
-| Small feature with tests | Espresso / Americano | Fast coding or Nemotron |
-| Multi-step milestone | Cold Brew | Nemotron; escalate if stuck |
-| Research synthesis | Cappuccino | Nemotron + Pantry |
-| Code/security review | Decaf / Sentinel | Nemotron; Claude with approval |
-| Architecture / hard bug | Cold Brew | Nemotron → escalate to Claude/Codex with approval |
-| Connectivity test | Espresso | Free Bean; non-sensitive prompt only |
+1. Preserve full model outputs from future Cup Tests.
+2. Create per-Bean scorecards after full output review.
+3. Run at least one non-coding or review-focused Order.
+4. Record actual cost if OpenRouter exposes it.
+5. Revisit routing after multiple successful Roastery comparisons.

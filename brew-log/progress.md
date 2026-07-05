@@ -68,6 +68,8 @@ Current status: Brew 5 / Roastery Cup Test evidence gathering in progress.
 | 2026-07-05 | Brew 5 / Shot 8I — Replace unstable free Beans | Qwen and DeepSeek candidates replaced with Poolside and Cohere free candidates |
 | 2026-07-05 | Brew 5 / Shot 8J — Rerun local Cup Test | Human reran the local Cup Test with Poolside, Cohere, and Nemotron |
 | 2026-07-05 | Brew 5 / Shot 8K — Rerun Cup Test evidence | All three Beans returned ok status; latency and total-token usage recorded without quality scores |
+| 2026-07-05 | Brew 5 / Shot 8L — Choose initial House Blend | Provisional recommendation selected from 8J/8K evidence |
+| 2026-07-05 | Brew 5 / Shot 8M — Record provisional House Blend | `config/house_blend.md` updated with provisional Nemotron default, Cohere fallback, and Poolside comparison Bean |
 
 ## Attempted (blocked)
 
@@ -81,9 +83,9 @@ Brew 5 / Roastery Cup Test evidence gathering.
 
 ## Up next
 
-1. Preserve or capture full model outputs for quality review.
-2. Create per-Bean scorecards only after full outputs are available.
-3. Avoid House Blend routing changes until quality evidence is reviewed.
+1. Brew 5 / Shot 8N — ADR for local OpenRouter Coffee Core pivot.
+2. Brew 5 / Shot 8O — Roastery MVP closeout.
+3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 

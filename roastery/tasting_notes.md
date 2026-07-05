@@ -16,6 +16,7 @@ Use model scorecards to record model performance.
 | 2026-07-02 | nvidia/nemotron-3-super-120b-a12b | Shot 3B connectivity | BLOCKED — retry needed | `model_scorecards/shot-3b-nemotron-connectivity.md` |
 | 2026-07-05 | qwen/qwen3-coder:free; deepseek/deepseek-r1:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 5 / Shot 8F first local Cup Test | PARTIAL - Nemotron succeeded; Qwen and DeepSeek were blocked by provider/model availability errors | Not scored; needs full output review |
 | 2026-07-05 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 5 / Shot 8K rerun local Cup Test evidence | COMPLETE RUN - all three Beans returned ok status on the same Order | Not scored; response previews only |
+| 2026-07-05 | nvidia/nemotron-3-ultra-550b-a55b:free; cohere/north-mini-code:free; poolside/laguna-m.1:free | Brew 5 / Shot 8L House Blend recommendation | PROVISIONAL - Nemotron default, Cohere fallback, Poolside secondary fallback/comparison | `config/house_blend.md` |
 
 ## Cup Test Notes
 
@@ -88,3 +89,17 @@ Next actions:
 - Preserve full model outputs in a later evidence shot or add a manual capture process before scoring quality.
 - Create per-Bean scorecards only after full outputs are available for review.
 - Do not update House Blend routing from response previews alone.
+
+### 2026-07-05 - Brew 5 / Shot 8L: Provisional House Blend Recommendation
+
+Recommendation recorded from 8J/8K evidence:
+
+| Route | Bean | Evidence |
+| --- | --- | --- |
+| Default Bean | `nvidia/nemotron-3-ultra-550b-a55b:free` | Succeeded twice; fastest and lowest-token Bean in the 8J rerun. |
+| Fallback Bean | `cohere/north-mini-code:free` | Succeeded on the same Order and used fewer tokens than Poolside, though it was slower. |
+| Secondary fallback / comparison Bean | `poolside/laguna-m.1:free` | Succeeded on the same Order, but used the most tokens in the recorded rerun. |
+
+This House Blend is provisional. Full-output quality and actual cost remain
+unknown. Qwen and the tested DeepSeek free slugs should not be default routes
+until availability improves and a future Roastery run succeeds.

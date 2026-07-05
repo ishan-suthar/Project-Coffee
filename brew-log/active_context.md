@@ -17,8 +17,8 @@ Brew 5 / Roastery Cup Test evidence gathering.
 - The 8J rerun with Poolside, Cohere, and Nemotron completed successfully: all three Beans returned ok status on the same Order.
 - Observed 8J usage totals: Poolside 3525 total, Cohere 1316 total, Nemotron 726 total.
 - Observed 8J latencies: Poolside 0.81s, Cohere 3.77s, Nemotron 0.42s.
-- No final quality score or House Blend routing change should be made from response previews alone.
-- Next evidence work should preserve full model outputs or create scorecards only after full output review.
+- Brew 5 / Shot 8L selected a provisional initial House Blend from evidence: Nemotron default, Cohere fallback, Poolside secondary fallback/comparison Bean.
+- The House Blend remains provisional because only one tiny coding Order was tested, full outputs were not captured/scored, quality is unknown beyond previews, and actual cost is unknown.
 - Brew 4 added the token efficiency foundation: Pantry Lite, reusable Recipes, Barista role cards, a role selection guide, and read-only role usage verification.
 - Brew 3 / Coffee Status hardening remains completed historical context.
 - Brew 2 / Prompt Library MVP remains completed historical context.
@@ -27,9 +27,9 @@ Brew 5 / Roastery Cup Test evidence gathering.
 
 ## Next actions
 
-1. Preserve or capture full model outputs for quality review.
-2. Create per-Bean scorecards only after full outputs are available.
-3. Avoid House Blend routing changes until quality evidence is reviewed.
+1. Brew 5 / Shot 8N — ADR for local OpenRouter Coffee Core pivot.
+2. Brew 5 / Shot 8O — Roastery MVP closeout.
+3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
@@ -37,4 +37,4 @@ No active blocker for basic runner execution. Quality scoring remains blocked un
 
 ## Last updated
 
-2026-07-05 — Brew 5 / Shot 8K rerun Cup Test evidence recorded
+2026-07-05 — Brew 5 / Shot 8M provisional House Blend recorded
