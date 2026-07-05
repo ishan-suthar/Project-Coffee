@@ -4,6 +4,7 @@ from unittest import mock
 
 from roastery.openrouter_client import OpenRouterResult
 from roastery.run_cup_test import (
+    DEFAULT_BEANS,
     format_results_table,
     main,
     openrouter_key_available,
@@ -12,6 +13,16 @@ from roastery.run_cup_test import (
 
 
 class RunCupTestTests(unittest.TestCase):
+    def test_default_beans_use_current_free_slugs(self):
+        self.assertEqual(
+            DEFAULT_BEANS,
+            (
+                "qwen/qwen3-coder:free",
+                "deepseek/deepseek-r1-0528-qwen3-8b:free",
+                "nvidia/nemotron-3-ultra-550b-a55b:free",
+            ),
+        )
+
     def test_openrouter_key_available_checks_presence_only(self):
         self.assertFalse(openrouter_key_available({}))
         self.assertTrue(openrouter_key_available({"OPENROUTER_API_KEY": "dummy-key"}))
@@ -46,6 +57,7 @@ class RunCupTestTests(unittest.TestCase):
             timeout_seconds=7,
             runner=fake_runner,
             printer=progress.append,
+            retry_delay_seconds=0,
         )
 
         self.assertEqual(len(results), 2)
@@ -78,6 +90,7 @@ class RunCupTestTests(unittest.TestCase):
             order="same order",
             runner=fake_runner,
             printer=lambda message: None,
+            retry_delay_seconds=0,
         )
 
         self.assertEqual(len(results), 2)
@@ -85,6 +98,66 @@ class RunCupTestTests(unittest.TestCase):
         self.assertIn("Runner error: unavailable", results[0].errors)
         self.assertEqual(results[1].model, "bean-ok")
         self.assertEqual(results[1].errors, [])
+
+    def test_429_transient_error_gets_one_retry(self):
+        calls = []
+
+        def fake_runner(model, prompt, timeout_seconds):
+            calls.append(model)
+            if len(calls) == 1:
+                return OpenRouterResult(
+                    model=model,
+                    response_text="",
+                    latency_seconds=0.1,
+                    usage=None,
+                    errors=["OpenRouter HTTP error 429: Provider returned error"],
+                )
+            return OpenRouterResult(
+                model=model,
+                response_text="OK",
+                latency_seconds=0.2,
+                usage=None,
+                errors=[],
+            )
+
+        progress = []
+        results = run_cup_test(
+            beans=("bean-retry",),
+            order="same order",
+            runner=fake_runner,
+            printer=progress.append,
+            retry_delay_seconds=0,
+        )
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(results[0].response_text, "OK")
+        self.assertEqual(results[0].errors, [])
+        self.assertIn("Retrying Bean 1/1", progress[1])
+
+    def test_404_unavailable_model_does_not_retry(self):
+        calls = []
+
+        def fake_runner(model, prompt, timeout_seconds):
+            calls.append(model)
+            return OpenRouterResult(
+                model=model,
+                response_text="",
+                latency_seconds=0.1,
+                usage=None,
+                errors=["OpenRouter HTTP error 404: This model is unavailable for free."],
+            )
+
+        results = run_cup_test(
+            beans=("bean-404",),
+            order="same order",
+            runner=fake_runner,
+            printer=lambda message: None,
+            retry_delay_seconds=0,
+        )
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(results[0].model, "bean-404")
+        self.assertIn("HTTP error 404", results[0].errors[0])
 
     def test_format_results_table_includes_status_and_usage(self):
         table = format_results_table(

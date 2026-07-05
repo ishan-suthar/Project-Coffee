@@ -54,5 +54,7 @@ The runner checks whether `OPENROUTER_API_KEY` is available at runtime, sends th
 same default Order to each configured Bean, and prints progress, latency, usage
 metadata when returned, response previews, and a comparison table. If one Bean
 returns an error, the runner reports it and continues with the remaining Beans.
-It does not write Roastery files, calculate scores, update the Ledger, or change
-House Blend routing.
+It retries likely transient provider or rate-limit errors once per Bean, but it
+does not retry permanent unavailable-model errors such as HTTP 404. It does not
+write Roastery files, calculate scores, update the Ledger, or change House Blend
+routing.
