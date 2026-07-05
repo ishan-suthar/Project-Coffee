@@ -64,7 +64,10 @@ def run_cup_test(
     total = len(beans)
     for index, bean in enumerate(beans, start=1):
         printer(f"Running Bean {index}/{total}: {bean}")
-        results.append(runner(bean, order, timeout_seconds))
+        result = _run_single_bean(bean, order, timeout_seconds, runner)
+        status = "error" if result.errors else "ok"
+        printer(f"Finished Bean {index}/{total}: {status}")
+        results.append(result)
     return results
 
 
@@ -77,13 +80,13 @@ def format_results_table(results: Iterable[OpenRouterResult]) -> str:
             "error" if result.errors else "ok",
             _format_latency(result.latency_seconds),
             _format_usage(result.usage),
-            str(len(result.response_text)),
+            _response_preview(result.response_text),
             "; ".join(result.errors) if result.errors else "",
         ]
         for result in results
     ]
     return _format_table(
-        ["Bean", "Status", "Latency", "Usage", "Response chars", "Errors"],
+        ["Bean", "Status", "Latency", "Usage", "Response preview", "Errors"],
         rows,
     )
 
@@ -99,7 +102,27 @@ def main() -> int:
     results = run_cup_test()
     print("")
     print(format_results_table(results))
+    print("")
+    print("Cup Test completed successfully. Ready for Shot 8F.")
     return 0
+
+
+def _run_single_bean(
+    bean: str,
+    order: str,
+    timeout_seconds: int,
+    runner: Runner,
+) -> OpenRouterResult:
+    try:
+        return runner(bean, order, timeout_seconds)
+    except Exception as exc:
+        return OpenRouterResult(
+            model=bean,
+            response_text="",
+            latency_seconds=None,
+            usage=None,
+            errors=[f"Runner error: {exc}"],
+        )
 
 
 def _format_latency(latency_seconds: float | None) -> str:
@@ -120,6 +143,15 @@ def _format_usage(usage: Mapping[str, object] | None) -> str:
     if prompt is not None or completion is not None:
         return f"in={prompt or '?'} out={completion or '?'}"
     return "metadata returned"
+
+
+def _response_preview(response_text: str, max_chars: int = 80) -> str:
+    preview = " ".join(response_text.split())
+    if not preview:
+        return ""
+    if len(preview) <= max_chars:
+        return preview
+    return f"{preview[: max_chars - 3]}..."
 
 
 def _format_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> str:

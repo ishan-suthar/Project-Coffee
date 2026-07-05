@@ -51,6 +51,8 @@ python roastery/run_cup_test.py
 ```
 
 The runner checks whether `OPENROUTER_API_KEY` is available at runtime, sends the
-same default Order to each configured Bean, and prints a comparison table. It
-does not write Roastery files, calculate scores, update the Ledger, or change
+same default Order to each configured Bean, and prints progress, latency, usage
+metadata when returned, response previews, and a comparison table. If one Bean
+returns an error, the runner reports it and continues with the remaining Beans.
+It does not write Roastery files, calculate scores, update the Ledger, or change
 House Blend routing.

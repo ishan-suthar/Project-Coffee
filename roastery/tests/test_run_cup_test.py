@@ -57,7 +57,34 @@ class RunCupTestTests(unittest.TestCase):
             ],
         )
         self.assertEqual(progress[0], "Running Bean 1/2: bean-a")
-        self.assertEqual(progress[1], "Running Bean 2/2: bean-b")
+        self.assertEqual(progress[1], "Finished Bean 1/2: ok")
+        self.assertEqual(progress[2], "Running Bean 2/2: bean-b")
+        self.assertEqual(progress[3], "Finished Bean 2/2: ok")
+
+    def test_run_cup_test_continues_after_runner_error(self):
+        def fake_runner(model, prompt, timeout_seconds):
+            if model == "bean-error":
+                raise RuntimeError("unavailable")
+            return OpenRouterResult(
+                model=model,
+                response_text="OK",
+                latency_seconds=0.1,
+                usage=None,
+                errors=[],
+            )
+
+        results = run_cup_test(
+            beans=("bean-error", "bean-ok"),
+            order="same order",
+            runner=fake_runner,
+            printer=lambda message: None,
+        )
+
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].model, "bean-error")
+        self.assertIn("Runner error: unavailable", results[0].errors)
+        self.assertEqual(results[1].model, "bean-ok")
+        self.assertEqual(results[1].errors, [])
 
     def test_format_results_table_includes_status_and_usage(self):
         table = format_results_table(
@@ -82,8 +109,27 @@ class RunCupTestTests(unittest.TestCase):
         self.assertIn("bean-ok", table)
         self.assertIn("ok", table)
         self.assertIn("10 total", table)
+        self.assertIn("abcd", table)
         self.assertIn("bean-error", table)
         self.assertIn("failed", table)
+
+    def test_main_prints_completion_message_after_run(self):
+        output = io.StringIO()
+        result = OpenRouterResult(
+            model="bean-ok",
+            response_text="OK",
+            latency_seconds=0.1,
+            usage={"total_tokens": 4},
+            errors=[],
+        )
+
+        with mock.patch.dict("os.environ", {"OPENROUTER_API_KEY": "dummy-key"}, clear=True):
+            with mock.patch("roastery.run_cup_test.run_cup_test", return_value=[result]):
+                with mock.patch("sys.stdout", output):
+                    exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Cup Test completed successfully. Ready for Shot 8F.", output.getvalue())
 
 
 if __name__ == "__main__":
