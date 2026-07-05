@@ -14,8 +14,11 @@ Brew 5 / Roastery Cup Test evidence gathering.
 - Brew 5 is measuring Beans/models through local Roastery Cup Tests.
 - Brew 5 has a Cup Test plan, reusable templates, an OpenRouter client wrapper, and a local runner.
 - The first local Cup Test was partial: Nemotron free succeeded, Qwen returned a provider/rate-limit error, and the DeepSeek free slug was unavailable.
-- No final quality score or House Blend routing change should be made from this partial run.
-- Next evidence work should fix the DeepSeek slug and add retry/fallback handling for HTTP 429 before rerunning the Cup Test.
+- The 8J rerun with Poolside, Cohere, and Nemotron completed successfully: all three Beans returned ok status on the same Order.
+- Observed 8J usage totals: Poolside 3525 total, Cohere 1316 total, Nemotron 726 total.
+- Observed 8J latencies: Poolside 0.81s, Cohere 3.77s, Nemotron 0.42s.
+- No final quality score or House Blend routing change should be made from response previews alone.
+- Next evidence work should preserve full model outputs or create scorecards only after full output review.
 - Brew 4 added the token efficiency foundation: Pantry Lite, reusable Recipes, Barista role cards, a role selection guide, and read-only role usage verification.
 - Brew 3 / Coffee Status hardening remains completed historical context.
 - Brew 2 / Prompt Library MVP remains completed historical context.
@@ -24,14 +27,14 @@ Brew 5 / Roastery Cup Test evidence gathering.
 
 ## Next actions
 
-1. Update or replace the DeepSeek free model slug.
-2. Add retry/fallback handling for HTTP 429 provider errors.
-3. Rerun the local Cup Test before making House Blend routing changes.
+1. Preserve or capture full model outputs for quality review.
+2. Create per-Bean scorecards only after full outputs are available.
+3. Avoid House Blend routing changes until quality evidence is reviewed.
 
 ## Blockers
 
-First local Cup Test was partial due to Qwen provider/rate-limit error and unavailable DeepSeek free slug.
+No active blocker for basic runner execution. Quality scoring remains blocked until full model outputs are available for review.
 
 ## Last updated
 
-2026-07-05 — Brew 5 / Shot 8F first local Cup Test results recorded
+2026-07-05 — Brew 5 / Shot 8K rerun Cup Test evidence recorded

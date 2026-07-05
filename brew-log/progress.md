@@ -64,6 +64,10 @@ Current status: Brew 5 / Roastery Cup Test evidence gathering in progress.
 | 2026-07-04 | Brew 5 / Shot 8D — Local Cup Test runner | Local runner added for same-Order Bean comparisons |
 | 2026-07-05 | Brew 5 / Shot 8E — Local Cup Test execution support | Runner enhanced with response previews, per-Bean error handling, and final Shot 8F readiness message |
 | 2026-07-05 | Brew 5 / Shot 8F — First local Cup Test results | Partial live Cup Test recorded: Nemotron succeeded; Qwen and DeepSeek were blocked by provider/model availability errors |
+| 2026-07-05 | Brew 5 / Shot 8G — Free Bean list and retry policy | DeepSeek free slug updated and one-retry transient error policy added |
+| 2026-07-05 | Brew 5 / Shot 8I — Replace unstable free Beans | Qwen and DeepSeek candidates replaced with Poolside and Cohere free candidates |
+| 2026-07-05 | Brew 5 / Shot 8J — Rerun local Cup Test | Human reran the local Cup Test with Poolside, Cohere, and Nemotron |
+| 2026-07-05 | Brew 5 / Shot 8K — Rerun Cup Test evidence | All three Beans returned ok status; latency and total-token usage recorded without quality scores |
 
 ## Attempted (blocked)
 
@@ -77,10 +81,10 @@ Brew 5 / Roastery Cup Test evidence gathering.
 
 ## Up next
 
-1. Update or replace the DeepSeek free model slug.
-2. Add retry/fallback handling for HTTP 429 provider errors.
-3. Rerun the local Cup Test before making House Blend routing changes.
+1. Preserve or capture full model outputs for quality review.
+2. Create per-Bean scorecards only after full outputs are available.
+3. Avoid House Blend routing changes until quality evidence is reviewed.
 
 ## Blockers
 
-First local Cup Test was partial: Qwen returned a provider/rate-limit error and the DeepSeek free slug was unavailable. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for basic runner execution. Quality scoring remains blocked until full model outputs are available for review. Shot 3B OpenRouter shell authentication remains historical context.
