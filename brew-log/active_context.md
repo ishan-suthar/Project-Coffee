@@ -2,42 +2,42 @@
 
 ## Phase
 
-Phase 1 — Working daily AI coding environment
+Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 5 / Roastery MVP complete.
+Brew 7 - Coffee Certification Project in progress.
 
 ## What matters right now
 
-- Current phase remains Phase 1.
-- Brew 5 is measuring Beans/models through local Roastery Cup Tests.
-- Brew 5 has a Cup Test plan, reusable templates, an OpenRouter client wrapper, and a local runner.
-- The first local Cup Test was partial: Nemotron free succeeded, Qwen returned a provider/rate-limit error, and the DeepSeek free slug was unavailable.
-- The 8J rerun with Poolside, Cohere, and Nemotron completed successfully: all three Beans returned ok status on the same Order.
-- Observed 8J usage totals: Poolside 3525 total, Cohere 1316 total, Nemotron 726 total.
-- Observed 8J latencies: Poolside 0.81s, Cohere 3.77s, Nemotron 0.42s.
-- Brew 5 / Shot 8L selected a provisional initial House Blend from evidence: Nemotron default, Cohere fallback, Poolside secondary fallback/comparison Bean.
-- The House Blend remains provisional because only one tiny coding Order was tested, full outputs were not captured/scored, quality is unknown beyond previews, and actual cost is unknown.
-- Brew 5 / Shot 8N accepted ADR-0005: the local OpenRouter client/runner is the current Coffee Core for Roastery tests and routing experiments.
-- Brew 5 / Shot 8O closed the Roastery MVP: three working free Beans were compared on the same Order, Roastery and Ledger evidence were recorded honestly, and a provisional House Blend was selected.
-- Future Roastery work should preserve full outputs and score quality before making stronger routing claims.
-- Brew 4 added the token efficiency foundation: Pantry Lite, reusable Recipes, Barista role cards, a role selection guide, and read-only role usage verification.
-- Brew 3 / Coffee Status hardening remains completed historical context.
-- Brew 2 / Prompt Library MVP remains completed historical context.
-- Brew 1 / Coffee Status MVP remains completed historical context.
-- Earlier Shot 3B OpenRouter connectivity work is historical context, not the current active blocker.
+- Project Coffee Foundation v0.1 is complete through Brew 6.
+- Repository cleanliness was verified before Brew 7: `git status --short` returned no output on 2026-07-05.
+- Brew 7 validates the complete Coffee workflow with one small Python standard-library project.
+- Brew 7 / Shot 10A added `apps/coffee-certification/`, a local dependency-free CLI/checklist with focused `unittest` coverage.
+- The certification checklist covers Decaf Mode, planning, implementation, tests, Brew Log update, Roastery entry, Coffee Ledger entry, House Blend usage, diff review, human approval, and manual commit.
+- House Blend was consulted for this shot. No OpenRouter Bean was invoked because local Decaf/context work plus the current Codex coding agent were sufficient; the provisional route remains Nemotron default, Cohere fallback, and Poolside secondary fallback/comparison when a remote Bean is explicitly approved.
+- Barista-side implementation, tests, Brew Log update, Roastery entry, and Ledger entry are complete for Shot 10A.
+- Human diff review, explicit approval, staged secret-pattern check, and manual commit remain open.
+- Brew 5 closed the Roastery MVP with three successful free Beans on the same Order and a provisional House Blend; full-output quality scoring and actual costs remain future work.
+- Brew 6 completed the safety and constitution foundation.
 
 ## Next actions
 
-1. Brew 6 / Shot 9A — Safety / Constitution gap check.
-2. Preserve full model outputs in future Cup Tests before scoring quality.
-3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
+1. Human reviews the Brew 7 diff.
+2. Human runs desired local checks, especially `python -m unittest discover -s apps/coffee-certification/tests`.
+3. Before any commit, stage only intended files and run the staged secret-pattern check:
+
+```powershell
+git grep --cached -n -I -E "sk-or-v1-|sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|ghp_[A-Za-z0-9_]{20,}"
+```
+
+4. Human commits manually if the diff and checks look good.
+5. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 5 closeout. Future quality scoring still requires full model outputs.
+No code blocker. Brew 7 certification remains incomplete until human diff review, approval, and manual commit are done.
 
 ## Last updated
 
-2026-07-05 — Brew 5 / Shot 8O Roastery MVP closed
+2026-07-05 - Brew 7 / Shot 10A Barista-side certification implementation and trace complete

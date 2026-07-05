@@ -60,3 +60,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added Recipes and Baristas skeletons, including a reusable Decaf planning Recipe.
 - Added Barista role cards for Main Barista, Espresso Fast Coder, Mocha Python/AI, Cappuccino Research, Macchiato Embedded, Flat White Code Review, and Cortado DevOps/Infra.
 - Added a Barista role selection guide and read-only role usage test to support short, focused Orders.
+
+### Added (Brew 7 / Coffee Certification Project)
+
+- Added `apps/coffee-certification/`, a dependency-free Python CLI/checklist for validating Coffee workflow certification steps.
+- Added focused `unittest` coverage for complete, incomplete, normalized, duplicate, unexpected, and CLI behavior.
+- Added Brew 7 trace entries across the Brew Log, Roastery workflow scorecards, Coffee Ledger, and Roadmap status.

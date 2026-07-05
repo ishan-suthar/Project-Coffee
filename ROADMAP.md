@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 4 complete; Brew 5 planning next |
-| Current milestone | Brew 4 / Token efficiency foundation complete |
-| Next step | Brew 5 / Shot 8A — Roastery Cup Test planning only |
-| Recent Brew 4 result | Pantry Lite, reusable Recipes, Barista role cards, role selection guide, and read-only usage verification complete |
-| Blockers | None for Brew 4 closeout |
+| Current shot | Brew 7 / Shot 10A — Coffee Certification Project implementation and workflow trace |
+| Current milestone | Project Coffee Foundation v0.1 complete; Brew 7 validation underway |
+| Next step | Human review, local checks, staged secret-pattern check, and manual commit |
+| Recent foundation result | Brew 5 Roastery MVP and Brew 6 Safety / Constitution completed |
+| Blockers | Final Brew 7 certification waits on human review and manual commit |
 
 ## Phase 1 goal
 
@@ -57,17 +57,17 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | C3 | Write first Recipe | Done (Shot 2) |
 | C4 | Expand `.cursor/rules/` | Done (Shot 2) |
 | C5 | Add `.cursor/commands/` (optional) | Deferred |
-| C6 | End-to-end Barista workflow test | Planned |
+| C6 | End-to-end Barista workflow test | In progress (Brew 7) |
 
 ### Track D — Tooling and model gateway
 
 | # | Task | Status |
 | --- | --- | --- |
 | D1 | Confirm Cursor as Coffee Counter | Documented (Shot 3A) |
-| D2 | Connect OpenRouter API | Blocked in shell (Cursor UI only); retry Shot 3B |
+| D2 | Connect OpenRouter API | Operational through local runner (Brew 5) |
 | D3 | Create House Blend routing policy | Done (Shot 3A) |
 | D4 | Document model choices as ADR | Done (Shot 3A — ADR-0004) |
-| D5 | Test Beans on trivial prompt | Blocked (Shot 3B) — retry |
+| D5 | Test Beans on trivial prompt | Done (Brew 5) |
 | D6 | Evaluate Continue and/or Cline | Deferred |
 
 ### Track E — Roastery and evaluation
@@ -75,27 +75,27 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | # | Task | Status |
 | --- | --- | --- |
 | E1 | Define starter benchmark tasks | Planned |
-| E2 | Run first model bake-off | Deferred |
-| E3 | Record Tasting Notes | Partial (Shot 3B blocked scorecard) |
-| E4 | Update House Blend from evidence | Deferred |
-| E5 | Log costs in Coffee Ledger | Partial (Shot 3B estimates only) |
+| E2 | Run first model bake-off | Done (Brew 5) |
+| E3 | Record Tasting Notes | Done (Brew 5 initial evidence) |
+| E4 | Update House Blend from evidence | Provisional (Brew 5) |
+| E5 | Log costs in Coffee Ledger | Partial; usage recorded when available, actual costs unknown |
 
 ### Track F — Verification and Phase 1 exit
 
 | # | Task | Status |
 | --- | --- | --- |
-| F1 | Run Barista on a real small coding task | Planned |
-| F2 | Verify Brew Log updated | Planned |
-| F3 | Verify Roastery has at least one scorecard | Partial (blocked scorecard) |
+| F1 | Run Barista on a real small coding task | In progress (Brew 7) |
+| F2 | Verify Brew Log updated | In progress (Brew 7) |
+| F3 | Verify Roastery has at least one scorecard | Done |
 | F4 | Phase 1 retrospective | Planned |
 | F5 | Human can explain Coffee in one paragraph | Open |
 
 ## Phase 1 exit criteria
 
 - [x] Repo opens in Cursor with consistent Barista rules
-- [ ] OpenRouter routes to at least one tested Bean
+- [x] OpenRouter routes to at least one tested Bean
 - [x] House Blend policy exists and is documented
-- [ ] Brew Log, Pantry, Roastery, and Ledger structures are usable
+- [x] Brew Log, Pantry, Roastery, and Ledger structures are usable
 - [x] At least one Roastery scorecard exists (Shot 3B blocked — live metrics pending)
 - [ ] At least one real task completed through the full brewing cycle
 - [ ] Spill Guard files protect secrets; no credentials in repo
@@ -145,6 +145,19 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 7N | Barista role selection guide | Complete | 2026-07-04 |
 | 7O | Barista role read-only usage test | Complete | 2026-07-04 |
 | 7P | Token efficiency foundation closeout docs | Complete | 2026-07-04 |
-| 8A | Roastery Cup Test planning | Planned | — |
-| 4 | First Roastery bake-off | Deferred | — |
-| 5 | End-to-end Barista workflow test | Planned | — |
+| 8A | Roastery Cup Test planning | Complete | 2026-07-04 |
+| 8B | Roastery Cup Test templates | Complete | 2026-07-04 |
+| 8C | OpenRouter integration | Complete | 2026-07-04 |
+| 8D | Local Cup Test runner | Complete | 2026-07-04 |
+| 8E | Local Cup Test execution support | Complete | 2026-07-05 |
+| 8F | First local Cup Test results | Complete | 2026-07-05 |
+| 8G | Free Bean list and retry policy | Complete | 2026-07-05 |
+| 8I | Replace unstable free Beans | Complete | 2026-07-05 |
+| 8J | Rerun local Cup Test | Complete | 2026-07-05 |
+| 8K | Rerun Cup Test evidence | Complete | 2026-07-05 |
+| 8L | Choose initial House Blend | Complete | 2026-07-05 |
+| 8M | Record provisional House Blend | Complete | 2026-07-05 |
+| 8N | ADR for local OpenRouter Coffee Core pivot | Complete | 2026-07-05 |
+| 8O | Roastery MVP closeout | Complete | 2026-07-05 |
+| 9A | Safety / Constitution gap check | Complete | 2026-07-05 |
+| 10A | Coffee Certification Project implementation and trace | In progress - human review and manual commit pending | 2026-07-05 |
