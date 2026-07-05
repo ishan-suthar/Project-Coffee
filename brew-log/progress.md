@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 4 / Token efficiency foundation complete.
+Current status: Brew 5 / Roastery Cup Test evidence gathering in progress.
 
 ## Completed
 
@@ -58,6 +58,12 @@ Current status: Brew 4 / Token efficiency foundation complete.
 | 2026-07-04 | Brew 4 / Shot 7N — Barista role selection guide | `agents/role-selection-guide.md` added |
 | 2026-07-04 | Brew 4 / Shot 7O — Barista role read-only usage test | `agents/role-usage-test.md` verified short read-only Orders for selected roles |
 | 2026-07-04 | Brew 4 / Shot 7P — Token efficiency foundation closeout docs | Brew 4 marked complete in live status docs |
+| 2026-07-04 | Brew 5 / Shot 8A — Roastery Cup Test planning | First repeatable Cup Test plan created |
+| 2026-07-04 | Brew 5 / Shot 8B — Roastery Cup Test templates | Reusable Cup Test and scorecard templates added |
+| 2026-07-04 | Brew 5 / Shot 8C — OpenRouter integration | Small OpenRouter client wrapper added |
+| 2026-07-04 | Brew 5 / Shot 8D — Local Cup Test runner | Local runner added for same-Order Bean comparisons |
+| 2026-07-05 | Brew 5 / Shot 8E — Local Cup Test execution support | Runner enhanced with response previews, per-Bean error handling, and final Shot 8F readiness message |
+| 2026-07-05 | Brew 5 / Shot 8F — First local Cup Test results | Partial live Cup Test recorded: Nemotron succeeded; Qwen and DeepSeek were blocked by provider/model availability errors |
 
 ## Attempted (blocked)
 
@@ -67,14 +73,14 @@ Current status: Brew 4 / Token efficiency foundation complete.
 
 ## In progress
 
-None.
+Brew 5 / Roastery Cup Test evidence gathering.
 
 ## Up next
 
-1. Human review and commit Brew 4 / Shot 7P closeout docs.
-2. Brew 5 / Shot 8A — Roastery Cup Test planning only.
-3. Historical follow-up: retry Shot 3B connectivity when ready.
+1. Update or replace the DeepSeek free model slug.
+2. Add retry/fallback handling for HTTP 429 provider errors.
+3. Rerun the local Cup Test before making House Blend routing changes.
 
 ## Blockers
 
-None for Brew 4. Shot 3B OpenRouter shell authentication remains historical context.
+First local Cup Test was partial: Qwen returned a provider/rate-limit error and the DeepSeek free slug was unavailable. Shot 3B OpenRouter shell authentication remains historical context.
