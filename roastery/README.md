@@ -58,3 +58,8 @@ It retries likely transient provider or rate-limit errors once per Bean, but it
 does not retry permanent unavailable-model errors such as HTTP 404. It does not
 write Roastery files, calculate scores, update the Ledger, or change House Blend
 routing.
+
+The current free Bean list is `poolside/laguna-m.1:free`,
+`cohere/north-mini-code:free`, and `nvidia/nemotron-3-ultra-550b-a55b:free`.
+Earlier Qwen and DeepSeek candidates were replaced after the first live runs
+showed provider/rate-limit and unavailable-endpoint errors.

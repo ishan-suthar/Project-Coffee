@@ -17,8 +17,8 @@ class RunCupTestTests(unittest.TestCase):
         self.assertEqual(
             DEFAULT_BEANS,
             (
-                "qwen/qwen3-coder:free",
-                "deepseek/deepseek-r1-0528-qwen3-8b:free",
+                "poolside/laguna-m.1:free",
+                "cohere/north-mini-code:free",
                 "nvidia/nemotron-3-ultra-550b-a55b:free",
             ),
         )
