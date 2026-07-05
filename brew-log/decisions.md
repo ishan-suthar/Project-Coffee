@@ -2,7 +2,7 @@
 
 Stable project decisions and pointers to architecture decision records.
 
-For full ADRs, see `DECISIONS/`.
+For full ADRs, see `DECISIONS/` and `docs/adr/`.
 
 ## Index
 
@@ -12,6 +12,7 @@ For full ADRs, see `DECISIONS/`.
 | ADR-0002 | Model and vendor independence | Accepted | `DECISIONS/ADR-0002-model-and-vendor-independence.md` |
 | ADR-0003 | Markdown-first memory and knowledge | Accepted | `DECISIONS/ADR-0003-markdown-first-memory-and-knowledge.md` |
 | ADR-0004 | House Blend routing policy | Accepted | `DECISIONS/ADR-0004-house-blend-routing.md` |
+| ADR-0005 | Use local OpenRouter runner as current Coffee Core | Accepted | `docs/adr/0005-local-openrouter-coffee-core.md` |
 
 ## Session decisions
 
