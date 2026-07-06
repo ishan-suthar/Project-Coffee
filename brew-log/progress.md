@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 9 / 9H - Model Routing and House Blend Guide complete. Next active work: Brew 9 / 9I - Productized docs closeout.
+Current status: Brew 11 / 11B - Project Coffee template installer complete. Next active work: Brew 11 / 11C - document installer usage and record evidence.
 
 ## Completed
 
@@ -89,6 +89,8 @@ Current status: Brew 9 / 9H - Model Routing and House Blend Guide complete. Next
 | 2026-07-06 | Brew 9 / Shot 9F — Barista Handbook | `docs/guides/barista-handbook.md` added for roles, modes, routing, approval gates, and examples |
 | 2026-07-06 | Brew 9 / Shot 9G — Roastery and Ledger Guide | `docs/guides/roastery-and-ledger-guide.md` added for model/workflow evidence, cost/token unknowns, failures, and closeout |
 | 2026-07-06 | Brew 9 / Shot 9H — Model Routing and House Blend Guide | `docs/guides/model-routing-and-house-blend-guide.md` added for Coffee Core, Beans, provisional House Blend, fallback policy, and rerun evidence |
+| 2026-07-06 | Brew 11 / Shot 11A — Template Installer Design Audit | Decaf design completed for a standard-library, dry-run-first Project Coffee template installer |
+| 2026-07-06 | Brew 11 / Shot 11B — Build Project Coffee Template Installer | `tools/install_project_coffee_template.py` and `tests/test_install_project_coffee_template.py` added with dry-run, apply, force, and refusal coverage |
 
 ## Attempted (blocked)
 
@@ -102,10 +104,10 @@ None.
 
 ## Up next
 
-1. Brew 9 / 9I - Productized docs closeout.
+1. Brew 11 / 11C - document installer usage and record evidence.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 9. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 11. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.
