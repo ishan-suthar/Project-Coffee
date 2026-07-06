@@ -102,3 +102,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Dogfooded Markdown, JSON, combined-run, capped-preview, and saved-draft report generation against existing local Cup Test outputs.
 - Ignored local generated reports under `roastery/local_reports/` and kept raw outputs under `roastery/local_cup_outputs/` local-only.
 - Marked the Roastery report generator complete and set next recommended work to Brew 16A, the cost/token summarizer.
+
+### Added (Brew 16 / Coffee Dashboard)
+
+- Added `tools/coffee_dashboard.py`, a standard-library local dashboard for Project Coffee workflow health checks.
+- Added focused tests and the Coffee Dashboard Guide, linked from the docs index.
+- Dogfooded human-readable output, JSON output, section filtering, strict missing-core checks, and incomplete scratch-root reporting without model or API calls.
+- Recorded dashboard evidence in Roastery and Ledger, then marked the Coffee Dashboard complete and set next recommended work to Brew 17A, Coffee Doctor.
