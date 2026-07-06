@@ -239,3 +239,59 @@ Interpretation:
   lower latency.
 - The recommendation remains provisional because this is still one task type
   and one small Order.
+
+### 2026-07-06 - Brew 13 / Shot 13B: Pantry Search Dogfood Evidence
+
+Scratch target:
+
+```text
+tmp/pantry-search-smoke
+```
+
+Commands run:
+
+```powershell
+python tools\pantry_search.py --root docs --query "House Blend" --max-results 3
+python tools\pantry_search.py --root docs --query "Roastery" --max-results 3
+python tools\pantry_search.py --root docs --query "onboarding" --max-results 3
+python tools\pantry_search.py --root tmp\pantry-search-smoke\knowledge --query "House Blend" --max-results 5
+python tools\pantry_search.py --root tmp\pantry-search-smoke\knowledge --query "onboarding" --max-results 1
+$json = python tools\pantry_search.py --root tmp\pantry-search-smoke\knowledge --query "Roastery" --max-results 2 --json; $parsed = $json | ConvertFrom-Json
+python tools\pantry_search.py --root tmp\pantry-search-smoke\knowledge --query "zzznomatchneedle" --max-results 3
+python tools\pantry_search.py --root tmp\pantry-search-smoke\knowledge --query "zzzsafeskipneedle" --max-results 5
+python -m unittest tests.test_pantry_search
+```
+
+Observed behavior:
+
+- Project Coffee docs searches returned relevant guide hits for `House Blend`,
+  `Roastery`, and `onboarding`.
+- Scratch search found expected Pantry notes for `House Blend`.
+- `--max-results 1` returned one onboarding result.
+- JSON mode parsed successfully with `result_count=2`; the first result was
+  `roastery.md` under heading `Roastery Smoke Notes`.
+- The unique no-results query printed `No results found`.
+- The unique sentinel stored only under sensitive-looking scratch paths printed
+  `No results found`, confirming those paths were skipped in this smoke test.
+- Focused Pantry Search tests passed: 11 tests, 1 skipped symlink test.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote model used.
+- API calls: none.
+- Tokens: none / local-only; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The tool found useful Project Coffee documentation without model calls.
+- Human-readable output was easy to scan.
+- JSON output was machine-readable through PowerShell `ConvertFrom-Json`.
+- Sensitive-looking scratch paths were not searched.
+
+Needs improvement:
+
+- A first negative smoke query used common words and produced expected but noisy
+  overlapping results. Future smoke tests should prefer unique sentinels.
+- Future polish could tighten query/token scoring so negative or hyphenated
+  searches are less likely to match broad substrings.

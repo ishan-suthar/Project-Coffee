@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 13 / 13A - Markdown Pantry Search MVP complete. Next active work: Brew 13 / 13B - dogfood Pantry Search and record evidence.
+Current status: Brew 13 / 13B - Pantry Search dogfood evidence complete. Next active work: Brew 13 / 13C - close Pantry Search MVP.
 
 ## Completed
 
@@ -97,6 +97,7 @@ Current status: Brew 13 / 13A - Markdown Pantry Search MVP complete. Next active
 | 2026-07-06 | Brew 12 / Shot 12A — Roastery Full-Output Capture | Optional `--save-outputs`, `--output-dir`, and `--run-id` capture added to the Cup Test runner with local output ignores and tests |
 | 2026-07-06 | Brew 12 / Shot 12B — Record Full-Output Cup Test Evidence | Captured run `brew12-20260706-014748` summarized and scored; raw outputs remain local-only and ignored |
 | 2026-07-06 | Brew 13 / Shot 13A — Markdown Pantry Search MVP | `tools/pantry_search.py`, tests, and Pantry Search Guide added for local Markdown keyword search |
+| 2026-07-06 | Brew 13 / Shot 13B — Dogfood Pantry Search | Project Coffee docs and scratch Pantry searches validated relevant results, max-results, JSON output, no-results behavior, sensitive-path skip behavior, and focused tests |
 
 ## Attempted (blocked)
 
@@ -110,10 +111,10 @@ None.
 
 ## Up next
 
-1. Brew 13 / 13B - dogfood Pantry Search and record evidence.
+1. Brew 13 / 13C - close Pantry Search MVP.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 13. Future confidence still requires captured full outputs across more Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 13. Future confidence still requires captured full outputs across more Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
