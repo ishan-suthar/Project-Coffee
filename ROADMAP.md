@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 7 / Shot 10A — Coffee Certification Project implementation and workflow trace |
-| Current milestone | Project Coffee Foundation v0.1 complete; Brew 7 validation underway |
-| Next step | Human review, local checks, staged secret-pattern check, and manual commit |
+| Current shot | Brew 8 — first real project onboarding |
+| Current milestone | Brew 7 / Coffee Certification Project complete |
+| Next step | Start Brew 8 in Decaf Mode with a small onboarding scope |
 | Recent foundation result | Brew 5 Roastery MVP and Brew 6 Safety / Constitution completed |
-| Blockers | Final Brew 7 certification waits on human review and manual commit |
+| Blockers | None for Brew 7 closeout |
 
 ## Phase 1 goal
 
@@ -57,7 +57,7 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | C3 | Write first Recipe | Done (Shot 2) |
 | C4 | Expand `.cursor/rules/` | Done (Shot 2) |
 | C5 | Add `.cursor/commands/` (optional) | Deferred |
-| C6 | End-to-end Barista workflow test | In progress (Brew 7) |
+| C6 | End-to-end Barista workflow test | Done (Brew 7) |
 
 ### Track D — Tooling and model gateway
 
@@ -84,8 +84,8 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 
 | # | Task | Status |
 | --- | --- | --- |
-| F1 | Run Barista on a real small coding task | In progress (Brew 7) |
-| F2 | Verify Brew Log updated | In progress (Brew 7) |
+| F1 | Run Barista on a real small coding task | Done (Brew 7) |
+| F2 | Verify Brew Log updated | Done (Brew 7) |
 | F3 | Verify Roastery has at least one scorecard | Done |
 | F4 | Phase 1 retrospective | Planned |
 | F5 | Human can explain Coffee in one paragraph | Open |
@@ -96,8 +96,8 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 - [x] OpenRouter routes to at least one tested Bean
 - [x] House Blend policy exists and is documented
 - [x] Brew Log, Pantry, Roastery, and Ledger structures are usable
-- [x] At least one Roastery scorecard exists (Shot 3B blocked — live metrics pending)
-- [ ] At least one real task completed through the full brewing cycle
+- [x] At least one Roastery scorecard exists
+- [x] At least one real task completed through the full brewing cycle
 - [ ] Spill Guard files protect secrets; no credentials in repo
 - [ ] Human can describe what Coffee is, what it is not, and how Barista works
 
@@ -160,4 +160,6 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 8N | ADR for local OpenRouter Coffee Core pivot | Complete | 2026-07-05 |
 | 8O | Roastery MVP closeout | Complete | 2026-07-05 |
 | 9A | Safety / Constitution gap check | Complete | 2026-07-05 |
-| 10A | Coffee Certification Project implementation and trace | In progress - human review and manual commit pending | 2026-07-05 |
+| 10A | Coffee Certification Project implementation and trace | Complete | 2026-07-05 |
+| 10B | Human diff review | Complete | 2026-07-05 |
+| 10C | Finalize Coffee Certification | Complete | 2026-07-05 |

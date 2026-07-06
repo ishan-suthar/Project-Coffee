@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 7 / Shot 10A - Coffee Certification Project implementation and workflow trace.
+Current status: Brew 7 complete. Next active work: Brew 8 - first real project onboarding.
 
 ## Completed
 
@@ -73,7 +73,9 @@ Current status: Brew 7 / Shot 10A - Coffee Certification Project implementation 
 | 2026-07-05 | Brew 5 / Shot 8N — ADR for local OpenRouter Coffee Core pivot | ADR-0005 accepted: local OpenRouter runner is current Coffee Core for Roastery tests |
 | 2026-07-05 | Brew 5 / Shot 8O — Roastery MVP closeout | Brew 5 marked complete with provisional House Blend and honest remaining quality/cost limitations |
 | 2026-07-05 | Brew 6 / Shot 9A — Safety / Constitution gap check | Foundation safety posture completed and committed; `PROJECT_COFFEE.md` records One Shot, approval gates, and the staged secret-pattern check |
-| 2026-07-05 | Brew 7 / Shot 10A — Coffee Certification stdlib project | `apps/coffee-certification/` added with a dependency-free CLI/checklist and focused `unittest` coverage; Brew Log, Roastery, and Ledger trace updated; human review and manual commit remain open |
+| 2026-07-05 | Brew 7 / Shot 10A — Coffee Certification stdlib project | `apps/coffee-certification/` added with a dependency-free CLI/checklist and focused `unittest` coverage; Brew Log, Roastery, and Ledger trace updated |
+| 2026-07-05 | Brew 7 / Shot 10B — Human diff review | Read-only review approved the Brew 7 implementation for certification |
+| 2026-07-05 | Brew 7 / Shot 10C — Finalize Coffee Certification | Human review, approval, and manual commit completed; all 11 certification steps satisfied; Brew 7 marked complete |
 
 ## Attempted (blocked)
 
@@ -83,16 +85,14 @@ Current status: Brew 7 / Shot 10A - Coffee Certification Project implementation 
 
 ## In progress
 
-Brew 7 / Shot 10A remains open for human diff review, explicit approval, staged secret-pattern check, and manual commit.
+None.
 
 ## Up next
 
-1. Human reviews the Brew 7 diff and runs desired local checks.
-2. Before any commit, run the staged secret-pattern check after staging only intended files.
-3. Human commits manually if satisfied.
-4. Preserve full model outputs in future Cup Tests before scoring quality.
-5. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
+1. Brew 8 - first real project onboarding.
+2. Preserve full model outputs in future Cup Tests before scoring quality.
+3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No code blocker. Brew 7 cannot be fully certified until human review, approval, and manual commit are complete. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 7. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.

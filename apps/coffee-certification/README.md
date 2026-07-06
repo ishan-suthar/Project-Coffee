@@ -22,6 +22,11 @@ The certification checklist covers:
 - Human approval
 - Manual commit
 
+## Certification Status
+
+Brew 7 is complete when all required steps are supplied and the report prints
+`Status: COMPLETE`.
+
 ## Run
 
 List the required steps:

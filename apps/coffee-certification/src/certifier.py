@@ -83,7 +83,7 @@ def certify_workflow(
 def format_markdown_report(result: CertificationResult) -> str:
     """Format a certification result as a small Markdown report."""
 
-    status = "PASS" if result.is_complete else "INCOMPLETE"
+    status = "COMPLETE" if result.is_complete else "INCOMPLETE"
     lines = [
         "# Coffee Certification Report",
         "",

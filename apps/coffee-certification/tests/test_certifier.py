@@ -72,7 +72,7 @@ class CertifierTests(unittest.TestCase):
 
         report = format_markdown_report(result)
 
-        self.assertIn("Status: PASS", report)
+        self.assertIn("Status: COMPLETE", report)
         self.assertIn("- None", report)
 
 
