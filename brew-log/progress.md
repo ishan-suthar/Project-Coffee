@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 7 complete. Next active work: Brew 8 - first real project onboarding.
+Current status: Brew 9 / 9B - Project Coffee Operating Manual complete. Next active work: Brew 9 / 9C - Setup Guide.
 
 ## Completed
 
@@ -76,6 +76,13 @@ Current status: Brew 7 complete. Next active work: Brew 8 - first real project o
 | 2026-07-05 | Brew 7 / Shot 10A — Coffee Certification stdlib project | `apps/coffee-certification/` added with a dependency-free CLI/checklist and focused `unittest` coverage; Brew Log, Roastery, and Ledger trace updated |
 | 2026-07-05 | Brew 7 / Shot 10B — Human diff review | Read-only review approved the Brew 7 implementation for certification |
 | 2026-07-05 | Brew 7 / Shot 10C — Finalize Coffee Certification | Human review, approval, and manual commit completed; all 11 certification steps satisfied; Brew 7 marked complete |
+| 2026-07-05 | Brew 8 / Shot 8A — Decaf repo map | Coffee Status selected as the first real low-risk project onboarding target |
+| 2026-07-05 | Brew 8 / Shot 8B — Project Coffee skeleton | Coffee Status received app-local operating rules, Brew Log, Knowledge index, Roastery, Ledger, and Spill Guard files |
+| 2026-07-05 | Brew 8 / Shot 8C — First tiny real improvement | Coffee Status README gained local run, test, dependency, and safety notes |
+| 2026-07-05 | Brew 8 / Shot 8D — First real project evidence | Coffee Status onboarding evidence recorded in app-local Brew Log, Roastery, and Ledger |
+| 2026-07-06 | Brew 8 / Shot 8E — Close first real project onboarding | Completion criteria reviewed; human review and manual commits confirmed |
+| 2026-07-06 | Brew 9 / Shot 9A — Productization audit | Read-only audit identified the minimum productized docs and template sequence |
+| 2026-07-06 | Brew 9 / Shot 9B — Project Coffee Operating Manual | `docs/guides/project-coffee-operating-manual.md` added and linked from `docs/README.md` |
 
 ## Attempted (blocked)
 
@@ -89,10 +96,10 @@ None.
 
 ## Up next
 
-1. Brew 8 - first real project onboarding.
+1. Brew 9 / 9C - Setup Guide.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 7. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 9. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.
