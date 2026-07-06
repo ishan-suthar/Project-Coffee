@@ -25,6 +25,18 @@ ONBOARDING_FILES = (
     "ledger/cost_log.md",
 )
 
+DOCTOR_FILES = (
+    "AGENTS.md",
+    "PROJECT_COFFEE.md",
+    ".cursorignore",
+    ".cursorindexingignore",
+    "brew-log/active_context.md",
+    "brew-log/progress.md",
+    "knowledge/00_index.md",
+    "roastery/tasting_notes.md",
+    "ledger/cost_log.md",
+)
+
 
 @dataclass(frozen=True)
 class InstallPlan:
@@ -68,6 +80,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="Print the plan only.")
     mode.add_argument("--apply", action="store_true", help="Write missing files.")
+    mode.add_argument(
+        "--check",
+        action="store_true",
+        help="Doctor mode: check required onboarding files without writing.",
+    )
     parser.add_argument(
         "--force",
         action="store_true",
@@ -98,6 +115,20 @@ def validate_roots(target: Path, template: Path) -> list[str]:
         errors.append(f"Template is not a directory: {template}")
 
     return errors
+
+
+def check_onboarding(target: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    found: list[str] = []
+    missing: list[str] = []
+
+    for relative_path in DOCTOR_FILES:
+        destination = resolved_child(target, relative_path)
+        if destination.is_file():
+            found.append(relative_path)
+        else:
+            missing.append(relative_path)
+
+    return tuple(found), tuple(missing)
 
 
 def build_plan(target: Path, template: Path, *, apply: bool, force: bool) -> InstallPlan:
@@ -165,6 +196,17 @@ def print_plan(plan: InstallPlan, result: str) -> None:
     print(f"  {result}")
 
 
+def print_check_result(target: Path, found: tuple[str, ...], missing: tuple[str, ...]) -> None:
+    print("Mode")
+    print("  check")
+    print("Target")
+    print(f"  {target}")
+    print_list("FOUND files", found)
+    print_list("MISSING files", missing)
+    print("status")
+    print("  COMPLETE" if not missing else "  INCOMPLETE")
+
+
 def apply_plan(plan: InstallPlan) -> None:
     for relative_path in plan.to_create + plan.would_overwrite:
         source = resolved_child(plan.template, relative_path)
@@ -183,6 +225,28 @@ def run(argv: list[str] | None = None) -> int:
     )
     apply = bool(args.apply)
     force = bool(args.force)
+
+    if args.check:
+        if not target.exists():
+            print("Mode")
+            print("  check")
+            print("Target")
+            print(f"  {target}")
+            print("Result")
+            print(f"  ERROR: Target does not exist: {target}")
+            return 1
+        if not target.is_dir():
+            print("Mode")
+            print("  check")
+            print("Target")
+            print(f"  {target}")
+            print("Result")
+            print(f"  ERROR: Target is not a directory: {target}")
+            return 1
+
+        found, missing = check_onboarding(target)
+        print_check_result(target, found, missing)
+        return 0 if not missing else 2
 
     errors = validate_roots(target, template)
     if errors:
