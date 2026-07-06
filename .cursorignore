@@ -19,4 +19,5 @@ node_modules/
 .venv/
 venv/
 __pycache__/
+roastery/local_cup_outputs/
 .DS_Store

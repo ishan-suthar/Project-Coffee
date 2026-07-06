@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 11 / 11E - Template installer smoke test complete. Next active work: Brew 11 / 11F - final review and close Template Installer.
+Current status: Brew 12 / 12A - Roastery full-output capture complete. Next active work: Brew 12 / 12B - define scorecard workflow for captured full outputs.
 
 ## Completed
 
@@ -94,6 +94,7 @@ Current status: Brew 11 / 11E - Template installer smoke test complete. Next act
 | 2026-07-06 | Brew 11 / Shot 11C — Add Project Coffee Onboarding Doctor | `--check` mode added to report found and missing onboarding files with COMPLETE or INCOMPLETE status |
 | 2026-07-06 | Brew 11 / Shot 11D — Template Installer Guide | `docs/guides/template-installer-guide.md` added and onboarding/template guides linked to installer and doctor workflows |
 | 2026-07-06 | Brew 11 / Shot 11E — Dogfood Template Installer | Scratch target smoke test validated dry-run, apply, doctor COMPLETE, reapply skip behavior, and installer tests |
+| 2026-07-06 | Brew 12 / Shot 12A — Roastery Full-Output Capture | Optional `--save-outputs`, `--output-dir`, and `--run-id` capture added to the Cup Test runner with local output ignores and tests |
 
 ## Attempted (blocked)
 
@@ -107,7 +108,7 @@ None.
 
 ## Up next
 
-1. Brew 11 / 11F - final review and close Template Installer.
+1. Brew 12 / 12B - define scorecard workflow for captured full outputs.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 

@@ -1,4 +1,7 @@
+import json
 import io
+from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -72,6 +75,132 @@ class RunCupTestTests(unittest.TestCase):
         self.assertEqual(progress[1], "Finished Bean 1/2: ok")
         self.assertEqual(progress[2], "Running Bean 2/2: bean-b")
         self.assertEqual(progress[3], "Finished Bean 2/2: ok")
+
+    def test_default_mode_does_not_write_output_files(self):
+        def fake_runner(model, prompt, timeout_seconds):
+            return OpenRouterResult(
+                model=model,
+                response_text="OK",
+                latency_seconds=0.1,
+                usage={"total_tokens": 4},
+                errors=[],
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            output_dir = Path(temp) / "outputs"
+            run_cup_test(
+                beans=("bean-a",),
+                order="same order",
+                runner=fake_runner,
+                printer=lambda message: None,
+                retry_delay_seconds=0,
+                output_dir=output_dir,
+            )
+
+            self.assertFalse(output_dir.exists())
+
+    def test_save_outputs_writes_successful_outputs_and_manifest(self):
+        def fake_runner(model, prompt, timeout_seconds):
+            return OpenRouterResult(
+                model=model,
+                response_text=f"full output for {model}",
+                latency_seconds=0.1,
+                usage={"total_tokens": 4},
+                errors=[],
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            output_dir = Path(temp) / "outputs"
+            progress = []
+            run_cup_test(
+                beans=("provider/model-a:free", "model-b"),
+                order="same order",
+                runner=fake_runner,
+                printer=progress.append,
+                retry_delay_seconds=0,
+                save_outputs=True,
+                output_dir=output_dir,
+                run_id="run-1",
+            )
+
+            run_dir = output_dir / "run-1"
+            self.assertTrue(run_dir.is_dir())
+            self.assertTrue((run_dir / "manifest.json").is_file())
+            output_files = sorted(path.name for path in run_dir.glob("*.txt"))
+            self.assertEqual(len(output_files), 2)
+            self.assertIn("Full outputs saved to:", progress[-1])
+
+    def test_manifest_records_failure_without_successful_output_file(self):
+        def fake_runner(model, prompt, timeout_seconds):
+            if model == "bean-error":
+                return OpenRouterResult(
+                    model=model,
+                    response_text="should not be saved",
+                    latency_seconds=None,
+                    usage=None,
+                    errors=["failed"],
+                )
+            return OpenRouterResult(
+                model=model,
+                response_text="success",
+                latency_seconds=0.2,
+                usage={"total_tokens": 8},
+                errors=[],
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            output_dir = Path(temp) / "outputs"
+            run_cup_test(
+                beans=("bean-error", "bean-ok"),
+                order="same order",
+                runner=fake_runner,
+                printer=lambda message: None,
+                retry_delay_seconds=0,
+                save_outputs=True,
+                output_dir=output_dir,
+                run_id="run-1",
+            )
+
+            manifest = json.loads((output_dir / "run-1" / "manifest.json").read_text())
+            error_entry = manifest["beans"][0]
+            ok_entry = manifest["beans"][1]
+            self.assertEqual(error_entry["status"], "error")
+            self.assertEqual(error_entry["error"], "failed")
+            self.assertIsNone(error_entry["output_file"])
+            self.assertEqual(ok_entry["status"], "ok")
+            self.assertIsNotNone(ok_entry["output_file"])
+            self.assertEqual(len(list((output_dir / "run-1").glob("*.txt"))), 1)
+
+    def test_output_filenames_are_safe(self):
+        def fake_runner(model, prompt, timeout_seconds):
+            return OpenRouterResult(
+                model=model,
+                response_text="OK",
+                latency_seconds=0.1,
+                usage=None,
+                errors=[],
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            output_dir = Path(temp) / "outputs"
+            run_cup_test(
+                beans=("provider/model:name with spaces",),
+                order="same order",
+                runner=fake_runner,
+                printer=lambda message: None,
+                retry_delay_seconds=0,
+                save_outputs=True,
+                output_dir=output_dir,
+                run_id="run-1",
+            )
+
+            output_files = list((output_dir / "run-1").glob("*.txt"))
+            self.assertEqual(len(output_files), 1)
+            name = output_files[0].name
+            self.assertNotIn("/", name)
+            self.assertNotIn("\\", name)
+            self.assertNotIn(":", name)
+            self.assertIn("provider-model-name-with-spaces", name)
 
     def test_run_cup_test_continues_after_runner_error(self):
         def fake_runner(model, prompt, timeout_seconds):
@@ -203,6 +332,35 @@ class RunCupTestTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertIn("Cup Test completed successfully. Ready for Shot 8F.", output.getvalue())
+
+    def test_main_accepts_capture_flags_without_changing_table_output(self):
+        output = io.StringIO()
+        result = OpenRouterResult(
+            model="bean-ok",
+            response_text="OK",
+            latency_seconds=0.1,
+            usage={"total_tokens": 4},
+            errors=[],
+        )
+
+        with tempfile.TemporaryDirectory() as temp:
+            with mock.patch.dict("os.environ", {"OPENROUTER_API_KEY": "dummy-key"}, clear=True):
+                with mock.patch("roastery.run_cup_test.run_cup_test", return_value=[result]) as fake_run:
+                    with mock.patch("sys.stdout", output):
+                        exit_code = main(
+                            [
+                                "--save-outputs",
+                                "--output-dir",
+                                str(Path(temp) / "outputs"),
+                                "--run-id",
+                                "run-1",
+                            ]
+                        )
+
+        self.assertEqual(exit_code, 0)
+        fake_run.assert_called_once()
+        self.assertTrue(fake_run.call_args.kwargs["save_outputs"])
+        self.assertIn("bean-ok", output.getvalue())
 
 
 if __name__ == "__main__":

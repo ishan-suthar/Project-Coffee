@@ -63,3 +63,50 @@ The current free Bean list is `poolside/laguna-m.1:free`,
 `cohere/north-mini-code:free`, and `nvidia/nemotron-3-ultra-550b-a55b:free`.
 Earlier Qwen and DeepSeek candidates were replaced after the first live runs
 showed provider/rate-limit and unavailable-endpoint errors.
+
+## Full-Output Capture
+
+Brew 12 adds optional full-output capture so future Cup Tests can preserve raw
+model answers locally for human review and quality scoring. The default runner
+behavior still writes no files.
+
+Use local tests without API calls:
+
+```powershell
+python -m unittest roastery.tests.test_run_cup_test
+python -m py_compile roastery/run_cup_test.py roastery/tests/test_run_cup_test.py
+python roastery/run_cup_test.py --help
+```
+
+Run a real captured Cup Test only when the human has approved a live model run
+and `OPENROUTER_API_KEY` is configured outside the repo:
+
+```powershell
+python roastery/run_cup_test.py --save-outputs
+```
+
+By default, captured runs are saved under:
+
+```text
+roastery/local_cup_outputs/
+```
+
+Use a custom output directory or run ID when needed:
+
+```powershell
+python roastery/run_cup_test.py --save-outputs --output-dir roastery/local_cup_outputs --run-id 20260706-example
+```
+
+Each captured run writes:
+
+- one UTF-8 text file per successful Bean;
+- `manifest.json` with run metadata, Bean status, latency, usage when
+  available, errors when present, output file paths for successful Beans, and
+  the Order hash.
+
+Failed Beans are recorded in the manifest without a successful output file.
+The manifest does not include API keys, environment values, or the full Order
+text.
+
+Raw outputs must stay local and must not be committed. Summarize and score the
+evidence in Roastery docs instead of committing raw model outputs.

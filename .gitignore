@@ -38,6 +38,9 @@ dist/
 build/
 *.egg-info/
 
+# Local Roastery raw outputs
+roastery/local_cup_outputs/
+
 # Local config overrides (keep templates in repo)
 config/local.*
 **/local_config.*
