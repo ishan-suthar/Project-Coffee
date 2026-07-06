@@ -93,3 +93,4 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added a repeatable Roastery Cup Test benchmark pack and runner support for `--order-file`, `--list-cup-tests`, and `--cup-test-dir`.
 - Recorded captured-output benchmark evidence for the repo-map, tiny Python fix, docs summary, and Pantry-assisted answer Orders without committing raw outputs.
 - Updated House Blend confidence: Nemotron remains provisional default across all four benchmark Orders, Cohere remains the main fallback with stricter review for grounded answers, and Poolside remains a comparison/coding/docs fallback with availability and grounding caveats.
+- Marked the Roastery multi-task benchmark pack complete and set next recommended work to Brew 15A, the Roastery report generator.

@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 14 / 14C - second multi-task benchmark pass recorded. Next active work: Brew 14D - close Roastery multi-task benchmark work.
+Current status: Brew 14 - Roastery multi-task benchmark pack complete. Next active work: Brew 15A - Roastery report generator.
 
 ## Completed
 
@@ -103,6 +103,7 @@ Current status: Brew 14 / 14C - second multi-task benchmark pass recorded. Next 
 | 2026-07-06 | Brew 14 / Shot 14A — Multi-Task Roastery Benchmark Pack | Four repeatable Cup Test Orders added; runner now supports `--order-file`, `--list-cup-tests`, `--cup-test-dir`, and manifest `order_file` metadata |
 | 2026-07-06 | Brew 14 / Shot 14B — Multi-Task Benchmark Evidence | Captured runs for `001-decaf-repo-map.md` and `002-tiny-python-fix.md` summarized and scored; House Blend confidence updated while remaining provisional |
 | 2026-07-06 | Brew 14 / Shot 14C — Second Benchmark Pass Evidence | Captured runs for `003-docs-summary.md` and `004-pantry-assisted-answer.md` summarized and scored; all four Brew 14 benchmark Orders now have reviewed evidence |
+| 2026-07-06 | Brew 14 / Shot 14D — Close Roastery Multi-Task Benchmark Pack | Completion criteria passed; benchmark pack, runner flags, tests, captured evidence, Ledger entries, and House Blend updates confirmed |
 
 ## Attempted (blocked)
 
@@ -116,10 +117,10 @@ None.
 
 ## Up next
 
-1. Brew 14D - close Roastery multi-task benchmark work.
+1. Brew 15A - Roastery report generator.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 14. Future confidence still requires captured full outputs across more Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 15 planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
