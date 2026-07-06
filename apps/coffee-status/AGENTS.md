@@ -45,7 +45,7 @@ Before any commit, stage only intended files and run this from the repository
 root:
 
 ```powershell
-git grep --cached -n -I -E "sk-or-v1-|sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|ghp_[A-Za-z0-9_]{20,}"
+git grep --cached -n -I -E "<Project Coffee staged secret patterns>"
 ```
 
 If that command prints anything, do not commit.

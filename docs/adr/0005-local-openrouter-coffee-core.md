@@ -96,7 +96,7 @@ Negative / tradeoffs:
 5. Keep the staged secret-pattern check before commits:
 
    ```powershell
-   git grep --cached -n -I -E "sk-or-v1-|sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|ghp_[A-Za-z0-9_]{20,}"
+   git grep --cached -n -I -E "<Project Coffee staged secret patterns>"
    ```
 
 6. Revisit this ADR if the current OpenRouter runner becomes unreliable or a
