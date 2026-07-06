@@ -66,3 +66,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added `apps/coffee-certification/`, a dependency-free Python CLI/checklist for validating Coffee workflow certification steps.
 - Added focused `unittest` coverage for complete, incomplete, normalized, duplicate, unexpected, and CLI behavior.
 - Added Brew 7 trace entries across the Brew Log, Roastery workflow scorecards, Coffee Ledger, and Roadmap status.
+
+### Added (Brew 11 / Template Installer)
+
+- Added a standard-library Project Coffee template installer and onboarding doctor.
+- Added focused tests for dry-run, apply, force overwrite, missing paths, summary output, and doctor mode.
+- Added Template Installer Guide documentation for dry-run, apply, force, and check workflows.
+- Dogfooded the installer against a scratch target and recorded local validation evidence.

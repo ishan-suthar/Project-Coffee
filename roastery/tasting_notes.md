@@ -17,6 +17,7 @@ Use model scorecards to record model performance.
 | 2026-07-05 | qwen/qwen3-coder:free; deepseek/deepseek-r1:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 5 / Shot 8F first local Cup Test | PARTIAL - Nemotron succeeded; Qwen and DeepSeek were blocked by provider/model availability errors | Not scored; needs full output review |
 | 2026-07-05 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 5 / Shot 8K rerun local Cup Test evidence | COMPLETE RUN - all three Beans returned ok status on the same Order | Not scored; response previews only |
 | 2026-07-05 | nvidia/nemotron-3-ultra-550b-a55b:free; cohere/north-mini-code:free; poolside/laguna-m.1:free | Brew 5 / Shot 8L House Blend recommendation | PROVISIONAL - Nemotron default, Cohere fallback, Poolside secondary fallback/comparison | `config/house_blend.md` |
+| 2026-07-06 | No remote Bean; local standard-library installer | Brew 11 / Shot 11E template installer smoke test | COMPLETE - dry-run, apply, doctor check, reapply skip behavior, and tests passed | Workflow evidence below |
 
 ## Cup Test Notes
 
@@ -124,3 +125,52 @@ Known limitations:
 - Actual costs remain unknown.
 - Evidence is based on one tiny coding Order.
 - Future Cup Tests should preserve full outputs and add human quality scoring.
+
+### 2026-07-06 - Brew 11 / Shot 11E: Template Installer Smoke Test
+
+Scratch target:
+
+```text
+tmp/template-installer-smoke-target
+```
+
+Commands run:
+
+```powershell
+python tools\install_project_coffee_template.py --target tmp\template-installer-smoke-target
+python tools\install_project_coffee_template.py --target tmp\template-installer-smoke-target --apply
+python tools\install_project_coffee_template.py --check --target tmp\template-installer-smoke-target
+python tools\install_project_coffee_template.py --target tmp\template-installer-smoke-target --apply
+python -m unittest tests.test_install_project_coffee_template
+python -m py_compile tools\install_project_coffee_template.py tests\test_install_project_coffee_template.py
+```
+
+Observed behavior:
+
+- Dry-run reported all onboarding files under `Files to create` and wrote no
+  files.
+- Apply created the Project Coffee onboarding files in the scratch target.
+- Doctor mode reported `status` as `COMPLETE` after apply.
+- Re-running apply without `--force` reported no files to create and skipped
+  existing onboarding files.
+- The focused installer test suite passed: 12 tests.
+- Syntax compilation passed.
+- The generated scratch target was cleaned up after validation so it would not
+  be committed.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote model used.
+- Tokens: unknown / not metered.
+- Cost: unknown / no cost shown.
+
+What worked:
+
+- The installer behaved safely in dry-run-first workflow.
+- The doctor provided a quick onboarding completeness check.
+- Reapply preserved existing files without requiring `--force`.
+
+Needs improvement:
+
+- Future closeout should decide whether `tmp/` should be ignored for scratch
+  smoke targets or whether smoke tests should always clean up generated targets.
