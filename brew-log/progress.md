@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 9 / 9E - Project Coffee Template Pack complete. Next active work: Brew 9 / 9F - Barista Handbook.
+Current status: Brew 9 / 9F - Barista Handbook complete. Next active work: Brew 9 / 9G - Roastery and Ledger Guide.
 
 ## Completed
 
@@ -86,6 +86,7 @@ Current status: Brew 9 / 9E - Project Coffee Template Pack complete. Next active
 | 2026-07-06 | Brew 9 / Shot 9C — Project Coffee Setup Guide | `docs/guides/project-coffee-setup-guide.md` added with Windows/PowerShell setup, validation, troubleshooting, and safe commit workflow |
 | 2026-07-06 | Brew 9 / Shot 9D — New Project Onboarding Guide | `docs/guides/new-project-onboarding-guide.md` added using Coffee Status as the proven onboarding pattern |
 | 2026-07-06 | Brew 9 / Shot 9E — Project Coffee Template Pack | `templates/project-coffee/` skeleton and `docs/guides/template-pack-guide.md` added for repeatable onboarding |
+| 2026-07-06 | Brew 9 / Shot 9F — Barista Handbook | `docs/guides/barista-handbook.md` added for roles, modes, routing, approval gates, and examples |
 
 ## Attempted (blocked)
 
@@ -99,7 +100,7 @@ None.
 
 ## Up next
 
-1. Brew 9 / 9F - Barista Handbook.
+1. Brew 9 / 9G - Roastery and Ledger Guide.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 

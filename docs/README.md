@@ -10,6 +10,7 @@ Practical Project Coffee guides live here.
 | `guides/project-coffee-setup-guide.md` | Windows/PowerShell setup guide for preparing Project Coffee locally. |
 | `guides/new-project-onboarding-guide.md` | Reusable guide for onboarding a real project into Project Coffee. |
 | `guides/template-pack-guide.md` | How to copy and fill the reusable Project Coffee template pack. |
+| `guides/barista-handbook.md` | Practical guide to Project Coffee roles, work modes, and routing. |
 
 ## Templates
 
