@@ -94,3 +94,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Recorded captured-output benchmark evidence for the repo-map, tiny Python fix, docs summary, and Pantry-assisted answer Orders without committing raw outputs.
 - Updated House Blend confidence: Nemotron remains provisional default across all four benchmark Orders, Cohere remains the main fallback with stricter review for grounded answers, and Poolside remains a comparison/coding/docs fallback with availability and grounding caveats.
 - Marked the Roastery multi-task benchmark pack complete and set next recommended work to Brew 15A, the Roastery report generator.
+
+### Added (Brew 15 / Roastery report generator)
+
+- Added a standard-library Roastery report generator for draft Markdown and JSON summaries from local Cup Test manifests.
+- Added tests and the Roastery Report Guide.
+- Dogfooded Markdown, JSON, combined-run, capped-preview, and saved-draft report generation against existing local Cup Test outputs.
+- Ignored local generated reports under `roastery/local_reports/` and kept raw outputs under `roastery/local_cup_outputs/` local-only.
+- Marked the Roastery report generator complete and set next recommended work to Brew 16A, the cost/token summarizer.

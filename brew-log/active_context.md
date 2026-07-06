@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 15 - Roastery reporting support underway.
+Brew 15 - Roastery report generator complete.
 
 ## What matters right now
 
@@ -41,19 +41,20 @@ Brew 15 - Roastery reporting support underway.
 - Brew 14 / 14D closed the Roastery multi-task benchmark pack after runner tests, listing validation, raw-output ignore checks, Roastery evidence, Ledger entries, and House Blend updates were confirmed.
 - Brew 15 / 15A added a standard-library Roastery report generator that reads local Cup Test manifests and produces Markdown or JSON draft reports for human review.
 - Brew 15 / 15B dogfooded the Roastery report generator against existing local Cup Test runs, including Markdown, JSON, combined-run, capped-preview, saved-draft, ignored-report, and ignored-raw-output checks.
+- Brew 15 / 15C closed the Roastery report generator after tests, compile checks, help output, latest-run report validation, docs links, dogfood evidence, and ignored raw/report artifact checks passed.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 15C - close the Roastery report generator if completion criteria are satisfied.
+1. Brew 16A - Cost/token summarizer.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 15 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 16 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-06 - Brew 15 / 15B Roastery report generator dogfooded
+2026-07-06 - Brew 15 / 15C Roastery report generator closed

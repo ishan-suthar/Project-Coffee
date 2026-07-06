@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 14 — Roastery multi-task benchmark pack complete |
-| Current milestone | Repeatable benchmark pack, captured evidence, Ledger entries, and House Blend confidence updates complete |
-| Next step | Brew 15A — Roastery report generator |
-| Recent foundation result | Brew 14A added the benchmark pack; Brew 14B and 14C recorded summarized captured-output evidence; Brew 14D closed the benchmark pack |
-| Blockers | None for Brew 15 planning |
+| Current shot | Brew 15 — Roastery report generator complete |
+| Current milestone | Draft Markdown/JSON report generator, guide, dogfood evidence, and local artifact ignores complete |
+| Next step | Brew 16A — Cost/token summarizer |
+| Recent foundation result | Brew 15A added the report generator; Brew 15B dogfooded it; Brew 15C closed the reporting workflow |
+| Blockers | None for Brew 16 planning |
 
 ## Phase 1 goal
 
@@ -166,3 +166,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 12 / 12A-12B | Roastery full-output capture and scored evidence | Complete | 2026-07-06 |
 | Brew 13 / 13A-13D | Pantry Search / Local RAG foundation MVP | Complete | 2026-07-06 |
 | Brew 14 / 14A-14D | Roastery multi-task benchmark pack and captured evidence | Complete | 2026-07-06 |
+| Brew 15 / 15A-15C | Roastery report generator | Complete | 2026-07-06 |
