@@ -7,6 +7,7 @@ Practical Project Coffee guides live here.
 | Guide | Purpose |
 | --- | --- |
 | `guides/project-coffee-operating-manual.md` | Daily workflow manual for using Project Coffee in real work. |
+| `guides/project-coffee-setup-guide.md` | Windows/PowerShell setup guide for preparing Project Coffee locally. |
 
 ## Architecture Decisions
 
