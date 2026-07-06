@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 12 - Roastery full-output capture underway.
+Brew 13 - Pantry Search / Local RAG foundation underway.
 
 ## What matters right now
 
@@ -31,19 +31,20 @@ Brew 12 - Roastery full-output capture underway.
 - Brew 11 / 11E dogfooded the installer against `tmp/template-installer-smoke-target`, validated dry-run/apply/check/reapply behavior, reran tests, and recorded evidence.
 - Brew 12 / 12A added optional full-output capture to the Roastery Cup Test runner for future human review and quality scoring.
 - Brew 12 / 12B recorded scored full-output evidence from captured Cup Test run `brew12-20260706-014748`.
+- Brew 13 / 13A added a standard-library Markdown Pantry Search MVP for safe local knowledge lookup.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 12 / 12C - close Roastery full-output capture and scoring workflow.
+1. Brew 13 / 13B - dogfood Pantry Search and record evidence.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 12. Do not commit raw Cup Test outputs; summarize and score reviewed evidence in Roastery docs.
+No active blocker for Brew 13. Keep Pantry Search local, Markdown-only, and safe around secret-looking paths.
 
 ## Last updated
 
-2026-07-06 - Brew 12 / 12B scored full-output evidence recorded
+2026-07-06 - Brew 13 / 13A Markdown Pantry Search MVP added
