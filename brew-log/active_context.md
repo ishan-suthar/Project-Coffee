@@ -33,12 +33,13 @@ Brew 13 - Pantry Search / Local RAG foundation underway.
 - Brew 12 / 12B recorded scored full-output evidence from captured Cup Test run `brew12-20260706-014748`.
 - Brew 13 / 13A added a standard-library Markdown Pantry Search MVP for safe local knowledge lookup.
 - Brew 13 / 13B dogfooded Pantry Search against Project Coffee docs and a scratch Pantry target, including JSON output, max-results, no-results, and sensitive-path skip checks.
+- Brew 13 / 13C improved the Pantry intake workflow with a guide, searchable knowledge index template, and cross-links from Pantry Search docs.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 13 / 13C - close the Pantry Search MVP if completion criteria are satisfied.
+1. Brew 13 / 13D - close the Pantry Search / Local RAG foundation if completion criteria are satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -48,4 +49,4 @@ No active blocker for Brew 13. Dogfood evidence noted that future polish could t
 
 ## Last updated
 
-2026-07-06 - Brew 13 / 13B Pantry Search dogfood evidence recorded
+2026-07-06 - Brew 13 / 13C Pantry intake workflow polished

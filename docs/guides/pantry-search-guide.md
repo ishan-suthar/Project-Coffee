@@ -8,6 +8,9 @@ Date: 2026-07-06
 Pantry Search gives Project Coffee a small local way to find useful Markdown
 knowledge before loading large files into context.
 
+Use the Pantry Intake Guide when adding or restructuring notes so future
+searches have clear headings, labels, and keywords.
+
 It is meant to answer questions like:
 
 - Where did we document the House Blend?
@@ -89,6 +92,8 @@ python tools\pantry_search.py --root apps\coffee-status\knowledge --query "valid
 ```
 
 Keep project Pantry notes small, sourced, and safe to store in the repo.
+For intake structure, labels, and note templates, see
+`docs/guides/pantry-intake-guide.md`.
 
 ## 6. Search A Specific Docs Folder
 
@@ -181,3 +186,4 @@ Each step should stay local-first and preserve the Project Coffee safety rules.
 | Expected file is skipped | Check whether the path name looks sensitive or uses a different extension. |
 | JSON output is needed | Add `--json` and parse the `results` list. |
 | Search feels too literal | Reword the query; Pantry Search is keyword search, not semantic search. |
+| New notes are hard to find | Add clearer headings and `Search Keywords` using the Pantry Intake Guide. |

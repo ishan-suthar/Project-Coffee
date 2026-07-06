@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 13 / 13B - Pantry Search dogfood evidence complete. Next active work: Brew 13 / 13C - close Pantry Search MVP.
+Current status: Brew 13 / 13C - Pantry intake workflow and template polish complete. Next active work: Brew 13 / 13D - close Pantry Search / Local RAG foundation.
 
 ## Completed
 
@@ -98,6 +98,7 @@ Current status: Brew 13 / 13B - Pantry Search dogfood evidence complete. Next ac
 | 2026-07-06 | Brew 12 / Shot 12B — Record Full-Output Cup Test Evidence | Captured run `brew12-20260706-014748` summarized and scored; raw outputs remain local-only and ignored |
 | 2026-07-06 | Brew 13 / Shot 13A — Markdown Pantry Search MVP | `tools/pantry_search.py`, tests, and Pantry Search Guide added for local Markdown keyword search |
 | 2026-07-06 | Brew 13 / Shot 13B — Dogfood Pantry Search | Project Coffee docs and scratch Pantry searches validated relevant results, max-results, JSON output, no-results behavior, sensitive-path skip behavior, and focused tests |
+| 2026-07-06 | Brew 13 / Shot 13C — Pantry Intake Workflow | `docs/guides/pantry-intake-guide.md` added; Pantry Search guide cross-linked; template Pantry index expanded with source quality, freshness, keywords, and safety guidance |
 
 ## Attempted (blocked)
 
@@ -111,7 +112,7 @@ None.
 
 ## Up next
 
-1. Brew 13 / 13C - close Pantry Search MVP.
+1. Brew 13 / 13D - close Pantry Search / Local RAG foundation.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
