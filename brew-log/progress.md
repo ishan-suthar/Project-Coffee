@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 11 / 11C - Project Coffee onboarding doctor complete. Next active work: Brew 11 / 11D - document installer and doctor usage, then record evidence.
+Current status: Brew 11 / 11D - Template Installer Guide complete. Next active work: Brew 11 / 11E - record installer evidence and close Brew 11.
 
 ## Completed
 
@@ -92,6 +92,7 @@ Current status: Brew 11 / 11C - Project Coffee onboarding doctor complete. Next 
 | 2026-07-06 | Brew 11 / Shot 11A — Template Installer Design Audit | Decaf design completed for a standard-library, dry-run-first Project Coffee template installer |
 | 2026-07-06 | Brew 11 / Shot 11B — Build Project Coffee Template Installer | `tools/install_project_coffee_template.py` and `tests/test_install_project_coffee_template.py` added with dry-run, apply, force, and refusal coverage |
 | 2026-07-06 | Brew 11 / Shot 11C — Add Project Coffee Onboarding Doctor | `--check` mode added to report found and missing onboarding files with COMPLETE or INCOMPLETE status |
+| 2026-07-06 | Brew 11 / Shot 11D — Template Installer Guide | `docs/guides/template-installer-guide.md` added and onboarding/template guides linked to installer and doctor workflows |
 
 ## Attempted (blocked)
 
@@ -105,7 +106,7 @@ None.
 
 ## Up next
 
-1. Brew 11 / 11D - document installer and doctor usage, then record evidence.
+1. Brew 11 / 11E - record installer evidence and close Brew 11.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 

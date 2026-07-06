@@ -10,6 +10,7 @@ Practical Project Coffee guides live here.
 | `guides/project-coffee-setup-guide.md` | Windows/PowerShell setup guide for preparing Project Coffee locally. |
 | `guides/new-project-onboarding-guide.md` | Reusable guide for onboarding a real project into Project Coffee. |
 | `guides/template-pack-guide.md` | How to copy and fill the reusable Project Coffee template pack. |
+| `guides/template-installer-guide.md` | How to use the dry-run-first template installer and onboarding doctor. |
 | `guides/barista-handbook.md` | Practical guide to Project Coffee roles, work modes, and routing. |
 | `guides/roastery-and-ledger-guide.md` | Practical guide to evaluation evidence, cost notes, and unknowns. |
 | `guides/model-routing-and-house-blend-guide.md` | Practical guide to Beans, House Blend routing, fallback policy, and rerun evidence. |

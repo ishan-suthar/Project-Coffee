@@ -6,6 +6,10 @@ Date: 2026-07-06
 Use this guide with `TEMPLATES/project-coffee/` to add a minimal Project Coffee
 skeleton to a new project.
 
+For most future onboardings, prefer the dry-run-first installer documented in
+`template-installer-guide.md`. Manual copy remains useful when the installer is
+not available or the human wants to copy files one by one.
+
 ## Purpose
 
 The template pack makes project onboarding repeatable and safer than starting
@@ -30,6 +34,32 @@ Included files:
 - `ledger/cost_log.md`
 - `README.md`
 
+The installer copies the onboarding manifest only and intentionally does not
+copy the template pack `README.md` into the target project.
+
+## Installer Workflow
+
+Preview the installer plan first:
+
+```powershell
+python tools\install_project_coffee_template.py --target C:\Work\ExternalProject
+```
+
+Apply only after review:
+
+```powershell
+python tools\install_project_coffee_template.py --target C:\Work\ExternalProject --apply
+```
+
+Check onboarding after setup:
+
+```powershell
+python tools\install_project_coffee_template.py --check --target C:\Work\ExternalProject
+```
+
+See `template-installer-guide.md` for the force overwrite policy and
+troubleshooting.
+
 ## Fill-In Rules
 
 - Replace prose placeholders such as "Project name goes here."
@@ -44,7 +74,7 @@ Included files:
 ## Recommended First Sequence
 
 1. Run a Decaf repo map.
-2. Copy the template pack.
+2. Dry-run the template installer or copy the template pack manually.
 3. Fill only the minimal project-specific fields.
 4. Complete one tiny safe improvement.
 5. Run local validation.

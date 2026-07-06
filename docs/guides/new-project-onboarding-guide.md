@@ -117,6 +117,17 @@ ledger/cost_log.md
 For a project inside a larger monorepo, place this skeleton at that project
 root. Brew 8 placed it under `apps/coffee-status/`.
 
+The safer default is to preview this skeleton with the template installer before
+copying or applying anything:
+
+```powershell
+python tools\install_project_coffee_template.py --target C:\Work\ExternalProject
+```
+
+See `template-installer-guide.md` for dry-run, apply, force, and doctor
+workflows. Manual copying remains a fallback when the installer is not
+available.
+
 ## 7. Spill Guard Setup
 
 Add or verify ignore files that exclude:
@@ -248,6 +259,19 @@ hashes if available.
 - Claiming costs, tokens, or model quality when they are unknown.
 - Installing dependencies as part of onboarding without explicit approval.
 - Treating onboarding as permission to inspect secrets.
+
+## Installer Option
+
+Use `docs/guides/template-installer-guide.md` when you want the local installer
+to preview or apply the fixed onboarding manifest. Use doctor mode to confirm
+the required onboarding paths after setup:
+
+```powershell
+python tools\install_project_coffee_template.py --check --target C:\Work\ExternalProject
+```
+
+Doctor mode checks required path existence only. It does not scan the whole
+repository or inspect secret files.
 
 ## 16. Example Sequence From Coffee Status
 

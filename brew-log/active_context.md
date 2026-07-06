@@ -27,12 +27,13 @@ Brew 11 - Project Coffee template installer underway.
 - Brew 11 / 11A completed a Decaf design audit for a safe template installer.
 - Brew 11 / 11B added `tools/install_project_coffee_template.py` and focused standard-library tests.
 - Brew 11 / 11C added `--check` onboarding doctor mode for required Project Coffee paths.
+- Brew 11 / 11D added the Template Installer Guide and linked installer usage from onboarding docs.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 11 / 11D - document installer and doctor usage, then record evidence.
+1. Brew 11 / 11E - record installer evidence and close Brew 11.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -42,4 +43,4 @@ No active blocker for Brew 11. Keep the installer local, standard-library-only, 
 
 ## Last updated
 
-2026-07-06 - Brew 11 / 11C onboarding doctor added
+2026-07-06 - Brew 11 / 11D template installer guide added
