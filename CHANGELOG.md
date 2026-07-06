@@ -79,3 +79,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added optional local full-output capture for Cup Tests and ignored the raw output directory.
 - Recorded scored Roastery evidence from captured run `brew12-20260706-014748` without committing raw outputs.
 - Updated House Blend confidence while keeping the recommendation provisional and task-limited.
+
+### Added (Brew 13 / Pantry Search MVP)
+
+- Added `tools/pantry_search.py`, a standard-library local Markdown search tool with `--root`, `--query`, `--max-results`, `--json`, snippets, heading context, and sensitive-path skips.
+- Added focused Pantry Search tests plus the Pantry Search Guide and Pantry Intake Guide.
+- Expanded the Project Coffee template Pantry index with source quality, freshness, keyword, and safety guidance.
+- Dogfooded Pantry Search against Project Coffee docs and a scratch Pantry target, including human-readable output, JSON output, no-results behavior, max-results behavior, and sensitive-path skip evidence.
+- Marked the Pantry Search / Local RAG foundation MVP complete and set next recommended work to Brew 14A, the Roastery multi-task benchmark pack.

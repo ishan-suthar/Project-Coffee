@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 12 — Roastery full-output capture and scoring |
-| Current milestone | Brew 12 / scored full-output Cup Test evidence recorded |
-| Next step | Brew 12C — close Roastery full-output capture and scoring workflow |
-| Recent foundation result | Brew 12A added full-output capture; Brew 12B recorded scored evidence from captured outputs |
-| Blockers | None for Brew 12 closeout |
+| Current shot | Brew 13 — Pantry Search / Local RAG foundation complete |
+| Current milestone | Markdown Pantry Search MVP, intake workflow, template polish, and dogfood evidence complete |
+| Next step | Brew 14A — Roastery multi-task benchmark pack |
+| Recent foundation result | Brew 13 added local Markdown Pantry Search, Pantry Intake docs, a stronger knowledge index template, and validation evidence |
+| Blockers | None for Brew 14 planning |
 
 ## Phase 1 goal
 
@@ -163,4 +163,5 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 10A | Coffee Certification Project implementation and trace | Complete | 2026-07-05 |
 | 10B | Human diff review | Complete | 2026-07-05 |
 | 10C | Finalize Coffee Certification | Complete | 2026-07-05 |
-| Brew 12 / 12A-12B | Roastery full-output capture and scored evidence | In progress | 2026-07-06 |
+| Brew 12 / 12A-12B | Roastery full-output capture and scored evidence | Complete | 2026-07-06 |
+| Brew 13 / 13A-13D | Pantry Search / Local RAG foundation MVP | Complete | 2026-07-06 |
