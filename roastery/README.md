@@ -28,6 +28,7 @@ tokens, latency, or model outputs.
 | --- | --- |
 | `run_cup_test.py` | Local CLI runner for executing the same Order against configured Beans. |
 | `openrouter_client.py` | Tiny stdlib OpenRouter wrapper for future Cup Test model calls. |
+| `cup_tests/` | Repeatable multi-task Cup Test Orders for comparing Beans. |
 | `cup_test_plan.md` | Plan for the first repeatable Roastery Cup Test. |
 | `cup-test-template.md` | Blank run template for each Bean in a Cup Test. |
 | `scorecard-template.md` | Blank reusable scorecard for comparing a Bean run. |
@@ -64,6 +65,32 @@ The current free Bean list is `poolside/laguna-m.1:free`,
 Earlier Qwen and DeepSeek candidates were replaced after the first live runs
 showed provider/rate-limit and unavailable-endpoint errors.
 
+## Multi-Task Benchmark Pack
+
+Brew 14 adds a small repeatable Cup Test pack under `roastery/cup_tests/`.
+These Orders make future Bean comparisons less task-limited.
+
+List available Cup Tests without requiring `OPENROUTER_API_KEY`:
+
+```powershell
+python roastery/run_cup_test.py --list-cup-tests
+```
+
+Use a custom Cup Test directory when needed:
+
+```powershell
+python roastery/run_cup_test.py --list-cup-tests --cup-test-dir roastery/cup_tests
+```
+
+Run a specific Order file only after human approval for a live model run:
+
+```powershell
+python roastery/run_cup_test.py --order-file roastery/cup_tests/001-decaf-repo-map.md
+```
+
+If `--order-file` is not provided, the runner keeps using its built-in default
+Order.
+
 ## Full-Output Capture
 
 Brew 12 adds optional full-output capture so future Cup Tests can preserve raw
@@ -85,6 +112,12 @@ and `OPENROUTER_API_KEY` is configured outside the repo:
 python roastery/run_cup_test.py --save-outputs
 ```
 
+Run and capture a specific benchmark Order:
+
+```powershell
+python roastery/run_cup_test.py --order-file roastery/cup_tests/002-tiny-python-fix.md --save-outputs --run-id benchmark-002-example
+```
+
 By default, captured runs are saved under:
 
 ```text
@@ -102,7 +135,8 @@ Each captured run writes:
 - one UTF-8 text file per successful Bean;
 - `manifest.json` with run metadata, Bean status, latency, usage when
   available, errors when present, output file paths for successful Beans, and
-  the Order hash.
+  the Order hash;
+- `order_file` metadata when the Order came from a file.
 
 Failed Beans are recorded in the manifest without a successful output file.
 The manifest does not include API keys, environment values, or the full Order
@@ -110,3 +144,15 @@ text.
 
 Raw outputs must stay local and must not be committed. Summarize and score the
 evidence in Roastery docs instead of committing raw model outputs.
+
+When recording evidence, summarize:
+
+- Cup Test file name;
+- run ID;
+- Beans tested;
+- status, latency, tokens, and cost when available;
+- quality scores only after human review;
+- strengths, weaknesses, and human fixes needed.
+
+Use `unknown` where runtime metadata is unavailable. Do not paste full raw
+outputs into tracked docs unless they are tiny and clearly safe.

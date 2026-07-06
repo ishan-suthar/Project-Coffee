@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 13 - Pantry Search / Local RAG foundation complete. Next active work: Brew 14A - Roastery multi-task benchmark pack.
+Current status: Brew 14 / 14A - Roastery multi-task benchmark pack complete. Next active work: Brew 14B - run benchmarks with captured outputs and record evidence.
 
 ## Completed
 
@@ -100,6 +100,7 @@ Current status: Brew 13 - Pantry Search / Local RAG foundation complete. Next ac
 | 2026-07-06 | Brew 13 / Shot 13B — Dogfood Pantry Search | Project Coffee docs and scratch Pantry searches validated relevant results, max-results, JSON output, no-results behavior, sensitive-path skip behavior, and focused tests |
 | 2026-07-06 | Brew 13 / Shot 13C — Pantry Intake Workflow | `docs/guides/pantry-intake-guide.md` added; Pantry Search guide cross-linked; template Pantry index expanded with source quality, freshness, keywords, and safety guidance |
 | 2026-07-06 | Brew 13 / Shot 13D — Close Pantry Search MVP | Completion criteria passed; tests, compile, human-readable search, JSON search, and no-results validation succeeded; Brew 13 marked complete |
+| 2026-07-06 | Brew 14 / Shot 14A — Multi-Task Roastery Benchmark Pack | Four repeatable Cup Test Orders added; runner now supports `--order-file`, `--list-cup-tests`, `--cup-test-dir`, and manifest `order_file` metadata |
 
 ## Attempted (blocked)
 
@@ -113,10 +114,10 @@ None.
 
 ## Up next
 
-1. Brew 14A - Roastery multi-task benchmark pack.
+1. Brew 14B - run the multi-task benchmark pack with captured outputs and record evidence.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 13. Future confidence still requires captured full outputs across more Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 14. Future confidence still requires captured full outputs across more Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.

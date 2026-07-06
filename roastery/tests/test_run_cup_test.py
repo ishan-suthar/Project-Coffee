@@ -8,6 +8,7 @@ from unittest import mock
 from roastery.openrouter_client import OpenRouterResult
 from roastery.run_cup_test import (
     DEFAULT_BEANS,
+    DEFAULT_ORDER,
     format_results_table,
     main,
     openrouter_key_available,
@@ -39,6 +40,85 @@ class RunCupTestTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 1)
         self.assertIn("OPENROUTER_API_KEY is not set", output.getvalue())
+
+    def test_order_file_reads_prompt_content(self):
+        output = io.StringIO()
+        result = OpenRouterResult(
+            model="bean-ok",
+            response_text="OK",
+            latency_seconds=0.1,
+            usage={"total_tokens": 4},
+            errors=[],
+        )
+
+        with tempfile.TemporaryDirectory() as temp:
+            order_file = Path(temp) / "order.md"
+            order_file.write_text("# Order\nUse this prompt.\n", encoding="utf-8")
+
+            with mock.patch.dict("os.environ", {"OPENROUTER_API_KEY": "dummy-key"}, clear=True):
+                with mock.patch("roastery.run_cup_test.run_cup_test", return_value=[result]) as fake_run:
+                    with mock.patch("sys.stdout", output):
+                        exit_code = main(["--order-file", str(order_file)])
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(fake_run.call_args.kwargs["order"], "# Order\nUse this prompt.\n")
+        self.assertEqual(fake_run.call_args.kwargs["order_file"], order_file.resolve())
+        self.assertIn(f"Order file: {order_file.resolve()}", output.getvalue())
+
+    def test_missing_order_file_fails_clearly_before_key_check(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as temp:
+            missing = Path(temp) / "missing.md"
+            with mock.patch.dict("os.environ", {}, clear=True):
+                with mock.patch("sys.stdout", output):
+                    exit_code = main(["--order-file", str(missing)])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Order file does not exist", output.getvalue())
+        self.assertNotIn("OPENROUTER_API_KEY", output.getvalue())
+
+    def test_empty_order_file_fails_clearly_before_key_check(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as temp:
+            order_file = Path(temp) / "empty.md"
+            order_file.write_text("", encoding="utf-8")
+            with mock.patch.dict("os.environ", {}, clear=True):
+                with mock.patch("sys.stdout", output):
+                    exit_code = main(["--order-file", str(order_file)])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Order file is empty", output.getvalue())
+        self.assertNotIn("OPENROUTER_API_KEY", output.getvalue())
+
+    def test_list_cup_tests_lists_markdown_files_without_api_key(self):
+        output = io.StringIO()
+
+        with tempfile.TemporaryDirectory() as temp:
+            cup_test_dir = Path(temp)
+            (cup_test_dir / "001-alpha.md").write_text("# Alpha Order\nBody\n", encoding="utf-8")
+            (cup_test_dir / "002-beta.md").write_text("# Beta Order\nBody\n", encoding="utf-8")
+            (cup_test_dir / "README.md").write_text("# Pack Docs\n", encoding="utf-8")
+            (cup_test_dir / "ignore.txt").write_text("# Not Listed\n", encoding="utf-8")
+
+            with mock.patch.dict("os.environ", {}, clear=True):
+                with mock.patch("roastery.run_cup_test.run_cup_test") as fake_run:
+                    with mock.patch("sys.stdout", output):
+                        exit_code = main(
+                            [
+                                "--list-cup-tests",
+                                "--cup-test-dir",
+                                str(cup_test_dir),
+                            ]
+                        )
+
+        self.assertEqual(exit_code, 0)
+        fake_run.assert_not_called()
+        self.assertIn("001-alpha.md - Alpha Order", output.getvalue())
+        self.assertIn("002-beta.md - Beta Order", output.getvalue())
+        self.assertNotIn("README.md", output.getvalue())
+        self.assertNotIn("ignore.txt", output.getvalue())
 
     def test_run_cup_test_uses_same_order_for_each_bean(self):
         calls = []
@@ -129,6 +209,35 @@ class RunCupTestTests(unittest.TestCase):
             output_files = sorted(path.name for path in run_dir.glob("*.txt"))
             self.assertEqual(len(output_files), 2)
             self.assertIn("Full outputs saved to:", progress[-1])
+
+    def test_manifest_includes_order_file_when_outputs_are_saved(self):
+        def fake_runner(model, prompt, timeout_seconds):
+            return OpenRouterResult(
+                model=model,
+                response_text="full output",
+                latency_seconds=0.1,
+                usage={"total_tokens": 4},
+                errors=[],
+            )
+
+        with tempfile.TemporaryDirectory() as temp:
+            output_dir = Path(temp) / "outputs"
+            order_file = Path(temp) / "order.md"
+            order_file.write_text("# Order\nPrompt\n", encoding="utf-8")
+            run_cup_test(
+                beans=("bean-a",),
+                order="same order",
+                runner=fake_runner,
+                printer=lambda message: None,
+                retry_delay_seconds=0,
+                save_outputs=True,
+                output_dir=output_dir,
+                run_id="run-1",
+                order_file=order_file,
+            )
+
+            manifest = json.loads((output_dir / "run-1" / "manifest.json").read_text())
+            self.assertEqual(manifest["order_file"], str(order_file))
 
     def test_manifest_records_failure_without_successful_output_file(self):
         def fake_runner(model, prompt, timeout_seconds):
@@ -332,6 +441,26 @@ class RunCupTestTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertIn("Cup Test completed successfully. Ready for Shot 8F.", output.getvalue())
+
+    def test_main_uses_default_order_when_order_file_is_not_provided(self):
+        output = io.StringIO()
+        result = OpenRouterResult(
+            model="bean-ok",
+            response_text="OK",
+            latency_seconds=0.1,
+            usage={"total_tokens": 4},
+            errors=[],
+        )
+
+        with mock.patch.dict("os.environ", {"OPENROUTER_API_KEY": "dummy-key"}, clear=True):
+            with mock.patch("roastery.run_cup_test.run_cup_test", return_value=[result]) as fake_run:
+                with mock.patch("sys.stdout", output):
+                    exit_code = main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(fake_run.call_args.kwargs["order"], DEFAULT_ORDER)
+        self.assertIsNone(fake_run.call_args.kwargs["order_file"])
+        self.assertIn("Order file: built-in default Order", output.getvalue())
 
     def test_main_accepts_capture_flags_without_changing_table_output(self):
         output = io.StringIO()

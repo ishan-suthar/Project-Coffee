@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 13 - Pantry Search / Local RAG foundation complete.
+Brew 14 - Roastery multi-task benchmark pack underway.
 
 ## What matters right now
 
@@ -35,19 +35,20 @@ Brew 13 - Pantry Search / Local RAG foundation complete.
 - Brew 13 / 13B dogfooded Pantry Search against Project Coffee docs and a scratch Pantry target, including JSON output, max-results, no-results, and sensitive-path skip checks.
 - Brew 13 / 13C improved the Pantry intake workflow with a guide, searchable knowledge index template, and cross-links from Pantry Search docs.
 - Brew 13 / 13D closed the Markdown Pantry Search MVP after tests, compile checks, human-readable search, JSON search, and no-results validation passed.
+- Brew 14 / 14A added a repeatable four-Order Roastery Cup Test pack and taught the local runner to list Cup Tests and run a specific Order from a file.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 14A - Roastery multi-task benchmark pack.
+1. Brew 14B - run the multi-task benchmark pack with captured outputs and record evidence.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 13. Dogfood evidence noted that future polish could tighten query/token scoring for noisy negative searches.
+No active blocker for Brew 14. Live benchmark execution requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-06 - Brew 13 / 13D Pantry Search MVP closed
+2026-07-06 - Brew 14 / 14A multi-task benchmark pack added

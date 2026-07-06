@@ -31,6 +31,7 @@ DEFAULT_BEANS = (
 )
 
 DEFAULT_OUTPUT_DIR = Path("roastery") / "local_cup_outputs"
+DEFAULT_CUP_TEST_DIR = Path("roastery") / "cup_tests"
 MAX_RETRIES = 1
 RETRY_DELAY_SECONDS = 1.0
 TRANSIENT_ERROR_MARKERS = (
@@ -61,6 +62,10 @@ Output format:
 Runner = Callable[[str, str, int], OpenRouterResult]
 
 
+class CupTestConfigError(Exception):
+    """Raised when local Cup Test inputs are missing or unsafe."""
+
+
 def openrouter_key_available(env: Mapping[str, str] | None = None) -> bool:
     """Return whether the local process has an OpenRouter key configured."""
 
@@ -80,6 +85,7 @@ def run_cup_test(
     save_outputs: bool = False,
     output_dir: str | Path | None = None,
     run_id: str | None = None,
+    order_file: str | Path | None = None,
 ) -> List[OpenRouterResult]:
     """Run the same Order against each Bean and keep results in memory."""
 
@@ -108,6 +114,7 @@ def run_cup_test(
             order=order,
             output_dir=output_dir,
             run_id=run_id,
+            order_file=order_file,
         )
         printer(f"Full outputs saved to: {capture_path}")
 
@@ -119,6 +126,7 @@ def save_full_outputs(
     order: str,
     output_dir: str | Path | None = None,
     run_id: str | None = None,
+    order_file: str | Path | None = None,
 ) -> Path:
     """Save successful full outputs and a JSON manifest for human review."""
 
@@ -132,6 +140,7 @@ def save_full_outputs(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "output_dir": str(run_dir),
         "order_sha256": hashlib.sha256(order.encode("utf-8")).hexdigest(),
+        "order_file": str(order_file) if order_file is not None else None,
         "beans_tested": [result.model for result in results],
         "beans": [],
     }
@@ -202,17 +211,49 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=None,
         help="Run identifier used as the capture subdirectory name.",
     )
+    parser.add_argument(
+        "--order-file",
+        default=None,
+        help="Markdown or text file containing the Order prompt to send to every Bean.",
+    )
+    parser.add_argument(
+        "--list-cup-tests",
+        action="store_true",
+        help="List available Markdown Cup Test Orders and exit without model calls.",
+    )
+    parser.add_argument(
+        "--cup-test-dir",
+        default=str(DEFAULT_CUP_TEST_DIR),
+        help="Directory containing Markdown Cup Test Orders. Default: roastery/cup_tests.",
+    )
     return parser.parse_args(list(argv))
 
 
 def main(argv: Sequence[str] = ()) -> int:
     args = parse_args(argv)
 
+    try:
+        if args.list_cup_tests:
+            print(format_cup_test_list(args.cup_test_dir))
+            return 0
+
+        order = DEFAULT_ORDER
+        order_file = None
+        if args.order_file:
+            order, order_file = load_order_file(args.order_file)
+    except CupTestConfigError as exc:
+        print(f"Error: {exc}")
+        return 1
+
     if not openrouter_key_available():
         print("OPENROUTER_API_KEY is not set. Set it locally and rerun.")
         return 1
 
     print("Project Coffee Roastery Cup Test")
+    if order_file:
+        print(f"Order file: {order_file}")
+    else:
+        print("Order file: built-in default Order")
     if args.save_outputs:
         output_dir = args.output_dir or str(DEFAULT_OUTPUT_DIR)
         print(f"Full outputs will be saved under: {output_dir}")
@@ -220,15 +261,91 @@ def main(argv: Sequence[str] = ()) -> int:
         print("No files will be written by this runner.")
     print("")
     results = run_cup_test(
+        order=order,
         save_outputs=args.save_outputs,
         output_dir=args.output_dir,
         run_id=args.run_id,
+        order_file=order_file,
     )
     print("")
     print(format_results_table(results))
     print("")
     print("Cup Test completed successfully. Ready for Shot 8F.")
     return 0
+
+
+def load_order_file(order_file: str | Path) -> tuple[str, Path]:
+    """Read a local Markdown/text Order file for use as the Bean prompt."""
+
+    path = Path(order_file)
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise CupTestConfigError(f"Order file does not exist: {path}") from exc
+
+    if not resolved.is_file():
+        raise CupTestConfigError(f"Order file is not a file: {resolved}")
+
+    try:
+        order = resolved.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise CupTestConfigError(f"Order file is not valid UTF-8 text: {resolved}") from exc
+    except OSError as exc:
+        raise CupTestConfigError(f"Could not read Order file: {resolved}") from exc
+
+    if not order.strip():
+        raise CupTestConfigError(f"Order file is empty: {resolved}")
+
+    return order, resolved
+
+
+def list_cup_tests(cup_test_dir: str | Path = DEFAULT_CUP_TEST_DIR) -> List[tuple[str, str]]:
+    """Return Markdown Cup Test file names and first headings."""
+
+    path = Path(cup_test_dir)
+    try:
+        resolved = path.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise CupTestConfigError(f"Cup Test directory does not exist: {path}") from exc
+
+    if not resolved.is_dir():
+        raise CupTestConfigError(f"Cup Test path is not a directory: {resolved}")
+
+    tests = []
+    for candidate in sorted(resolved.glob("*.md")):
+        if not candidate.is_file():
+            continue
+        if candidate.name.lower() == "readme.md":
+            continue
+        tests.append((candidate.name, _first_markdown_heading(candidate)))
+    return tests
+
+
+def format_cup_test_list(cup_test_dir: str | Path = DEFAULT_CUP_TEST_DIR) -> str:
+    tests = list_cup_tests(cup_test_dir)
+    lines = [
+        "Project Coffee Roastery Cup Tests",
+        f"Directory: {Path(cup_test_dir).resolve()}",
+        "",
+    ]
+    if not tests:
+        lines.append("No Markdown Cup Tests found.")
+        return "\n".join(lines)
+
+    for index, (filename, heading) in enumerate(tests, start=1):
+        lines.append(f"{index}. {filename} - {heading}")
+    return "\n".join(lines)
+
+
+def _first_markdown_heading(path: Path) -> str:
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                return stripped.lstrip("#").strip() or "(untitled)"
+    except (OSError, UnicodeDecodeError):
+        return "(unreadable)"
+    return "(no heading)"
 
 
 def _run_single_bean(
