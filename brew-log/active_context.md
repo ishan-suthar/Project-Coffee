@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 15 - Roastery report generator complete.
+Brew 16 - Project Coffee dashboard underway.
 
 ## What matters right now
 
@@ -42,19 +42,20 @@ Brew 15 - Roastery report generator complete.
 - Brew 15 / 15A added a standard-library Roastery report generator that reads local Cup Test manifests and produces Markdown or JSON draft reports for human review.
 - Brew 15 / 15B dogfooded the Roastery report generator against existing local Cup Test runs, including Markdown, JSON, combined-run, capped-preview, saved-draft, ignored-report, and ignored-raw-output checks.
 - Brew 15 / 15C closed the Roastery report generator after tests, compile checks, help output, latest-run report validation, docs links, dogfood evidence, and ignored raw/report artifact checks passed.
+- Brew 16 / 16A added a standard-library Project Coffee Dashboard CLI for local workflow health checks, section views, JSON output, and strict missing-core validation.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 16A - Cost/token summarizer.
+1. Brew 16B - Dogfood Project Coffee Dashboard CLI and record evidence.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 16 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 16 dashboard dogfood. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-06 - Brew 15 / 15C Roastery report generator closed
+2026-07-06 - Brew 16 / 16A Project Coffee Dashboard CLI implemented

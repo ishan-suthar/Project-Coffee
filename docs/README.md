@@ -16,6 +16,7 @@ Practical Project Coffee guides live here.
 | `guides/barista-handbook.md` | Practical guide to Project Coffee roles, work modes, and routing. |
 | `guides/roastery-and-ledger-guide.md` | Practical guide to evaluation evidence, cost notes, and unknowns. |
 | `guides/roastery-report-guide.md` | How to generate draft reports from local Cup Test manifests. |
+| `guides/coffee-dashboard-guide.md` | How to inspect local Project Coffee workflow health from the command line. |
 | `guides/model-routing-and-house-blend-guide.md` | Practical guide to Beans, House Blend routing, fallback policy, and rerun evidence. |
 
 ## Templates
