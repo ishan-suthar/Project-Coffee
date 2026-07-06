@@ -73,3 +73,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added focused tests for dry-run, apply, force overwrite, missing paths, summary output, and doctor mode.
 - Added Template Installer Guide documentation for dry-run, apply, force, and check workflows.
 - Dogfooded the installer against a scratch target and recorded local validation evidence.
+
+### Changed (Brew 12 / Roastery full-output evidence)
+
+- Added optional local full-output capture for Cup Tests and ignored the raw output directory.
+- Recorded scored Roastery evidence from captured run `brew12-20260706-014748` without committing raw outputs.
+- Updated House Blend confidence while keeping the recommendation provisional and task-limited.

@@ -1,7 +1,7 @@
 # House Blend
 
 Status: Provisional
-Date: 2026-07-05
+Date: 2026-07-06
 Scope: Initial evidence-based routing for local Project Coffee work
 
 House Blend is Project Coffee's model-routing policy. It is configuration, not
@@ -19,9 +19,9 @@ Reference evidence:
 
 | Route | Bean | Status | Why |
 | --- | --- | --- | --- |
-| Default Bean | `nvidia/nemotron-3-ultra-550b-a55b:free` | Provisional | Succeeded twice; fastest and lowest-token Bean in the 8J rerun. |
-| Fallback Bean | `cohere/north-mini-code:free` | Provisional | Succeeded on the same Order and used fewer tokens than Poolside, though it was slower. |
-| Secondary fallback / comparison Bean | `poolside/laguna-m.1:free` | Provisional | Succeeded on the same Order, but used the most tokens in the 8J rerun. |
+| Default Bean | `nvidia/nemotron-3-ultra-550b-a55b:free` | Provisional; confidence improved for small standard-library coding Orders | Matched reviewed output quality in Brew 12B while remaining fastest and lowest-token in the captured run. |
+| Fallback Bean | `cohere/north-mini-code:free` | Provisional | Produced a reviewed, useful full output in Brew 12B; slower/more tokens than Nemotron in the captured run. |
+| Secondary fallback / comparison Bean | `poolside/laguna-m.1:free` | Provisional | Produced a reviewed, useful full output in Brew 12B; remains useful for comparison and secondary fallback coverage. |
 
 Do not use these failed candidates as default routes until availability improves
 and a new Roastery test succeeds:
@@ -49,6 +49,20 @@ The 8J rerun used the same local runner Order with replacement Beans:
 Quality remains unknown beyond response previews looking on-task. Actual cost is
 unknown because no cost value was shown in the recorded runner output.
 
+The Brew 12B captured full-output run used the same default coding Order and
+preserved local raw outputs for review:
+
+| Bean | Status | Latency | Usage | Quality score | Cost |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.45s | 936 total | 9 | 0 reported |
+| `poolside/laguna-m.1:free` | ok | 0.66s | 2158 total | 9 | 0 reported |
+| `cohere/north-mini-code:free` | ok | 0.62s | 2272 total | 9 | 0 reported |
+
+Full-output evidence improved confidence that all three current Beans can
+complete this small standard-library coding Order. Nemotron remains the default
+because it tied on reviewed quality while using fewer reported tokens and lower
+latency. This does not prove it is best for other task types.
+
 ## Routing Policy By Task Type
 
 | Task type | Default route | Fallback route | Notes |
@@ -73,17 +87,16 @@ unknown because no cost value was shown in the recorded runner output.
 
 ## Uncertainty And Limitations
 
-- Only one tiny coding Order has a complete three-Bean rerun.
-- Full model outputs were not captured and scored.
-- Quality is unknown beyond response previews looking on-task.
-- Actual cost is unknown.
+- Only one tiny coding Order has a captured, reviewed, and scored full-output run.
+- Quality confidence is still task-limited.
+- Actual billing impact beyond returned cost metadata remains uncertain.
 - Free endpoint availability can change.
 - Performance may vary by task type, context length, and provider load.
 
 ## Next Evidence Needed
 
-1. Preserve full model outputs from future Cup Tests.
-2. Create per-Bean scorecards after full output review.
+1. Repeat captured-output Cup Tests across more Order types.
+2. Create per-Bean scorecards after each full output review.
 3. Run at least one non-coding or review-focused Order.
-4. Record actual cost if OpenRouter exposes it.
+4. Continue recording actual cost when OpenRouter exposes it.
 5. Revisit routing after multiple successful Roastery comparisons.

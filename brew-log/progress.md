@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 12 / 12A - Roastery full-output capture complete. Next active work: Brew 12 / 12B - define scorecard workflow for captured full outputs.
+Current status: Brew 12 / 12B - Scored full-output Cup Test evidence recorded. Next active work: Brew 12 / 12C - close Roastery full-output capture and scoring workflow.
 
 ## Completed
 
@@ -95,6 +95,7 @@ Current status: Brew 12 / 12A - Roastery full-output capture complete. Next acti
 | 2026-07-06 | Brew 11 / Shot 11D — Template Installer Guide | `docs/guides/template-installer-guide.md` added and onboarding/template guides linked to installer and doctor workflows |
 | 2026-07-06 | Brew 11 / Shot 11E — Dogfood Template Installer | Scratch target smoke test validated dry-run, apply, doctor COMPLETE, reapply skip behavior, and installer tests |
 | 2026-07-06 | Brew 12 / Shot 12A — Roastery Full-Output Capture | Optional `--save-outputs`, `--output-dir`, and `--run-id` capture added to the Cup Test runner with local output ignores and tests |
+| 2026-07-06 | Brew 12 / Shot 12B — Record Full-Output Cup Test Evidence | Captured run `brew12-20260706-014748` summarized and scored; raw outputs remain local-only and ignored |
 
 ## Attempted (blocked)
 
@@ -108,10 +109,10 @@ None.
 
 ## Up next
 
-1. Brew 12 / 12B - define scorecard workflow for captured full outputs.
+1. Brew 12 / 12C - close Roastery full-output capture and scoring workflow.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 11. Future quality scoring still requires full model outputs. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 12. Future confidence still requires captured full outputs across more Order types. Shot 3B OpenRouter shell authentication remains historical context.

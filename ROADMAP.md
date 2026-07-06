@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 8 — first real project onboarding |
-| Current milestone | Brew 7 / Coffee Certification Project complete |
-| Next step | Start Brew 8 in Decaf Mode with a small onboarding scope |
-| Recent foundation result | Brew 5 Roastery MVP and Brew 6 Safety / Constitution completed |
-| Blockers | None for Brew 7 closeout |
+| Current shot | Brew 12 — Roastery full-output capture and scoring |
+| Current milestone | Brew 12 / scored full-output Cup Test evidence recorded |
+| Next step | Brew 12C — close Roastery full-output capture and scoring workflow |
+| Recent foundation result | Brew 12A added full-output capture; Brew 12B recorded scored evidence from captured outputs |
+| Blockers | None for Brew 12 closeout |
 
 ## Phase 1 goal
 
@@ -163,3 +163,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 10A | Coffee Certification Project implementation and trace | Complete | 2026-07-05 |
 | 10B | Human diff review | Complete | 2026-07-05 |
 | 10C | Finalize Coffee Certification | Complete | 2026-07-05 |
+| Brew 12 / 12A-12B | Roastery full-output capture and scored evidence | In progress | 2026-07-06 |

@@ -18,6 +18,7 @@ Use model scorecards to record model performance.
 | 2026-07-05 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 5 / Shot 8K rerun local Cup Test evidence | COMPLETE RUN - all three Beans returned ok status on the same Order | Not scored; response previews only |
 | 2026-07-05 | nvidia/nemotron-3-ultra-550b-a55b:free; cohere/north-mini-code:free; poolside/laguna-m.1:free | Brew 5 / Shot 8L House Blend recommendation | PROVISIONAL - Nemotron default, Cohere fallback, Poolside secondary fallback/comparison | `config/house_blend.md` |
 | 2026-07-06 | No remote Bean; local standard-library installer | Brew 11 / Shot 11E template installer smoke test | COMPLETE - dry-run, apply, doctor check, reapply skip behavior, and tests passed | Workflow evidence below |
+| 2026-07-06 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 12 / Shot 12B captured full-output Cup Test | SCORED - all three Beans produced useful full outputs; Nemotron kept default confidence due quality parity plus lower latency/token use | Evidence below; raw outputs local-only |
 
 ## Cup Test Notes
 
@@ -174,3 +175,67 @@ Needs improvement:
 
 - Future closeout should decide whether `tmp/` should be ignored for scratch
   smoke targets or whether smoke tests should always clean up generated targets.
+
+### 2026-07-06 - Brew 12 / Shot 12B: Captured Full-Output Cup Test Evidence
+
+Run ID:
+
+```text
+brew12-20260706-014748
+```
+
+Local-only output directory:
+
+```text
+roastery/local_cup_outputs/brew12-20260706-014748
+```
+
+Raw outputs are ignored by Git and Cursor indexing. They are not committed in
+this note. This section records summarized review evidence only.
+
+Evidence source:
+
+- `manifest.json` from the captured run.
+- Local raw output files under the run directory.
+- Terminal output from the live run was not separately preserved in tracked
+  docs; manifest metadata was used for latency, tokens, cost, and status.
+
+Order hash:
+
+```text
+6ca498dcd2e18860179d045f545ee9603c1736a7b33b917d16d1aaf8e0f17f2f
+```
+
+Scoring rubric:
+
+- 10 = correct, minimal, actionable, no human fix needed.
+- 8-9 = good, minor review/fix needed.
+- 6-7 = useful but required meaningful correction.
+- 4-5 = partially useful, risky, vague, or overengineered.
+- 1-3 = failed, unavailable, or not useful.
+
+| Bean | Status | Latency | Tokens | Cost | Captured | Reviewed | Score | Use again? |
+| --- | --- | ---: | ---: | ---: | --- | --- | ---: | --- |
+| `poolside/laguna-m.1:free` | ok | 0.66s | 2158 total | 0 reported | yes | yes | 9 | yes |
+| `cohere/north-mini-code:free` | ok | 0.62s | 2272 total | 0 reported | yes | yes | 9 | yes |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.45s | 936 total | 0 reported | yes | yes | 9 | yes |
+
+Quality notes:
+
+| Bean | Strengths | Weaknesses | Human fixes needed |
+| --- | --- | --- | --- |
+| `poolside/laguna-m.1:free` | Correct and minimal implementation; clear tests for case-insensitive `.py` and `.md`, other extensions, no extension, empty input, and mixed input. | Used a numbered approach list instead of bullets; coverage was solid but not broader than necessary. | None expected for this Order. |
+| `cohere/north-mini-code:free` | Correct implementation; clear docstring; good tests for empty input, case-insensitive `.md`, mixed input, no extension, and directory-like strings. | Slightly more verbose than needed; output included a non-ASCII hyphen in prose, not code. | None expected for this Order. |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | Correct implementation; broadest test coverage, including multiple dots and hidden files; fastest and lowest-token run. | Slightly less minimal due `Counter` and type imports for a tiny task. | None expected for this Order. |
+
+Interpretation:
+
+- All three Beans produced usable, reviewed full outputs for this small coding
+  Order.
+- Quality scores were tied at 9, so the differentiator for this Order remains
+  latency and token use.
+- Nemotron improved confidence as the default Bean for small standard-library
+  coding Orders because it matched quality while using fewer reported tokens and
+  lower latency.
+- The recommendation remains provisional because this is still one task type
+  and one small Order.

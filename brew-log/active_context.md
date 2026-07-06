@@ -30,12 +30,13 @@ Brew 12 - Roastery full-output capture underway.
 - Brew 11 / 11D added the Template Installer Guide and linked installer usage from onboarding docs.
 - Brew 11 / 11E dogfooded the installer against `tmp/template-installer-smoke-target`, validated dry-run/apply/check/reapply behavior, reran tests, and recorded evidence.
 - Brew 12 / 12A added optional full-output capture to the Roastery Cup Test runner for future human review and quality scoring.
+- Brew 12 / 12B recorded scored full-output evidence from captured Cup Test run `brew12-20260706-014748`.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 12 / 12B - define scorecard workflow for captured full outputs.
+1. Brew 12 / 12C - close Roastery full-output capture and scoring workflow.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -45,4 +46,4 @@ No active blocker for Brew 12. Do not commit raw Cup Test outputs; summarize and
 
 ## Last updated
 
-2026-07-06 - Brew 12 / 12A Roastery full-output capture added
+2026-07-06 - Brew 12 / 12B scored full-output evidence recorded
