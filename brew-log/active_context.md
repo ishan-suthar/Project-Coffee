@@ -17,12 +17,13 @@ Brew 9 - Productized Project Coffee docs underway.
 - Brew 9 / 9A completed a read-only productization audit.
 - Brew 9 / 9B added the Project Coffee Operating Manual under `docs/guides/`.
 - Brew 9 / 9C added the Windows/PowerShell Project Coffee Setup Guide under `docs/guides/`.
+- Brew 9 / 9D added the New Project Onboarding Guide using Coffee Status as the proven pattern.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 9 / 9D - New Project Onboarding Guide.
+1. Brew 9 / 9E - Template Pack.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -32,4 +33,4 @@ No active blocker for Brew 9. Keep productized docs short and avoid duplicating 
 
 ## Last updated
 
-2026-07-06 - Brew 9 / 9C Project Coffee Setup Guide added
+2026-07-06 - Brew 9 / 9D New Project Onboarding Guide added
