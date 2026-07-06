@@ -3,7 +3,7 @@
 ## Current State
 
 Coffee Status is onboarded into Project Coffee as the first real low-risk
-project.
+project. Brew 8 is complete.
 
 ## What Matters Now
 
@@ -11,17 +11,20 @@ project.
 - Brew 8 / 8B adds a minimal app-local Project Coffee skeleton.
 - Brew 8 / 8C improves the README with local run, test, and safety notes.
 - Brew 8 / 8D records evidence from the onboarding and first tiny improvement.
+- Brew 8 / 8E closes first real project onboarding after human review and
+  manual commits.
 - No application logic changed during onboarding or the README improvement.
 - No secrets were inspected.
-- Human review and manual commit remain explicit.
+- Human review and manual commit were preserved.
 
 ## Next Actions
 
-1. Human reviews the Brew 8 evidence diff.
-2. Human stages only intended files.
-3. Human runs the staged secret-pattern check from the repository root.
-4. Human commits manually if satisfied.
+1. Continue with a second tiny Coffee Status improvement, or return to Project
+   Coffee for Brew 9 Productized docs.
+2. Keep future changes one-shot, reviewed, and manually committed.
+3. Before any future commit, stage only intended files and run the staged
+   secret-pattern check from the repository root.
 
 ## Blockers
 
-None for Brew 8 evidence review.
+None for Brew 8 closeout.
