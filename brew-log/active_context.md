@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 14 - Roastery multi-task benchmark pack complete.
+Brew 15 - Roastery reporting support underway.
 
 ## What matters right now
 
@@ -39,12 +39,13 @@ Brew 14 - Roastery multi-task benchmark pack complete.
 - Brew 14 / 14B recorded captured multi-task benchmark evidence for `001-decaf-repo-map.md` and `002-tiny-python-fix.md`, with summarized scores and House Blend confidence updates.
 - Brew 14 / 14C recorded the second benchmark pass for `003-docs-summary.md` and `004-pantry-assisted-answer.md`, completing evidence for all four Brew 14 Cup Test Orders.
 - Brew 14 / 14D closed the Roastery multi-task benchmark pack after runner tests, listing validation, raw-output ignore checks, Roastery evidence, Ledger entries, and House Blend updates were confirmed.
+- Brew 15 / 15A added a standard-library Roastery report generator that reads local Cup Test manifests and produces Markdown or JSON draft reports for human review.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 15A - Roastery report generator.
+1. Brew 15B - dogfood the Roastery report generator and record evidence.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -54,4 +55,4 @@ No active blocker for Brew 15 planning. Future live benchmark execution still re
 
 ## Last updated
 
-2026-07-06 - Brew 14 / 14D multi-task benchmark pack closed
+2026-07-06 - Brew 15 / 15A Roastery report generator added
