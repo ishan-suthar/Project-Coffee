@@ -19,6 +19,7 @@ Use model scorecards to record model performance.
 | 2026-07-05 | nvidia/nemotron-3-ultra-550b-a55b:free; cohere/north-mini-code:free; poolside/laguna-m.1:free | Brew 5 / Shot 8L House Blend recommendation | PROVISIONAL - Nemotron default, Cohere fallback, Poolside secondary fallback/comparison | `config/house_blend.md` |
 | 2026-07-06 | No remote Bean; local standard-library installer | Brew 11 / Shot 11E template installer smoke test | COMPLETE - dry-run, apply, doctor check, reapply skip behavior, and tests passed | Workflow evidence below |
 | 2026-07-06 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 12 / Shot 12B captured full-output Cup Test | SCORED - all three Beans produced useful full outputs; Nemotron kept default confidence due quality parity plus lower latency/token use | Evidence below; raw outputs local-only |
+| 2026-07-06 | No remote Bean; local standard-library dashboard | Brew 16 / Shot 16B Coffee Dashboard dogfood | COMPLETE - normal, JSON, section, strict missing-core, incomplete scratch, test, and compile checks passed | Workflow evidence below |
 
 ## Cup Test Notes
 
@@ -562,3 +563,63 @@ Needs improvement:
   file.
 - Draft reports still require human scoring and summary judgment before any
   content is copied into Roastery notes.
+
+### 2026-07-06 - Brew 16 / Shot 16B: Coffee Dashboard Dogfood
+
+Scratch target:
+
+```text
+tmp/coffee-dashboard-smoke
+```
+
+Commands run:
+
+```powershell
+python tools\coffee_dashboard.py --root .
+python tools\coffee_dashboard.py --root . --json
+python tools\coffee_dashboard.py --root . --section docs
+python tools\coffee_dashboard.py --root . --section tools
+python tools\coffee_dashboard.py --root . --section roastery
+python tools\coffee_dashboard.py --root . --section ledger
+python tools\coffee_dashboard.py --root . --section house-blend
+python tools\coffee_dashboard.py --root . --fail-on-missing
+python tools\coffee_dashboard.py --root tmp\coffee-dashboard-smoke --fail-on-missing
+python -m unittest tests.test_coffee_dashboard
+python -m py_compile tools\coffee_dashboard.py tests\test_coffee_dashboard.py
+```
+
+Observed behavior:
+
+- Normal human-readable dashboard mode worked against the Project Coffee root
+  and reported `Status: OK`.
+- JSON mode parsed successfully and reported `status=OK` with the expected
+  dashboard sections.
+- Section filtering worked for docs, tools, Roastery, Ledger, and House Blend.
+- `--fail-on-missing` against the Project Coffee root exited successfully with
+  no missing files.
+- The incomplete scratch target reported `Status: INCOMPLETE`, listed missing
+  required core files, and exited `1` under `--fail-on-missing`.
+- Focused dashboard tests passed: 10 tests.
+- Syntax compilation passed.
+- `git status --short --untracked-files=all -- tmp\coffee-dashboard-smoke`
+  returned no tracked or untracked scratch files.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The dashboard gave a compact root health view without touching secrets,
+  models, APIs, Git, or raw local output folders.
+- JSON output is usable for future local automation.
+- Section filtering made focused status checks easy to scan.
+- The incomplete scratch check proved missing-core detection works.
+
+Needs improvement:
+
+- The dashboard is intentionally file-presence oriented. Future polish could add
+  richer freshness checks, but only for known safe files.

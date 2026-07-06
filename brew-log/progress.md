@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 16 / 16A - Project Coffee Dashboard CLI complete. Next active work: Brew 16B - dogfood Project Coffee Dashboard CLI and record evidence.
+Current status: Brew 16 / 16B - Coffee Dashboard dogfood complete. Next active work: Brew 16C - close Project Coffee Dashboard work.
 
 ## Completed
 
@@ -108,6 +108,7 @@ Current status: Brew 16 / 16A - Project Coffee Dashboard CLI complete. Next acti
 | 2026-07-06 | Brew 15 / Shot 15B — Dogfood Roastery Report Generator | Existing local Cup Test runs validated Markdown, JSON, combined-run, capped-preview, saved-draft, ignored-report, ignored-raw-output, tests, and compile behavior |
 | 2026-07-06 | Brew 15 / Shot 15C — Close Roastery Report Generator | Completion criteria passed; report generator, tests, guide link, dogfood evidence, ignored raw outputs, and ignored local reports confirmed |
 | 2026-07-06 | Brew 16 / Shot 16A — Project Coffee Dashboard CLI | `tools/coffee_dashboard.py`, tests, and guide added for local workflow health checks, JSON output, section filtering, and strict missing-core validation |
+| 2026-07-06 | Brew 16 / Shot 16B — Dogfood Coffee Dashboard | Root dashboard, JSON, section filters, strict root check, incomplete scratch-root warning, focused tests, and compile validation passed; evidence recorded in Roastery and Ledger |
 
 ## Attempted (blocked)
 
@@ -121,7 +122,7 @@ None.
 
 ## Up next
 
-1. Brew 16B - Dogfood Project Coffee Dashboard CLI and record evidence.
+1. Brew 16C - Close Project Coffee Dashboard work.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
