@@ -11,10 +11,10 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 14 — Roastery multi-task benchmark evidence recorded |
-| Current milestone | Captured and scored repo-map and tiny Python fix benchmark Orders |
-| Next step | Brew 14C — close Roastery multi-task benchmark work |
-| Recent foundation result | Brew 14A added the benchmark pack; Brew 14B recorded summarized captured-output evidence and updated House Blend confidence |
+| Current shot | Brew 14 — second multi-task benchmark pass recorded |
+| Current milestone | Captured and scored all four Brew 14 benchmark Orders |
+| Next step | Brew 14D — close Roastery multi-task benchmark work |
+| Recent foundation result | Brew 14A added the benchmark pack; Brew 14B and 14C recorded summarized captured-output evidence and updated House Blend confidence |
 | Blockers | None for Brew 14 closeout |
 
 ## Phase 1 goal
@@ -165,4 +165,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | 10C | Finalize Coffee Certification | Complete | 2026-07-05 |
 | Brew 12 / 12A-12B | Roastery full-output capture and scored evidence | Complete | 2026-07-06 |
 | Brew 13 / 13A-13D | Pantry Search / Local RAG foundation MVP | Complete | 2026-07-06 |
-| Brew 14 / 14A-14B | Roastery multi-task benchmark pack and captured evidence | In progress | 2026-07-06 |
+| Brew 14 / 14A-14C | Roastery multi-task benchmark pack and captured evidence | In progress | 2026-07-06 |

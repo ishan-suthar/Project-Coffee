@@ -91,5 +91,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ### Changed (Brew 14 / Roastery multi-task benchmark)
 
 - Added a repeatable Roastery Cup Test benchmark pack and runner support for `--order-file`, `--list-cup-tests`, and `--cup-test-dir`.
-- Recorded captured-output benchmark evidence for the repo-map and tiny Python fix Orders without committing raw outputs.
-- Updated House Blend confidence: Nemotron remains provisional default, Cohere is a stronger fallback, and Poolside remains a comparison/coding fallback because it failed the repo-map run with HTTP 429.
+- Recorded captured-output benchmark evidence for the repo-map, tiny Python fix, docs summary, and Pantry-assisted answer Orders without committing raw outputs.
+- Updated House Blend confidence: Nemotron remains provisional default across all four benchmark Orders, Cohere remains the main fallback with stricter review for grounded answers, and Poolside remains a comparison/coding/docs fallback with availability and grounding caveats.

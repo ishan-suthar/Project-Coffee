@@ -399,3 +399,100 @@ Interpretation:
   with a provider 429 and used the most tokens on the Python fix.
 - The House Blend remains provisional because only two of four benchmark Orders
   have been run and reviewed.
+
+### 2026-07-06 - Brew 14 / Shot 14C: Second Multi-Task Benchmark Pass
+
+Run IDs:
+
+```text
+brew14-docs-summary-20260706-023220
+brew14-pantry-assisted-20260706-023312
+```
+
+Local-only output directories:
+
+```text
+roastery/local_cup_outputs/brew14-docs-summary-20260706-023220
+roastery/local_cup_outputs/brew14-pantry-assisted-20260706-023312
+```
+
+Raw outputs are ignored by Git and Cursor indexing. They are not committed in
+this note. This section records summarized review evidence only.
+
+Evidence source:
+
+- `manifest.json` from both captured runs.
+- Local raw output files under the run directories.
+- Terminal output from the live runs was not separately preserved in tracked
+  docs; manifest metadata was used for status, latency, token, cost, and output
+  file paths.
+
+#### Task 003 - Docs Summary
+
+Task file:
+
+```text
+roastery/cup_tests/003-docs-summary.md
+```
+
+Order hash:
+
+```text
+903a02dc3f91bcaba0a8afac1fd9c92da907c8c5ffe71381af7a04961351ee1f
+```
+
+| Bean | Status | Latency | Tokens | Cost | Captured | Reviewed | Score | Use again? |
+| --- | --- | ---: | ---: | ---: | --- | --- | ---: | --- |
+| `poolside/laguna-m.1:free` | ok | 0.91s | 690 total | 0 reported; billing unknown | yes | yes | 10 | yes |
+| `cohere/north-mini-code:free` | ok | 0.57s | 759 total | 0 reported; billing unknown | yes | yes | 9 | yes |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.44s | 661 total | 0 reported; billing unknown | yes | yes | 10 | yes |
+
+Quality notes:
+
+| Bean | Strengths | Weaknesses | Human fixes needed |
+| --- | --- | --- | --- |
+| `poolside/laguna-m.1:free` | Concise, followed requested sections, preserved source facts, and gave the expected validation command. | Slightly terse, but still complete. | None expected for this Order. |
+| `cohere/north-mini-code:free` | Clear summary, next step, risk, and validation command. | Slightly expanded risk wording beyond the provided snippet. | Minor review for wording before reuse. |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | Concise, complete, and well aligned with the source snippet; fastest and lowest-token. | No material weakness for this Order. | None expected for this Order. |
+
+#### Task 004 - Pantry Assisted Answer
+
+Task file:
+
+```text
+roastery/cup_tests/004-pantry-assisted-answer.md
+```
+
+Order hash:
+
+```text
+7b8882c50dc8f3a337e2954bbcce20d4c9b3ce78dbc6fc47f9b89100735a8296
+```
+
+| Bean | Status | Latency | Tokens | Cost | Captured | Reviewed | Score | Use again? |
+| --- | --- | ---: | ---: | ---: | --- | --- | ---: | --- |
+| `poolside/laguna-m.1:free` | ok | 1.19s | 903 total | 0 reported; billing unknown | yes | yes | 8 | yes, with grounding review |
+| `cohere/north-mini-code:free` | ok | 0.53s | 1241 total | 0 reported; billing unknown | yes | yes | 6 | only with strict review |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.40s | 762 total | 0 reported; billing unknown | yes | yes | 10 | yes |
+
+Quality notes:
+
+| Bean | Strengths | Weaknesses | Human fixes needed |
+| --- | --- | --- | --- |
+| `poolside/laguna-m.1:free` | Answered all requested sections and cited the provided snippets. | The RAG explanation drifted into broader wording not directly present in the snippets and omitted some provided non-RAG details. | Tighten wording to the exact snippet facts before reuse. |
+| `cohere/north-mini-code:free` | Structured answer and cited the main workflow/evidence/RAG points. | Added unsupported examples such as editor choice, likely costs, formatting unknowns, and doc-link lessons. | Remove unsupported examples and re-ground every factual claim in snippets. |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | Concise, fully answered the prompt, cited all relevant snippets, and stayed grounded. | No material weakness for this Order. | None expected for this Order. |
+
+Interpretation:
+
+- All three Beans completed the docs-summary and Pantry-assisted Orders.
+- Nemotron was strongest across the second pass: top quality, fastest latency,
+  and lowest or near-lowest token use.
+- Poolside performed well on docs summary and acceptably on grounded Pantry
+  answering, but still needs grounding review.
+- Cohere remains useful but showed a real risk on citation-sensitive grounded
+  answers by adding unsupported details.
+- Across all four Brew 14 benchmark Orders, Nemotron has the strongest
+  provisional default evidence. Cohere remains the main fallback. Poolside
+  remains a comparison/coding/docs fallback, with caution for availability and
+  grounding-sensitive work.
