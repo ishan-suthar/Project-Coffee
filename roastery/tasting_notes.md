@@ -496,3 +496,69 @@ Interpretation:
   provisional default evidence. Cohere remains the main fallback. Poolside
   remains a comparison/coding/docs fallback, with caution for availability and
   grounding-sensitive work.
+
+### 2026-07-06 - Brew 15 / Shot 15B: Roastery Report Generator Dogfood
+
+Local-only draft report path:
+
+```text
+roastery/local_reports/brew15b-latest-report.md
+```
+
+The local report directory and raw Cup Test output directory are ignored by Git
+and Cursor indexing. Generated draft reports and raw outputs are not committed
+in this note.
+
+Commands run:
+
+```powershell
+python tools\roastery_report.py --run-dir roastery\local_cup_outputs\brew14-pantry-assisted-20260706-023312
+python tools\roastery_report.py --run-dir roastery\local_cup_outputs\brew14-pantry-assisted-20260706-023312 --json
+python tools\roastery_report.py --run-dir roastery\local_cup_outputs
+python tools\roastery_report.py --run-dir roastery\local_cup_outputs\brew14-pantry-assisted-20260706-023312 --include-previews --max-preview-chars 80
+python tools\roastery_report.py --run-dir roastery\local_cup_outputs\brew14-pantry-assisted-20260706-023312 --output roastery\local_reports\brew15b-latest-report.md
+python -m unittest tests.test_roastery_report
+python -m py_compile tools\roastery_report.py tests\test_roastery_report.py
+git status --short --ignored -- roastery\local_reports
+git status --short --ignored -- roastery\local_cup_outputs
+```
+
+Observed behavior:
+
+- Markdown report generation worked for the latest local run:
+  `brew14-pantry-assisted-20260706-023312`.
+- JSON report generation worked for the same run and parsed with
+  `run_count=1`, the expected run ID, and 3 Bean results.
+- Combined Markdown report worked across all local run directories under
+  `roastery/local_cup_outputs/`.
+- Preview report generation worked with `--include-previews`; excerpts were
+  capped at `--max-preview-chars 80` and showed ellipses.
+- Draft report saving worked under `roastery/local_reports/`.
+- `roastery/local_reports/` is ignored by Git.
+- `roastery/local_cup_outputs/` remains ignored by Git.
+- Focused report-generator tests passed: 10 tests.
+- Syntax compilation passed.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The generator rebuilt useful report tables from manifest metadata quickly.
+- JSON output was machine-readable for local checks.
+- Combined reporting surfaced all local runs in one draft.
+- Capped previews gave enough context for review without pasting full raw
+  outputs.
+- Saved drafts can stay local under an ignored folder.
+
+Needs improvement:
+
+- Combined reports can become noisy when older failed or experimental runs are
+  included. A future polish shot could add filters by run ID, date, or Order
+  file.
+- Draft reports still require human scoring and summary judgment before any
+  content is copied into Roastery notes.

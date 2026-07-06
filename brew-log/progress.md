@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 15 / 15A - Roastery report generator complete. Next active work: Brew 15B - dogfood the Roastery report generator and record evidence.
+Current status: Brew 15 / 15B - Roastery report generator dogfood evidence complete. Next active work: Brew 15C - close the Roastery report generator.
 
 ## Completed
 
@@ -105,6 +105,7 @@ Current status: Brew 15 / 15A - Roastery report generator complete. Next active 
 | 2026-07-06 | Brew 14 / Shot 14C — Second Benchmark Pass Evidence | Captured runs for `003-docs-summary.md` and `004-pantry-assisted-answer.md` summarized and scored; all four Brew 14 benchmark Orders now have reviewed evidence |
 | 2026-07-06 | Brew 14 / Shot 14D — Close Roastery Multi-Task Benchmark Pack | Completion criteria passed; benchmark pack, runner flags, tests, captured evidence, Ledger entries, and House Blend updates confirmed |
 | 2026-07-06 | Brew 15 / Shot 15A — Roastery Report Generator | `tools/roastery_report.py`, tests, and guide added for draft Markdown/JSON summaries from local Cup Test manifests |
+| 2026-07-06 | Brew 15 / Shot 15B — Dogfood Roastery Report Generator | Existing local Cup Test runs validated Markdown, JSON, combined-run, capped-preview, saved-draft, ignored-report, ignored-raw-output, tests, and compile behavior |
 
 ## Attempted (blocked)
 
@@ -118,7 +119,7 @@ None.
 
 ## Up next
 
-1. Brew 15B - dogfood the Roastery report generator and record evidence.
+1. Brew 15C - close the Roastery report generator.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
