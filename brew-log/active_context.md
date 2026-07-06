@@ -21,12 +21,13 @@ Brew 9 - Productized Project Coffee docs underway.
 - Brew 9 / 9E added a reusable Project Coffee template pack and template pack guide.
 - Brew 9 / 9F added the Barista Handbook for roles, modes, routing, and examples.
 - Brew 9 / 9G added the Roastery and Ledger Guide for evaluation, cost/token evidence, failures, and unknowns.
+- Brew 9 / 9H added the Model Routing and House Blend Guide for Beans, fallback policy, provisional routing, and rerun evidence.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 9 / 9H - House Blend Guide.
+1. Brew 9 / 9I - Productized docs closeout and review.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -36,4 +37,4 @@ No active blocker for Brew 9. Keep productized docs short and avoid duplicating 
 
 ## Last updated
 
-2026-07-06 - Brew 9 / 9G Roastery and Ledger Guide added
+2026-07-06 - Brew 9 / 9H Model Routing and House Blend Guide added

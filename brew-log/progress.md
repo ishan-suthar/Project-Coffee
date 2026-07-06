@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 9 / 9G - Roastery and Ledger Guide complete. Next active work: Brew 9 / 9H - House Blend Guide.
+Current status: Brew 9 / 9H - Model Routing and House Blend Guide complete. Next active work: Brew 9 / 9I - Productized docs closeout.
 
 ## Completed
 
@@ -88,6 +88,7 @@ Current status: Brew 9 / 9G - Roastery and Ledger Guide complete. Next active wo
 | 2026-07-06 | Brew 9 / Shot 9E — Project Coffee Template Pack | `templates/project-coffee/` skeleton and `docs/guides/template-pack-guide.md` added for repeatable onboarding |
 | 2026-07-06 | Brew 9 / Shot 9F — Barista Handbook | `docs/guides/barista-handbook.md` added for roles, modes, routing, approval gates, and examples |
 | 2026-07-06 | Brew 9 / Shot 9G — Roastery and Ledger Guide | `docs/guides/roastery-and-ledger-guide.md` added for model/workflow evidence, cost/token unknowns, failures, and closeout |
+| 2026-07-06 | Brew 9 / Shot 9H — Model Routing and House Blend Guide | `docs/guides/model-routing-and-house-blend-guide.md` added for Coffee Core, Beans, provisional House Blend, fallback policy, and rerun evidence |
 
 ## Attempted (blocked)
 
@@ -101,7 +102,7 @@ None.
 
 ## Up next
 
-1. Brew 9 / 9H - House Blend Guide.
+1. Brew 9 / 9I - Productized docs closeout.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 

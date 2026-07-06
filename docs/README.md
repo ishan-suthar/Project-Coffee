@@ -12,6 +12,7 @@ Practical Project Coffee guides live here.
 | `guides/template-pack-guide.md` | How to copy and fill the reusable Project Coffee template pack. |
 | `guides/barista-handbook.md` | Practical guide to Project Coffee roles, work modes, and routing. |
 | `guides/roastery-and-ledger-guide.md` | Practical guide to evaluation evidence, cost notes, and unknowns. |
+| `guides/model-routing-and-house-blend-guide.md` | Practical guide to Beans, House Blend routing, fallback policy, and rerun evidence. |
 
 ## Templates
 
