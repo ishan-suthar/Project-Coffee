@@ -295,3 +295,107 @@ Needs improvement:
   overlapping results. Future smoke tests should prefer unique sentinels.
 - Future polish could tighten query/token scoring so negative or hyphenated
   searches are less likely to match broad substrings.
+
+### 2026-07-06 - Brew 14 / Shot 14B: Multi-Task Benchmark Evidence
+
+Run IDs:
+
+```text
+brew14-repo-map-20260706-022532
+brew14-python-fix-20260706-022559
+```
+
+Local-only output directories:
+
+```text
+roastery/local_cup_outputs/brew14-repo-map-20260706-022532
+roastery/local_cup_outputs/brew14-python-fix-20260706-022559
+```
+
+Raw outputs are ignored by Git and Cursor indexing. They are not committed in
+this note. This section records summarized review evidence only.
+
+Evidence source:
+
+- `manifest.json` from both captured runs.
+- Local raw output files under the run directories.
+- Terminal output from the live runs was not separately preserved in tracked
+  docs; manifest metadata was used for status, latency, token, cost, and output
+  file paths.
+
+Scoring rubric:
+
+- 10 = correct, minimal, actionable, no human fix needed.
+- 8-9 = good, minor review/fix needed.
+- 6-7 = useful but required meaningful correction.
+- 4-5 = partially useful, risky, vague, or overengineered.
+- 1-3 = failed, unavailable, or not useful.
+
+#### Task 001 - Decaf Repo Map
+
+Task file:
+
+```text
+roastery/cup_tests/001-decaf-repo-map.md
+```
+
+Order hash:
+
+```text
+00e199c3e38f19b17585a9b06df68105d2a702b138cd86329371e10264c23a6e
+```
+
+| Bean | Status | Latency | Tokens | Cost | Captured | Reviewed | Score | Use again? |
+| --- | --- | ---: | ---: | ---: | --- | --- | ---: | --- |
+| `poolside/laguna-m.1:free` | error: HTTP 429 provider error | 0.20s | unknown | unknown | no | no output | 1 | not for repo-map until availability improves |
+| `cohere/north-mini-code:free` | ok | 0.43s | 1797 total | 0 reported; billing unknown | yes | yes | 7 | yes, with review |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.38s | 1257 total | 0 reported; billing unknown | yes | yes | 8 | yes |
+
+Quality notes:
+
+| Bean | Strengths | Weaknesses | Human fixes needed |
+| --- | --- | --- | --- |
+| `poolside/laguna-m.1:free` | None; no successful output. | Provider returned HTTP 429, so there was no output to score. | Rerun only if provider availability improves. |
+| `cohere/north-mini-code:free` | Covered project purpose, components, likely commands, safe documentation improvement, risks, and human approval. | Invented or over-specified some behavior and commands, including note operations and an unsupported README tooling example. | Remove unsupported commands/features and verify CLI verbs before using as a plan. |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | Clear evidence/assumption separation, concise component map, likely commands, safe improvement, and useful risk questions. | Still suggested some guessed commands and example CLI verbs that need verification. | Verify commands and CLI verbs before implementation. |
+
+#### Task 002 - Tiny Python Fix
+
+Task file:
+
+```text
+roastery/cup_tests/002-tiny-python-fix.md
+```
+
+Order hash:
+
+```text
+d9a0cbf5f802a5ac18c9d605842be6696b0bb95e3619c7d74aacb86523ddb4fa
+```
+
+| Bean | Status | Latency | Tokens | Cost | Captured | Reviewed | Score | Use again? |
+| --- | --- | ---: | ---: | ---: | --- | --- | ---: | --- |
+| `poolside/laguna-m.1:free` | ok | 1.16s | 2717 total | 0 reported; billing unknown | yes | yes | 10 | yes, but token-heavy |
+| `cohere/north-mini-code:free` | ok | 0.55s | 2578 total | 0 reported; billing unknown | yes | yes | 10 | yes |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | ok | 0.39s | 656 total | 0 reported; billing unknown | yes | yes | 10 | yes |
+
+Quality notes:
+
+| Bean | Strengths | Weaknesses | Human fixes needed |
+| --- | --- | --- | --- |
+| `poolside/laguna-m.1:free` | Correct, minimal fix; preserved first-seen order; skipped empty tags; included a focused `unittest` example. | Much higher token use than Nemotron for the same quality. | None expected for this Order. |
+| `cohere/north-mini-code:free` | Correct fix and readable focused test; clear explanation of the duplicate-check and sorting bugs. | Higher token use than Nemotron; no quality advantage on this tiny task. | None expected for this Order. |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | Correct, concise, fastest, and lowest-token successful output. | No material weakness for this Order. | None expected for this Order. |
+
+Interpretation:
+
+- Nemotron had the best combined result across the two reviewed benchmark
+  Orders: successful on both, strongest repo-map answer, tied coding quality,
+  and lowest reported token use among successful Beans.
+- Cohere becomes a more credible fallback for planning and coding because it
+  completed both reviewed Orders, though the repo-map output needed meaningful
+  cleanup.
+- Poolside remains useful for coding comparison but failed the repo-map Order
+  with a provider 429 and used the most tokens on the Python fix.
+- The House Blend remains provisional because only two of four benchmark Orders
+  have been run and reviewed.

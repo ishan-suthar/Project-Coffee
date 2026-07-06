@@ -87,3 +87,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Expanded the Project Coffee template Pantry index with source quality, freshness, keyword, and safety guidance.
 - Dogfooded Pantry Search against Project Coffee docs and a scratch Pantry target, including human-readable output, JSON output, no-results behavior, max-results behavior, and sensitive-path skip evidence.
 - Marked the Pantry Search / Local RAG foundation MVP complete and set next recommended work to Brew 14A, the Roastery multi-task benchmark pack.
+
+### Changed (Brew 14 / Roastery multi-task benchmark)
+
+- Added a repeatable Roastery Cup Test benchmark pack and runner support for `--order-file`, `--list-cup-tests`, and `--cup-test-dir`.
+- Recorded captured-output benchmark evidence for the repo-map and tiny Python fix Orders without committing raw outputs.
+- Updated House Blend confidence: Nemotron remains provisional default, Cohere is a stronger fallback, and Poolside remains a comparison/coding fallback because it failed the repo-map run with HTTP 429.

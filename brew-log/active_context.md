@@ -36,12 +36,13 @@ Brew 14 - Roastery multi-task benchmark pack underway.
 - Brew 13 / 13C improved the Pantry intake workflow with a guide, searchable knowledge index template, and cross-links from Pantry Search docs.
 - Brew 13 / 13D closed the Markdown Pantry Search MVP after tests, compile checks, human-readable search, JSON search, and no-results validation passed.
 - Brew 14 / 14A added a repeatable four-Order Roastery Cup Test pack and taught the local runner to list Cup Tests and run a specific Order from a file.
+- Brew 14 / 14B recorded captured multi-task benchmark evidence for `001-decaf-repo-map.md` and `002-tiny-python-fix.md`, with summarized scores and House Blend confidence updates.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 14B - run the multi-task benchmark pack with captured outputs and record evidence.
+1. Brew 14C - close the Roastery multi-task benchmark work if completion criteria are satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -51,4 +52,4 @@ No active blocker for Brew 14. Live benchmark execution requires human approval 
 
 ## Last updated
 
-2026-07-06 - Brew 14 / 14A multi-task benchmark pack added
+2026-07-06 - Brew 14 / 14B multi-task benchmark evidence recorded

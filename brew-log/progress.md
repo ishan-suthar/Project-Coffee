@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 14 / 14A - Roastery multi-task benchmark pack complete. Next active work: Brew 14B - run benchmarks with captured outputs and record evidence.
+Current status: Brew 14 / 14B - multi-task benchmark evidence recorded. Next active work: Brew 14C - close Roastery multi-task benchmark work.
 
 ## Completed
 
@@ -101,6 +101,7 @@ Current status: Brew 14 / 14A - Roastery multi-task benchmark pack complete. Nex
 | 2026-07-06 | Brew 13 / Shot 13C — Pantry Intake Workflow | `docs/guides/pantry-intake-guide.md` added; Pantry Search guide cross-linked; template Pantry index expanded with source quality, freshness, keywords, and safety guidance |
 | 2026-07-06 | Brew 13 / Shot 13D — Close Pantry Search MVP | Completion criteria passed; tests, compile, human-readable search, JSON search, and no-results validation succeeded; Brew 13 marked complete |
 | 2026-07-06 | Brew 14 / Shot 14A — Multi-Task Roastery Benchmark Pack | Four repeatable Cup Test Orders added; runner now supports `--order-file`, `--list-cup-tests`, `--cup-test-dir`, and manifest `order_file` metadata |
+| 2026-07-06 | Brew 14 / Shot 14B — Multi-Task Benchmark Evidence | Captured runs for `001-decaf-repo-map.md` and `002-tiny-python-fix.md` summarized and scored; House Blend confidence updated while remaining provisional |
 
 ## Attempted (blocked)
 
@@ -114,7 +115,7 @@ None.
 
 ## Up next
 
-1. Brew 14B - run the multi-task benchmark pack with captured outputs and record evidence.
+1. Brew 14C - close Roastery multi-task benchmark work.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
