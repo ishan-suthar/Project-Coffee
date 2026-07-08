@@ -164,6 +164,17 @@ Main risks:
 
 Project Coffee should treat Local RAG as evidence assembly first and answer generation second.
 
+## Review Lessons From Brew 21B
+
+Brew 21B reviewed the design against realistic Project Coffee questions. The design covers current status, default Bean rationale, Brew 19 proof, release files, onboarding docs, excluded files, future UI behavior, and remote Bean approval.
+
+Two areas need special care in Brew 22:
+
+- source profiles: each query type should have a known source order instead of relying on ad hoc retrieval;
+- stale or conflicting docs: the bundle should show competing evidence and warn when sources disagree.
+
+Brew 22 should make the selected query class visible in output so the human can see why particular files were retrieved.
+
 ## Next Step
 
 Brew 22 should implement a local, standard-library evidence bundle builder. It should not add embeddings, vector search, model calls, or a chat UI yet.

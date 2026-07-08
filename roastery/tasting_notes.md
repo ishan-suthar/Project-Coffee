@@ -983,3 +983,62 @@ Needs improvement:
   Git status/tag checks inherited parent repository metadata. Missing-file
   blockers still validated failure behavior, but future polish could report when
   the checked root is not the Git top-level directory.
+
+### 2026-07-08 - Brew 21 / Shot 21B: Local RAG Design Review
+
+Review questions:
+
+1. What is the current Brew and next Shot?
+2. Why did we choose the current default Bean?
+3. What did Brew 19 prove?
+4. Which files should be checked before release?
+5. What evidence supports Project Coffee being v0.1-proven?
+6. Which docs explain onboarding a new project?
+7. Which local files should never be retrieved?
+8. How would future chat UI answer with local evidence?
+9. What needs user approval before sending context to a remote Bean?
+10. How will stale or conflicting docs be handled?
+
+Observed coverage:
+
+- The design covers current status through Brew Log, Roadmap, and Changelog
+  evidence.
+- The design covers default Bean rationale through Roastery, House Blend, and
+  Ledger evidence.
+- The design can explain Brew 19 through Brew Log, Changelog, Ledger, and guide
+  evidence.
+- The design covers release-readiness questions through the Release Packaging
+  Guide and release-check evidence.
+- The design covers onboarding questions through the onboarding, template pack,
+  and template installer guides.
+- The design explicitly excludes secrets, hidden credential directories, raw
+  Roastery outputs, generated reports unless selected, dependency folders,
+  virtual environments, build artifacts, caches, binary files, production data,
+  and private regulated data by default.
+- The design explains how a future UI should show evidence bundles, citations,
+  freshness warnings, assumptions, and remote Bean usage.
+- The design requires human approval before sending local context to a remote
+  Bean.
+
+Gaps found:
+
+- Brew 22 needs explicit query-class source profiles so source selection is not
+  ad hoc.
+- Brew 22 needs a release-proof profile for questions like "what evidence
+  supports v0.1-proven?"
+- Brew 22 needs a conflict rule that includes competing snippets when Brew Log,
+  Roadmap, Changelog, guides, Roastery, or Ledger disagree.
+- Brew 22 needs freshness scoring visible in bundle output.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only for this design review; not metered.
+- Cost: none / local-only; no external API cost.
+
+Needs improvement:
+
+- Brew 21C should close the design if the review notes are sufficient.
+- Brew 22 should stay model-free and implement evidence bundles before any
+  chat UI, embeddings, or vector database.

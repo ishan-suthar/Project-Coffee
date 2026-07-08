@@ -368,3 +368,35 @@ This design does not include:
 - Should app-local Project Coffee folders be opt-in by path or discovered from a registry?
 - How should stale evidence be scored: date, Brew number, or explicit freshness labels?
 - Should future Level 3 embeddings be local-only, remote-approved, or both?
+
+## Brew 21B Dogfood Review
+
+The design was reviewed against ten realistic Project Coffee questions before implementation.
+
+| Question | Covered by design? | Primary sources | Notes |
+| --- | --- | --- | --- |
+| What is the current Brew and next Shot? | Yes | `brew-log/active_context.md`, `brew-log/progress.md`, `ROADMAP.md` | Current Status query class covers milestone, next action, blockers, and cited paths. |
+| Why did we choose the current default Bean? | Yes | `roastery/tasting_notes.md`, `config/house_blend.md`, `ledger/cost_log.md` | Model Benchmark query class covers quality evidence, confidence level, tokens, and cost when recorded. |
+| What did Brew 19 prove? | Yes | Brew Log, `CHANGELOG.md`, `ledger/cost_log.md`, related guide docs | Historical Decision and Cost / Token query classes can reconstruct proof from completion and dogfood evidence. |
+| Which files should be checked before release? | Yes | `docs/guides/release-packaging-guide.md`, `tools/release_check.py` documentation, Brew Log | Docs / How-To and release readiness evidence cover this. Brew 22 should prefer the guide over inferred memory. |
+| What evidence supports Project Coffee being v0.1-proven? | Partial | Brew Log, Roastery, Ledger, `ROADMAP.md`, `CHANGELOG.md`, release tags | Covered as a cross-project/historical evidence question, but Brew 22 needs a source profile for "release proof" queries. |
+| Which docs explain onboarding a new project? | Yes | `docs/guides/new-project-onboarding-guide.md`, `docs/guides/template-pack-guide.md`, `docs/guides/template-installer-guide.md` | Onboarding query class covers guide selection and approval gates. |
+| Which local files should never be retrieved? | Yes | Local RAG design/guide, `AGENTS.md`, `PROJECT_COFFEE.md`, ignore files | Excluded Sources and Safety Rules cover secret, generated, binary, raw-output, and credential exclusions. |
+| How would future chat UI answer with local evidence? | Yes | Local RAG design/guide | Integration Plan defines a future UI consuming evidence bundles with citations, freshness warnings, assumptions, and remote-use disclosure. |
+| What needs user approval before sending context to a remote Bean? | Yes | Local RAG design/guide, `AGENTS.md`, `PROJECT_COFFEE.md` | Safety Rules and approval model require human approval before sending local context remotely. |
+| How will stale or conflicting docs be handled? | Partial | Evidence bundle freshness fields, Brew Log, Roadmap, Changelog | Design says to warn on stale, ambiguous, or missing evidence. Brew 22 needs explicit conflict handling and source precedence. |
+
+### Gaps Found
+
+- Brew 22 needs an explicit query-class-to-source profile table so the implementation does not rely on ad hoc source selection.
+- Brew 22 needs a conflict handling rule: when Brew Log, Roadmap, Changelog, guide docs, or Roastery/Ledger disagree, the bundle should include competing snippets and mark the conflict.
+- Brew 22 needs a stale-evidence rule that prefers dated Brew Log, Ledger, Roastery, Roadmap, and Changelog entries over undated prose when answering status, benchmark, release, or cost questions.
+- "v0.1-proven" or release-proof questions need a named query class or subprofile, likely under Historical Decision or Release Evidence.
+
+### Brew 22 Implementation Implications
+
+- Start with explicit `--class` support or a simple deterministic classifier with visible query class output.
+- Include source profiles for current status, historical decision, model benchmark, cost/token, onboarding, docs/how-to, cross-project, and release proof.
+- Add freshness metadata to each evidence item using date, Brew number, changelog recency, or `unknown`.
+- Add a `conflict` or `warning` field at the bundle level when selected sources disagree.
+- Keep output local-only, standard-library only, and model-free.
