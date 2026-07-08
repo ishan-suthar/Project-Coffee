@@ -15,6 +15,7 @@ Practical Project Coffee guides live here.
 | `guides/pantry-intake-guide.md` | How to add safe, structured, searchable Pantry knowledge. |
 | `guides/barista-handbook.md` | Practical guide to Project Coffee roles, work modes, and routing. |
 | `guides/roastery-and-ledger-guide.md` | Practical guide to evaluation evidence, cost notes, and unknowns. |
+| `guides/ledger-summary-guide.md` | How to summarize local Ledger cost, token, and workflow evidence. |
 | `guides/roastery-report-guide.md` | How to generate draft reports from local Cup Test manifests. |
 | `guides/coffee-dashboard-guide.md` | How to inspect local Project Coffee workflow health from the command line. |
 | `guides/coffee-doctor-guide.md` | How to diagnose Project Coffee repository health issues and safe next actions. |

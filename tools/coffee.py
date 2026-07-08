@@ -76,6 +76,15 @@ def build_parser() -> argparse.ArgumentParser:
     check_onboarding.add_argument("--target", required=True, help="Target project root.")
     check_onboarding.add_argument("--template", help="Template root. Defaults to templates/project-coffee.")
 
+    ledger_summary = subcommands.add_parser("ledger-summary", help="Summarize Project Coffee Ledger evidence.")
+    ledger_summary.add_argument("--root", default=".", help="Project root. Default: current directory.")
+    ledger_summary.add_argument("--ledger", help="Ledger markdown path. Default: ledger/cost_log.md under root.")
+    ledger_summary.add_argument("--json", action="store_true", help="Print JSON output.")
+    ledger_summary.add_argument("--from", dest="from_date", help="Include entries on or after YYYY-MM-DD.")
+    ledger_summary.add_argument("--to", dest="to_date", help="Include entries on or before YYYY-MM-DD.")
+    ledger_summary.add_argument("--max-entries", type=int, help="Maximum recent entries to print.")
+    ledger_summary.add_argument("--output", help="Optional Markdown report output path.")
+
     return parser
 
 
@@ -109,6 +118,11 @@ def build_delegation(args: argparse.Namespace) -> Delegation:
         return Delegation(
             script=REPO_ROOT / "tools" / "install_project_coffee_template.py",
             args=check_onboarding_args(args),
+        )
+    if args.command == "ledger-summary":
+        return Delegation(
+            script=REPO_ROOT / "tools" / "ledger_summary.py",
+            args=ledger_summary_args(args),
         )
     raise ValueError(f"Unsupported command: {args.command}")
 
@@ -155,6 +169,17 @@ def check_onboarding_args(args: argparse.Namespace) -> list[str]:
     forwarded = ["--target", args.target]
     append_optional(forwarded, "--template", args.template)
     forwarded.append("--check")
+    return forwarded
+
+
+def ledger_summary_args(args: argparse.Namespace) -> list[str]:
+    forwarded = ["--root", args.root]
+    append_optional(forwarded, "--ledger", args.ledger)
+    append_optional(forwarded, "--from", args.from_date)
+    append_optional(forwarded, "--to", args.to_date)
+    append_optional(forwarded, "--max-entries", args.max_entries)
+    append_optional(forwarded, "--output", args.output)
+    append_flag(forwarded, "--json", args.json)
     return forwarded
 
 

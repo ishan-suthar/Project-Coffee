@@ -55,6 +55,7 @@ class CoffeeCliTests(unittest.TestCase):
         self.assertIn("dashboard", stdout)
         self.assertIn("doctor", stdout)
         self.assertIn("pantry-search", stdout)
+        self.assertIn("ledger-summary", stdout)
         self.assertEqual(commands, [])
 
     def test_version_works(self) -> None:
@@ -193,6 +194,37 @@ class CoffeeCliTests(unittest.TestCase):
             commands,
             "install_project_coffee_template.py",
             ["--target", "scratch", "--check"],
+        )
+
+    def test_ledger_summary_delegates_correctly(self) -> None:
+        code, _stdout, stderr, commands = self.run_cli(
+            "ledger-summary",
+            "--root",
+            ".",
+            "--from",
+            "2026-07-01",
+            "--to",
+            "2026-07-08",
+            "--max-entries",
+            "4",
+            "--json",
+        )
+
+        self.assertEqual(code, 0, stderr)
+        self.assert_delegates_to(
+            commands,
+            "ledger_summary.py",
+            [
+                "--root",
+                ".",
+                "--from",
+                "2026-07-01",
+                "--to",
+                "2026-07-08",
+                "--max-entries",
+                "4",
+                "--json",
+            ],
         )
 
     def test_missing_delegated_tool_returns_nonzero_and_helpful_error(self) -> None:
