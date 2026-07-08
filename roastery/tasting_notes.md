@@ -20,6 +20,7 @@ Use model scorecards to record model performance.
 | 2026-07-06 | No remote Bean; local standard-library installer | Brew 11 / Shot 11E template installer smoke test | COMPLETE - dry-run, apply, doctor check, reapply skip behavior, and tests passed | Workflow evidence below |
 | 2026-07-06 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 12 / Shot 12B captured full-output Cup Test | SCORED - all three Beans produced useful full outputs; Nemotron kept default confidence due quality parity plus lower latency/token use | Evidence below; raw outputs local-only |
 | 2026-07-06 | No remote Bean; local standard-library dashboard | Brew 16 / Shot 16B Coffee Dashboard dogfood | COMPLETE - normal, JSON, section, strict missing-core, incomplete scratch, test, and compile checks passed | Workflow evidence below |
+| 2026-07-08 | No remote Bean; local standard-library doctor | Brew 17 / Shot 17B Coffee Doctor dogfood | COMPLETE - root, JSON, section, strict fail-on-issue, incomplete scratch, test, and compile checks passed | Workflow evidence below |
 
 ## Cup Test Notes
 
@@ -623,3 +624,73 @@ Needs improvement:
 
 - The dashboard is intentionally file-presence oriented. Future polish could add
   richer freshness checks, but only for known safe files.
+
+### 2026-07-08 - Brew 17 / Shot 17B: Coffee Doctor Dogfood
+
+Scratch target:
+
+```text
+tmp/coffee-doctor-smoke
+```
+
+Commands run:
+
+```powershell
+python tools\coffee_doctor.py --root .
+python tools\coffee_doctor.py --root . --json
+python tools\coffee_doctor.py --root . --section tools
+python tools\coffee_doctor.py --root . --section roastery
+python tools\coffee_doctor.py --root . --section templates
+python tools\coffee_doctor.py --root . --section ignored-paths
+python tools\coffee_doctor.py --root . --fail-on-issue
+python tools\coffee_doctor.py --root tmp\coffee-doctor-smoke
+python tools\coffee_doctor.py --root tmp\coffee-doctor-smoke --fail-on-issue
+python -m unittest tests.test_coffee_doctor
+python -m py_compile tools\coffee_doctor.py tests\test_coffee_doctor.py
+git status --short --untracked-files=all -- tmp\coffee-doctor-smoke
+```
+
+Observed behavior:
+
+- Root Doctor run worked and reported `Status: WARN` with 38 OK findings, 1
+  WARN finding, and 0 FAIL findings.
+- The WARN finding is an existing docs policy issue:
+  `docs/adr/0005-local-openrouter-coffee-core.md` appears to include the
+  literal staged secret-check command. This was recorded but not fixed in this
+  shot because that ADR is outside the allowed edit scope.
+- JSON mode parsed successfully and reported the same summary counts.
+- Section filtering worked for tools, Roastery, templates, and ignored paths.
+- `--fail-on-issue` against the Project Coffee root exited `0` because no FAIL
+  findings were present.
+- The incomplete scratch target reported `Status: FAIL` with missing core,
+  docs, tools, Roastery, Ledger, template, and ignore-file findings.
+- Normal mode against the incomplete scratch target exited `0`, preserving
+  exploratory diagnosis behavior.
+- `--fail-on-issue` against the incomplete scratch target exited `1`.
+- Focused Coffee Doctor tests passed: 10 tests.
+- Syntax compilation passed.
+- `git status --short --untracked-files=all -- tmp\coffee-doctor-smoke`
+  returned no tracked or untracked scratch files.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Doctor produced useful severity-coded findings with safe next actions.
+- Root checks correctly distinguished WARN from FAIL.
+- Strict mode behaved correctly for both healthy-enough root checks and
+  incomplete scratch checks.
+- Section filtering made targeted diagnosis easy to scan.
+- Local artifact checks stayed limited to the known Roastery output/report
+  paths.
+
+Needs improvement:
+
+- Brew 17C should decide whether to fix the existing ADR policy warning as a
+  separate one-responsibility documentation shot or leave it as tracked Doctor
+  evidence for now.
