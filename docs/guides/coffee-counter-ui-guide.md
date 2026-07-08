@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 33A remote-call approval design
+Status: Brew 33 complete
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -646,3 +646,25 @@ Future remote-call UI must show:
 Secrets, `.env` files, credentials, hidden credential directories, raw local
 Roastery outputs, private regulated data, large binaries, caches, virtual
 environments, dependency folders, and build artifacts must not be sent.
+
+### Brew 33B Dogfood and Closeout
+
+Brew 33B reviewed the design against future local-only, approval-gated, blocked,
+failure, cancellation, active-root-change, and generated-code scenarios.
+
+The review confirmed:
+
+- local questions stay local-only with no approval and no remote Ledger entry;
+- docs questions use local evidence first;
+- code planning is approval-gated if remote help is requested;
+- whole-repo context requests are blocked until narrowed;
+- `.env` and secret-risk requests are blocked without showing secret values;
+- benchmark requests route through Roastery first;
+- missing provider keys block gracefully without sending context;
+- provider failures and Ledger write failures remain visible and honest;
+- user cancellation discards approval state;
+- active-root changes invalidate approval;
+- generated code stays advisory with manual file and Git review.
+
+No remote-call implementation was added. Next likely work is Brew 34: local
+context package builder and Safety Gate, still with no remote model calls.

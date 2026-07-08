@@ -246,3 +246,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added `docs/design/remote-call-approval-design.md` to define the future approval-gated remote Bean workflow without implementing remote calls.
 - Documented approval states, context package schema, safety/redaction policy, model/provider selection policy, Ledger requirements, UI design, failure/cancel states, testing strategy, implementation roadmap, and open questions.
 - Updated Coffee Counter UI docs to clarify that current approval gates remain preview-only and the UI still has no OpenRouter call, API key input, network code, or working send-to-model button.
+- Dogfooded the design against twelve future UI/API scenarios and refined whole-repo context blocking, secret-risk blocking, missing-key handling, provider failure, Ledger failure, cancellation, active-root-change invalidation, and generated-code/manual-review behavior.
+- Marked Remote Call Approval Design complete and set next recommended work to Brew 34, Remote Context Package Builder.

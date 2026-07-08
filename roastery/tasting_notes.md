@@ -1690,3 +1690,70 @@ Needs improvement:
 
 - Brew 33 should design the future remote-call approval flow before any remote context can be sent from the UI.
 - A future Brew can design persistent root history or Fleet registry editing separately, with explicit safety rules.
+
+### 2026-07-08 - Brew 33 / Shot 33B: Remote Call Approval Design Dogfood and Closeout
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile ui/coffee_counter_app.py
+python tools/coffee.py evidence-bundle --root . --query "remote call approval design safety gate ledger provider model" --max-results 8 --json
+python tools/coffee.py doctor --root .
+python tools/coffee.py release-check --root .
+python tools/coffee.py ledger-summary --root . --max-entries 8
+python tools/coffee.py fleet-status --root .
+```
+
+Observed behavior:
+
+- Focused Coffee Counter UI tests passed: 54 tests.
+- `ui/coffee_counter_app.py` compiled successfully.
+- Evidence Bundle returned the Brew 33 design, Brew Log, Changelog, UI guide, and Ledger evidence.
+- Doctor returned `WARN` with the known non-blocking ADR warning about the literal staged secret-check command.
+- Release Check returned `OK` before the 33B closeout edits.
+- Ledger Summary returned recent local-only evidence entries.
+- Fleet Status safely reported missing default `fleet/projects.json` as `INFO`.
+
+Scenario checklist:
+
+- Simple local question: covered as local-only, no approval, no context sent, and no remote-call Ledger entry.
+- Docs question: covered as local evidence first; remote help is optional only after explicit future approval.
+- Code planning: covered as approval-gated with context preview, selected files, excluded files, Safety Gate result, provider/model choice, and Ledger plan.
+- Whole-repo context request: refined to blocked until narrowed, with oversized-context warning and path/secret exclusions.
+- Secret-risk `.env` request: refined to blocked without showing secret values, requiring manual remove/redact.
+- Benchmark request: covered as Roastery first, benchmark approval, and Ledger required.
+- Missing API key: refined to block gracefully without sending prompt/context or asking for keys in chat/UI.
+- Provider timeout/failure: covered with visible result card, retry rules, and Ledger failure record if a call was attempted.
+- Ledger write failure: refined as not success; result remains visible and evidence capture must be retried/manual.
+- User cancellation: covered as local-only, no remote call, no cost, and context discarded from approval session.
+- Active root changes mid-approval: refined to invalidate approval and require preview regeneration.
+- Generated code response: covered as advisory only, with no automatic file write, staging, commit, or push.
+
+Design gaps found:
+
+- Needed a concise scenario review table tying each scenario to decision, UI display, Ledger record, user next action, and forbidden behavior.
+- Needed clearer language for whole-repository context, missing provider keys, active-root changes, Ledger write failure, and generated-code advisory status.
+
+Refinements made:
+
+- Added Brew 33B scenario review to `docs/design/remote-call-approval-design.md`.
+- Updated implementation roadmap to make Brew 34 the local context package builder and Safety Gate only.
+- Updated UI docs and Roadmap to keep remote-call behavior design-only.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only design review; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The approval-gated design covers local-only, approval-gated, blocked, failed, cancelled, stale/root-changed, and advisory-output paths.
+- Ledger requirements are explicit enough for a future planned-call preview.
+- The next Brew can safely implement only a local context package builder and Safety Gate without adding remote calls.
+
+Needs improvement:
+
+- Brew 34 should implement the local context package builder, Safety Gate report, token estimate placeholder, and approval-ready preview object without network calls.

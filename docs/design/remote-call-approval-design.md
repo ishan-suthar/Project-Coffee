@@ -1,6 +1,6 @@
 # Remote Call Approval Design
 
-Status: Brew 33A design only
+Status: Brew 33 complete
 Date: 2026-07-08
 
 ## 1. Purpose
@@ -379,19 +379,50 @@ Future implementation should test:
 
 Tests should not call OpenRouter, external APIs, or remote models.
 
-## 13. Implementation Roadmap
+## 13. Brew 33B Scenario Review
+
+The design was reviewed against twelve future UI/API scenarios. The review
+confirmed the approval boundary is clear enough to implement the next local
+context-package builder without adding remote calls.
+
+| Scenario | Design decision | UI should show | Ledger records | User next action | Must never happen |
+| --- | --- | --- | --- | --- | --- |
+| Simple local question: "What is the current Brew?" | Local-only; no approval. | Current State Quick View and local evidence. | No remote-call entry. | Read cited Brew Log evidence. | Send context remotely. |
+| Docs question: "How do I use Coffee Counter?" | Local evidence first; remote optional only if user explicitly asks later. | Evidence Bundle results, local draft, and optional approval-gate explanation. | No remote-call entry unless a future approved call occurs. | Verify cited guide paths. | Treat docs Q&A as implicit remote approval. |
+| Code-planning question: "Plan a refactor for the Coffee Counter UI." | Approval-gated if remote help is requested. | Context preview, selected files, excluded files, Safety Gate result, provider/model choice, Ledger plan. | Planned-call metadata only when future implementation reaches that step; actual call data after send. | Review context package and approve or cancel. | Send broad repo context or write files automatically. |
+| Risky repo-context request: "Send the whole repo to a model." | Blocked until narrowed. | Oversized-context warning, excluded paths, and narrowing instructions. | Safe blocked/planned event only if useful and free of secret content. | Select specific evidence/files. | Send entire repo or hidden/generated paths. |
+| Secret-risk request: "Include .env." | Blocked. | Redaction warning label and reason without secret value. | No remote-call entry; optional blocked-event note without secret content. | Remove/redact manually and rebuild preview. | Display or send secret value. |
+| Benchmark request | Roastery workflow first; approval required before any model call. | Roastery route, benchmark approval, provider/model visibility, Ledger plan. | Benchmark plan, provider/model, tokens/cost if a future call occurs. | Use Roastery Cup Test process. | Run ad hoc benchmark without Roastery/Ledger. |
+| Missing API key after approval | Blocked gracefully. | Setup issue; no prompt/context sent. | No remote call; optional planned/cancelled local note if safe. | Configure provider outside chat/UI secret surfaces. | Ask user to paste key into chat or UI. |
+| Provider timeout/failure | Failed state; retry only after review. | Result card with provider/model, failure type, retry rule. | Failure entry if call was attempted. | Decide whether to retry with same approved context. | Hide provider failure or silently switch model. |
+| Ledger write failure | Call result visible, Ledger warning shown. | Result card plus "Ledger recording failed" state. | No false success; manual evidence capture required. | Retry Ledger recording or add manual evidence. | Claim complete without Ledger evidence. |
+| User cancels | Cancelled; stay local-only. | Cancelled state and discarded approval session. | No cost; optional local note only if useful. | Continue local-only or rebuild preview. | Send after cancellation. |
+| Active root changes mid-approval | Invalidate approval. | Warning that preview must regenerate. | No remote call; optional cancelled/planned note if safe. | Rebuild evidence/context from new root. | Reuse approval from old root. |
+| Generated code response | Advisory only. | Post-call result card, citations, warnings, manual review reminder. | Provider/model, cost/token data, outcome, no-secrets confirmation. | Human reviews and applies changes manually. | Auto-write files, stage, commit, or push. |
+
+### Refinements From Review
+
+- Whole-repository context requests are explicitly blocked until narrowed to a
+  reviewed context package.
+- Missing provider credentials must block after approval without sending
+  prompt/context, and the UI must not ask for keys in chat.
+- Active-root changes invalidate approval and require a rebuilt preview.
+- Ledger write failure is not success; the result remains visible but closeout
+  requires manual or retried evidence capture.
+- Generated code remains advisory and must never trigger automatic file or Git
+  writes.
+
+## 14. Implementation Roadmap
 
 Recommended future sequence:
 
-1. Brew 33B: dogfood this design against realistic remote-call scenarios.
-2. Brew 33C: close Remote Call Approval Design if complete.
-3. Future Brew: add non-executing UI preview helpers and tests only.
-4. Future Brew: add local Safety Gate implementation with no network calls.
-5. Future Brew: add Ledger planned-call preview.
-6. Future Brew: consider remote call implementation only after explicit human
+1. Brew 34: implement local context package builder and Safety Gate only.
+2. Future Brew: add non-executing UI preview helpers and tests only.
+3. Future Brew: add Ledger planned-call preview.
+4. Future Brew: consider remote call implementation only after explicit human
    approval and fresh Roastery/routing review.
 
-## 14. Open Questions
+## 15. Open Questions
 
 - Should approval IDs be generated in memory or written only when a remote call
   actually occurs?
