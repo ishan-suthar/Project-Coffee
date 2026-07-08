@@ -7,10 +7,11 @@ Streamlit installed. Streamlit is imported only inside the UI rendering path.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import subprocess
 import sys
-from typing import Callable, Sequence
+from typing import Any, Callable, Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +42,36 @@ class CommandResult:
     stderr: str
     return_code: int
     timed_out: bool = False
+
+
+@dataclass(frozen=True)
+class EvidenceItem:
+    source_path: str
+    heading: str
+    snippet: str
+    reason_selected: str
+    score: int
+    freshness_signal: str
+    safety_classification: str
+    line_start: int | None = None
+    line_end: int | None = None
+
+    @property
+    def reference(self) -> str:
+        if self.line_start is None:
+            return self.source_path
+        if self.line_end is not None and self.line_end != self.line_start:
+            return f"{self.source_path}:{self.line_start}-{self.line_end}"
+        return f"{self.source_path}:{self.line_start}"
+
+
+@dataclass(frozen=True)
+class EvidenceBundle:
+    query: str
+    total_matches: int
+    items: list[EvidenceItem]
+    warnings: list[str]
+    parse_error: str | None = None
 
 
 def default_project_root() -> Path:
@@ -164,8 +195,164 @@ def run_coffee_command(
     )
 
 
-def format_command(args: Sequence[str]) -> str:
+def format_display_command(args: Sequence[str]) -> str:
     return subprocess.list2cmdline(list(args))
+
+
+def format_command(args: Sequence[str]) -> str:
+    return format_display_command(args)
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
+
+
+def _as_optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    parsed = _as_int(value, default=-1)
+    if parsed < 0:
+        return None
+    return parsed
+
+
+def parse_evidence_bundle_json(text: str) -> EvidenceBundle:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return EvidenceBundle(
+            query="",
+            total_matches=0,
+            items=[],
+            warnings=[],
+            parse_error=f"JSON parse error: {exc.msg}",
+        )
+
+    if not isinstance(payload, dict):
+        return EvidenceBundle(
+            query="",
+            total_matches=0,
+            items=[],
+            warnings=[],
+            parse_error="JSON parse error: expected an object.",
+        )
+
+    raw_items = payload.get("bundle", [])
+    if not isinstance(raw_items, list):
+        raw_items = []
+
+    items: list[EvidenceItem] = []
+    for raw_item in raw_items:
+        if not isinstance(raw_item, dict):
+            continue
+        items.append(
+            EvidenceItem(
+                source_path=str(raw_item.get("source_path", "")),
+                heading=str(raw_item.get("heading", "")),
+                snippet=str(raw_item.get("snippet", "")),
+                reason_selected=str(raw_item.get("reason_selected", "")),
+                score=_as_int(raw_item.get("score"), default=0),
+                freshness_signal=str(raw_item.get("freshness_signal", "")),
+                safety_classification=str(raw_item.get("safety_classification", "")),
+                line_start=_as_optional_int(raw_item.get("line_start")),
+                line_end=_as_optional_int(raw_item.get("line_end")),
+            )
+        )
+
+    raw_warnings = payload.get("warnings", [])
+    warnings = [str(item) for item in raw_warnings] if isinstance(raw_warnings, list) else []
+    total_matches = _as_int(payload.get("total_matches"), default=len(items))
+    return EvidenceBundle(
+        query=str(payload.get("query", "")),
+        total_matches=total_matches,
+        items=items,
+        warnings=warnings,
+    )
+
+
+def evidence_state(bundle: EvidenceBundle, return_code: int = 0) -> str:
+    if return_code != 0:
+        return "command-error"
+    if bundle.parse_error:
+        return "json-parse-error"
+    if bundle.total_matches == 0 or not bundle.items:
+        return "no-evidence"
+    return "success"
+
+
+def build_local_evidence_draft(question: str, bundle: EvidenceBundle, *, max_items: int = 3) -> str:
+    title = "Local evidence draft, not model-generated"
+    cleaned_question = question.strip() or "(no question provided)"
+    lines = [title, "", f"Question or Order: {cleaned_question}", ""]
+
+    state = evidence_state(bundle)
+    if state == "json-parse-error":
+        lines.extend(
+            [
+                "Evidence status: unable to parse Evidence Bundle JSON.",
+                f"Parser note: {bundle.parse_error}",
+                "",
+                "Draft: Evidence is insufficient until the JSON output is inspected.",
+            ]
+        )
+        return "\n".join(lines)
+
+    if state == "no-evidence":
+        lines.extend(
+            [
+                "Evidence status: no local evidence matched the query.",
+                "",
+                "Draft: Evidence is insufficient. Refine the query, narrow the source, or run a local validation command before answering.",
+            ]
+        )
+        return "\n".join(lines)
+
+    lines.extend(
+        [
+            f"Evidence status: {bundle.total_matches} local match(es) found; using top {min(max_items, len(bundle.items))}.",
+            "",
+            "Grounded notes:",
+        ]
+    )
+    for index, item in enumerate(bundle.items[:max_items], start=1):
+        heading = item.heading or "(no heading)"
+        snippet = item.snippet or "(no snippet)"
+        lines.append(f"{index}. {item.reference} - {heading}: {snippet}")
+
+    lines.extend(
+        [
+            "",
+            "Draft: Use the grounded notes above as the answer basis. Verify the cited local files before treating this as final.",
+            "",
+            "No model call was made.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def evidence_table_rows(bundle: EvidenceBundle) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for item in bundle.items:
+        rows.append(
+            {
+                "Source": item.reference,
+                "Heading": item.heading,
+                "Score": item.score,
+                "Freshness": item.freshness_signal,
+                "Safety": item.safety_classification,
+                "Snippet": item.snippet,
+            }
+        )
+    return rows
 
 
 def render_app() -> None:
@@ -238,7 +425,7 @@ def render_home_tab(st: object, root: str) -> None:
 
 def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
     st.subheader("Ask Coffee - local only")
-    st.info("This MVP retrieves local evidence only; it does not call a model.")
+    render_evidence_safety_notice(st)
     question = st.text_area("Question or Coffee Order", height=140)
     max_results = st.number_input(
         "Max evidence results",
@@ -257,13 +444,24 @@ def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
                 root=root,
                 query=question,
                 max_results=int(max_results),
+                json_output=True,
             )
-            display_result(st, result, "Local Evidence Bundle")
+            display_result(st, result, "Local Evidence Bundle", expand_stdout=False)
+            if result is not None:
+                bundle = parse_evidence_bundle_json(result.stdout)
+                render_evidence_bundle_summary(st, bundle, result.return_code)
+                st.subheader("Local evidence draft")
+                st.caption("Local evidence draft, not model-generated. No model call was made.")
+                if result.return_code == 0:
+                    st.code(build_local_evidence_draft(question, bundle), language="markdown")
+                else:
+                    st.warning("Evidence command failed, so no local evidence draft was created.")
             st.caption("Coffee can draft commands, but you review and run commits.")
 
 
 def render_evidence_tab(st: object, root: str, default_max_results: int) -> None:
     st.subheader("Evidence Bundle")
+    render_evidence_safety_notice(st)
     query = st.text_input("Evidence query", value="current Brew next Shot")
     max_results = st.number_input(
         "Max results",
@@ -272,17 +470,28 @@ def render_evidence_tab(st: object, root: str, default_max_results: int) -> None
         value=default_max_results,
         key="evidence-max-results",
     )
-    json_output = st.checkbox("JSON output", value=False)
     if st.button("Run evidence-bundle"):
-        result = safe_run_for_ui(
+        markdown_result = safe_run_for_ui(
             st,
             "evidence-bundle",
             root=root,
             query=query,
             max_results=int(max_results),
-            json_output=json_output,
         )
-        display_result(st, result, "Evidence Bundle")
+        display_result(st, markdown_result, "Evidence Bundle Markdown")
+
+        json_result = safe_run_for_ui(
+            st,
+            "evidence-bundle",
+            root=root,
+            query=query,
+            max_results=int(max_results),
+            json_output=True,
+        )
+        display_result(st, json_result, "Evidence Bundle JSON", expand_stdout=False)
+        if json_result is not None:
+            bundle = parse_evidence_bundle_json(json_result.stdout)
+            render_evidence_bundle_summary(st, bundle, json_result.return_code)
 
 
 def render_ledger_tab(st: object, root: str) -> None:
@@ -344,6 +553,43 @@ def render_safety_tab(st: object, selected_action: str) -> None:
     )
 
 
+def render_evidence_safety_notice(st: object) -> None:
+    st.info(
+        "Local evidence only. Evidence is retrieved from allowlisted local Project Coffee "
+        "sources; excluded paths are not searched. Remote Bean calls remain disabled in Brew 28."
+    )
+
+
+def render_evidence_bundle_summary(
+    st: object,
+    bundle: EvidenceBundle,
+    return_code: int,
+) -> None:
+    state = evidence_state(bundle, return_code)
+    if state == "success":
+        st.success(f"Evidence found: {bundle.total_matches} local match(es). No model call was made.")
+    elif state == "no-evidence":
+        st.warning("No local evidence matched this query. No model call was made.")
+    elif state == "json-parse-error":
+        st.error(f"Evidence JSON could not be parsed: {bundle.parse_error}")
+    else:
+        st.error("Evidence command returned a nonzero exit code.")
+
+    for warning in bundle.warnings:
+        st.warning(warning)
+
+    if bundle.items:
+        st.write("Top evidence items")
+        st.dataframe(evidence_table_rows(bundle), width="stretch")
+        for index, item in enumerate(bundle.items[:5], start=1):
+            with st.expander(f"{index}. {item.reference} - {item.heading or '(no heading)'}"):
+                st.write(f"Score: `{item.score}`")
+                st.write(f"Freshness: `{item.freshness_signal or 'unknown'}`")
+                st.write(f"Safety: `{item.safety_classification or 'unknown'}`")
+                st.write(f"Reason: {item.reason_selected or '(none recorded)'}")
+                st.code(item.snippet or "(no snippet)", language="markdown")
+
+
 def safe_run_for_ui(st: object, action: str, **kwargs: object) -> CommandResult | None:
     try:
         return run_coffee_command(action, **kwargs)
@@ -352,15 +598,25 @@ def safe_run_for_ui(st: object, action: str, **kwargs: object) -> CommandResult 
         return None
 
 
-def display_result(st: object, result: CommandResult | None, title: str) -> None:
+def display_result(
+    st: object,
+    result: CommandResult | None,
+    title: str,
+    *,
+    expand_stdout: bool = True,
+) -> None:
     if result is None:
         return
     st.write(f"**{title}**")
-    st.code(format_command(result.args), language="text")
+    st.code(format_display_command(result.args), language="text")
     st.write(f"Exit code: `{result.return_code}`")
     if result.timed_out:
         st.warning("Command timed out.")
-    with st.expander("stdout", expanded=True):
+    if result.return_code == 0 and not result.timed_out:
+        st.success("Command completed.")
+    else:
+        st.error("Command did not complete cleanly.")
+    with st.expander("stdout", expanded=expand_stdout):
         st.code(result.stdout or "(empty)", language="text")
     with st.expander("stderr", expanded=bool(result.stderr)):
         st.code(result.stderr or "(empty)", language="text")

@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -41,6 +42,122 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
         self.assertEqual(args[args.index("--query") + 1], query)
         self.assertIn("--max-results", args)
         self.assertEqual(args[args.index("--max-results") + 1], "3")
+
+    def test_evidence_bundle_json_args_are_built_safely(self) -> None:
+        query = 'Coffee Counter"; git commit'
+        with tempfile.TemporaryDirectory() as tmp:
+            args = coffee_counter_app.build_command(
+                "evidence-bundle",
+                root=tmp,
+                query=query,
+                max_results=4,
+                json_output=True,
+            )
+
+        self.assertIn("--json", args)
+        self.assertEqual(args[args.index("--query") + 1], query)
+
+    def test_display_command_formatting_is_copy_friendly(self) -> None:
+        args = [
+            sys.executable,
+            "tools/coffee.py",
+            "evidence-bundle",
+            "--query",
+            'House Blend"; git commit',
+        ]
+
+        formatted = coffee_counter_app.format_display_command(args)
+
+        self.assertIn("evidence-bundle", formatted)
+        self.assertIn("--query", formatted)
+        self.assertIn("House Blend", formatted)
+        self.assertIn("git commit", formatted)
+        self.assertNotIn("\n", formatted)
+
+    def test_evidence_json_parser_handles_valid_bundle_json(self) -> None:
+        payload = {
+            "query": "current Brew",
+            "total_matches": 2,
+            "bundle": [
+                {
+                    "source_path": "brew-log/progress.md",
+                    "heading": "Current shot",
+                    "snippet": "Current status: Brew 28A",
+                    "reason_selected": "matched body",
+                    "score": 9,
+                    "freshness_signal": "Brew 28",
+                    "safety_classification": "local-project-note",
+                    "line_start": 9,
+                    "line_end": 9,
+                }
+            ],
+            "warnings": [],
+        }
+
+        bundle = coffee_counter_app.parse_evidence_bundle_json(json.dumps(payload))
+
+        self.assertIsNone(bundle.parse_error)
+        self.assertEqual(bundle.query, "current Brew")
+        self.assertEqual(bundle.total_matches, 2)
+        self.assertEqual(len(bundle.items), 1)
+        self.assertEqual(bundle.items[0].reference, "brew-log/progress.md:9")
+
+    def test_evidence_json_parser_handles_malformed_json(self) -> None:
+        bundle = coffee_counter_app.parse_evidence_bundle_json("{not-json")
+
+        self.assertIsNotNone(bundle.parse_error)
+        self.assertEqual(bundle.items, [])
+        self.assertEqual(coffee_counter_app.evidence_state(bundle), "json-parse-error")
+
+    def test_local_evidence_draft_includes_source_path_and_snippet(self) -> None:
+        bundle = coffee_counter_app.EvidenceBundle(
+            query="current Brew",
+            total_matches=1,
+            items=[
+                coffee_counter_app.EvidenceItem(
+                    source_path="brew-log/progress.md",
+                    heading="Current shot",
+                    snippet="Current status: Brew 28A",
+                    reason_selected="matched body",
+                    score=9,
+                    freshness_signal="Brew 28",
+                    safety_classification="local-project-note",
+                    line_start=9,
+                    line_end=9,
+                )
+            ],
+            warnings=[],
+        )
+
+        draft = coffee_counter_app.build_local_evidence_draft("What is next?", bundle)
+
+        self.assertIn("Local evidence draft, not model-generated", draft)
+        self.assertIn("brew-log/progress.md:9", draft)
+        self.assertIn("Current status: Brew 28A", draft)
+        self.assertIn("No model call was made.", draft)
+
+    def test_local_evidence_draft_reports_insufficient_evidence(self) -> None:
+        bundle = coffee_counter_app.EvidenceBundle(
+            query="nonsense",
+            total_matches=0,
+            items=[],
+            warnings=[],
+        )
+
+        draft = coffee_counter_app.build_local_evidence_draft("Nonsense?", bundle)
+
+        self.assertIn("Evidence is insufficient", draft)
+        self.assertIn("no local evidence matched", draft)
+
+    def test_zero_match_state_is_handled(self) -> None:
+        bundle = coffee_counter_app.EvidenceBundle(
+            query="nonsense",
+            total_matches=0,
+            items=[],
+            warnings=[],
+        )
+
+        self.assertEqual(coffee_counter_app.evidence_state(bundle), "no-evidence")
 
     def test_subprocess_result_captures_output_and_return_code(self) -> None:
         def fake_runner(args: list[str], timeout: float) -> subprocess.CompletedProcess[str]:

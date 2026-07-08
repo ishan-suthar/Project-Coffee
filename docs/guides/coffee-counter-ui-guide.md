@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 26 complete
+Status: Brew 28A evidence integration
 Date: 2026-07-08
 
 This guide explains how the future Project Coffee Counter UI should work. It is
@@ -260,7 +260,40 @@ Bean use requires a separate approval gate.
 
 ## Future Brew 28 / 29 Direction
 
-- Brew 28 should improve Evidence Bundle display, citations, no-evidence
-  handling, and local answer drafting.
+- Brew 28 improves Evidence Bundle display, citations, no-evidence handling,
+  and local answer drafting.
 - Brew 29 should add visible routing approval gates before any remote Bean can
   receive local context.
+
+## Brew 28A Evidence Integration
+
+Brew 28A improves Ask Coffee and Evidence Bundle without changing Project
+Coffee's local-only UI boundary.
+
+Ask Coffee now:
+
+- takes a human question or Order;
+- runs the local `evidence-bundle` command through the same allowlisted adapter;
+- requests JSON output for structured parsing;
+- shows evidence status, top source paths, headings, snippets, scores,
+  freshness, and safety labels;
+- creates a deterministic local evidence draft from metadata and snippets;
+- labels the draft as local evidence, not model-generated;
+- says when evidence is insufficient;
+- shows the exact safe CLI command that was run.
+
+Evidence Bundle now:
+
+- keeps Markdown output visible for review;
+- also runs JSON output for structured display;
+- handles malformed JSON as a UI error state;
+- handles zero matches as an honest no-evidence state;
+- preserves stdout, stderr, and exit code visibility.
+
+Limitations:
+
+- The local evidence draft is not a generated answer from a Bean.
+- It may be incomplete when the source evidence is thin or noisy.
+- The UI still does not edit files, stage files, commit, push, tag, inspect raw
+  Roastery local outputs, or send evidence to a remote model.
+- Remote routing remains disabled until Brew 29 adds explicit approval gates.
