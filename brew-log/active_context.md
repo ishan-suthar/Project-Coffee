@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 23 - Model Routing Policy Refinement complete.
+Brew 24 - Multi-project Fleet Support in progress.
 
 ## What matters right now
 
@@ -67,12 +67,13 @@ Brew 23 - Model Routing Policy Refinement complete.
 - Brew 23 / 23A drafted the Model Routing Policy Refinement so future tools and UI can choose Decaf, local evidence only, default Bean, fallback Bean, comparison Bean, or human approval required before remote context is sent.
 - Brew 23 / 23B reviewed the policy against ten realistic routing scenarios and recorded gaps around context previews, explicit fallback consent, and Brew 24 fleet support.
 - Brew 23 / 23C closed Model Routing Policy Refinement after validating the policy, House Blend links, scenario evidence, local-only Ledger/Roastery evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary.
+- Brew 24 / 24A is implementing the Multi-project Fleet Registry MVP with a local registry, safe status checks, docs, tests, and optional Unified Coffee CLI delegation.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 24 - Multi-project Fleet Support: create a local project registry and fleet status layer before future UI work.
+1. Brew 24 / 24B - Dogfood the Fleet Status tool against Project Coffee and scratch registry scenarios.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -82,4 +83,4 @@ No active blocker for Brew 24 planning. Future live benchmark execution still re
 
 ## Last updated
 
-2026-07-08 - Brew 23 / 23C Model Routing Policy Refinement closed
+2026-07-08 - Brew 24 / 24A Multi-project Fleet Registry MVP implemented

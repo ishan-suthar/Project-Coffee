@@ -23,6 +23,7 @@ Practical Project Coffee guides live here.
 | `guides/model-routing-and-house-blend-guide.md` | Practical guide to Beans, House Blend routing, fallback policy, and rerun evidence. |
 | `guides/release-packaging-guide.md` | How to check Project Coffee release readiness before tagging or handoff. |
 | `guides/local-rag-guide.md` | How Project Coffee will use safe local retrieval and evidence bundles. |
+| `guides/fleet-support-guide.md` | How to use the local multi-project fleet registry and status tool. |
 
 ## Designs
 

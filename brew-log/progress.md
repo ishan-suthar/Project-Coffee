@@ -132,6 +132,7 @@ Current status: Brew 22 - Local RAG MVP complete. Next active work: Brew 23 - Mo
 | 2026-07-08 | Brew 23 / Shot 23A — Model Routing Policy Refinement | `docs/design/model-routing-policy.md` drafted with routing modes, Bean roles, task-class decisions, approval rules, routing inputs/outputs, safety gates, failure behavior, Roastery update rule, and UI implications |
 | 2026-07-08 | Brew 23 / Shot 23B — Dogfood Model Routing Policy | Ten realistic Project Coffee routing scenarios reviewed; policy coverage confirmed and gaps recorded for context previews, explicit fallback consent, and Brew 24 fleet support |
 | 2026-07-08 | Brew 23 / Shot 23C — Close Model Routing Policy Refinement | Completion criteria passed; policy design, House Blend guide/config references, scenario review evidence, local-only Ledger/Roastery evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary validation confirmed |
+| 2026-07-08 | Brew 24 / Shot 24A — Multi-project Fleet Registry MVP | `tools/fleet_status.py`, focused tests, example registry, Fleet Support Guide, docs link, and Unified Coffee CLI delegation added for safe local project registry status checks |
 
 ## Attempted (blocked)
 
@@ -145,7 +146,7 @@ None.
 
 ## Up next
 
-1. Brew 24 - Multi-project Fleet Support: create a local project registry and fleet status layer before future UI work.
+1. Brew 24 / Shot 24B - Dogfood the Fleet Status tool against Project Coffee and scratch registry scenarios.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 

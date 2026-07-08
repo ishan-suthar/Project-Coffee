@@ -58,6 +58,7 @@ class CoffeeCliTests(unittest.TestCase):
         self.assertIn("ledger-summary", stdout)
         self.assertIn("release-check", stdout)
         self.assertIn("evidence-bundle", stdout)
+        self.assertIn("fleet-status", stdout)
         self.assertEqual(commands, [])
 
     def test_version_works(self) -> None:
@@ -299,6 +300,39 @@ class CoffeeCliTests(unittest.TestCase):
             commands,
             "evidence_bundle.py",
             ["--root", ".", "--list-sources"],
+        )
+
+    def test_fleet_status_delegates_correctly(self) -> None:
+        code, _stdout, stderr, commands = self.run_cli(
+            "fleet-status",
+            "--root",
+            ".",
+            "--registry",
+            "fleet/projects.example.json",
+            "--project",
+            "project-id-goes-here",
+            "--list",
+            "--check",
+            "--json",
+            "--fail-on-issue",
+        )
+
+        self.assertEqual(code, 0, stderr)
+        self.assert_delegates_to(
+            commands,
+            "fleet_status.py",
+            [
+                "--root",
+                ".",
+                "--registry",
+                "fleet/projects.example.json",
+                "--project",
+                "project-id-goes-here",
+                "--json",
+                "--list",
+                "--check",
+                "--fail-on-issue",
+            ],
         )
 
     def test_missing_delegated_tool_returns_nonzero_and_helpful_error(self) -> None:

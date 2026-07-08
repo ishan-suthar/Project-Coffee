@@ -100,6 +100,15 @@ def build_parser() -> argparse.ArgumentParser:
     evidence_bundle.add_argument("--source", action="append", help="Restrict retrieval to an allowlisted source.")
     evidence_bundle.add_argument("--output", help="Optional output path.")
 
+    fleet_status = subcommands.add_parser("fleet-status", help="Inspect the Project Coffee fleet registry.")
+    fleet_status.add_argument("--root", default=".", help="Project Coffee root. Default: current directory.")
+    fleet_status.add_argument("--registry", help="Registry JSON path. Default: fleet/projects.json under root.")
+    fleet_status.add_argument("--json", action="store_true", help="Print JSON output.")
+    fleet_status.add_argument("--list", action="store_true", help="List registered projects without checks.")
+    fleet_status.add_argument("--project", help="Filter to one project id.")
+    fleet_status.add_argument("--check", action="store_true", help="Run safe onboarding marker checks.")
+    fleet_status.add_argument("--fail-on-issue", action="store_true", help="Exit nonzero when FAIL findings are present.")
+
     return parser
 
 
@@ -148,6 +157,11 @@ def build_delegation(args: argparse.Namespace) -> Delegation:
         return Delegation(
             script=REPO_ROOT / "tools" / "evidence_bundle.py",
             args=evidence_bundle_args(args),
+        )
+    if args.command == "fleet-status":
+        return Delegation(
+            script=REPO_ROOT / "tools" / "fleet_status.py",
+            args=fleet_status_args(args),
         )
     raise ValueError(f"Unsupported command: {args.command}")
 
@@ -225,6 +239,17 @@ def evidence_bundle_args(args: argparse.Namespace) -> list[str]:
     append_optional(forwarded, "--output", args.output)
     append_flag(forwarded, "--json", args.json)
     append_flag(forwarded, "--list-sources", args.list_sources)
+    return forwarded
+
+
+def fleet_status_args(args: argparse.Namespace) -> list[str]:
+    forwarded = ["--root", args.root]
+    append_optional(forwarded, "--registry", args.registry)
+    append_optional(forwarded, "--project", args.project)
+    append_flag(forwarded, "--json", args.json)
+    append_flag(forwarded, "--list", args.list)
+    append_flag(forwarded, "--check", args.check)
+    append_flag(forwarded, "--fail-on-issue", args.fail_on_issue)
     return forwarded
 
 
