@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 26 - Coffee Counter UI Design in progress.
+Brew 26 - Coffee Counter UI Design complete.
 
 ## What matters right now
 
@@ -75,19 +75,20 @@ Brew 26 - Coffee Counter UI Design in progress.
 - Brew 25 / 25C closed the stronger-base phase as READY WITH WARNINGS and kept release tagging manual.
 - Brew 26 / 26A is designing the Coffee Counter UI with a Streamlit-first direction and no UI implementation yet.
 - Brew 26 / 26B reviewed the Coffee Counter UI design against ten realistic workflows and kept the Brew 27 MVP local-only.
+- Brew 26 / 26C closed Coffee Counter UI Design and set next work to Brew 27 Streamlit Coffee Counter MVP.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 26C - close Coffee Counter UI Design if the design and workflow review are complete.
+1. Brew 27 - Streamlit Coffee Counter MVP, only after dependency approval.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
-3. Brew 27 - Streamlit Coffee Counter MVP, only after design review and dependency approval.
+3. Keep the first UI MVP local-only: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection.
 
 ## Blockers
 
-No active blocker for Brew 26C planning. No UI code, Streamlit dependency, model/API call, release tag, staging, or commit has been added by Brew 26B.
+No active blocker for Brew 27 planning. Streamlit dependency approval is required before implementation. No UI code, Streamlit dependency, model/API call, release tag, staging, or commit was added by Brew 26.
 
 ## Last updated
 
-2026-07-08 - Brew 26 / 26B Coffee Counter UI design dogfooded
+2026-07-08 - Brew 26 / 26C Coffee Counter UI Design closed

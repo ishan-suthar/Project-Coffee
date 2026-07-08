@@ -182,3 +182,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated the roadmap to point from stronger-base closeout toward the future Coffee Counter UI sequence.
 - Dogfooded the v1.0 stronger-base validation stack and recorded readiness as READY WITH WARNINGS; Release Check passed with no blockers, focused tests and compile checks passed, and no tag was created.
 - Closed the stronger-base phase as READY WITH WARNINGS, documented optional manual tag commands, and set next recommended work to Brew 26 Coffee Counter UI Design.
+
+### Added (Brew 26 / Coffee Counter UI Design)
+
+- Added the Streamlit-first Coffee Counter UI design and guide.
+- Defined the UI purpose, layout, screens, Brew 27 MVP scope, non-MVP boundaries, safe tool integration model, approval gates, UI states, future routing display, safety copy, proposed Brew 27 file structure, and Streamlit dependency policy.
+- Reviewed ten realistic Coffee Counter workflows before implementation and recorded gaps for command wrappers, local-only Ask Coffee, warning details, no-evidence handling, and disabled remote/Git write actions.
+- Marked Coffee Counter UI Design complete and set next recommended work to Brew 27, Streamlit Coffee Counter MVP.

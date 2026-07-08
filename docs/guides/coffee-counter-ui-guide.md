@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 26A guide
+Status: Brew 26 complete
 Date: 2026-07-08
 
 This guide explains how the future Project Coffee Counter UI should work. It is
@@ -200,3 +200,12 @@ Brew 27 should keep these out of MVP:
 - raw Roastery output inspection;
 - Git staging, commits, pushes, or tags;
 - background autonomous behavior.
+
+## Brew 26C Closeout
+
+Brew 26 Coffee Counter UI Design is complete. Use this guide and
+`docs/design/coffee-counter-ui-design.md` as the source for Brew 27 Streamlit
+Coffee Counter MVP planning.
+
+Brew 27 may add Streamlit only after explicit approval and should keep the MVP
+local-only.

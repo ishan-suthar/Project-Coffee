@@ -1,6 +1,6 @@
 # Coffee Counter UI Design
 
-Status: Brew 26A design
+Status: Brew 26 complete
 Date: 2026-07-08
 
 This design defines the first Project Coffee UI direction before any UI code is
@@ -326,6 +326,21 @@ Brew 27 should keep out of MVP:
 - Git staging, commit, push, or tag operations;
 - background agent behavior;
 - React + Tauri migration work.
+
+## Brew 26C Closeout
+
+Date: 2026-07-08
+
+Brew 26 Coffee Counter UI Design is complete. The design and guide define the
+Streamlit-first UI direction, layout, screens, local-only MVP scope, safe tool
+integration, approval gates, UI states, future routing display, safety copy,
+proposed Brew 27 file structure, dependency policy, and workflow review
+evidence.
+
+Next recommended work: Brew 27 Streamlit Coffee Counter MVP.
+
+Brew 26 did not implement UI code, install Streamlit, call models, call
+external APIs, inspect secrets, or inspect raw Roastery local outputs.
 
 ## Open Questions After Brew 26B
 

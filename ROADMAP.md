@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 26A - Coffee Counter UI Design |
-| Current milestone | Streamlit-first Coffee Counter UI design in progress |
-| Next step | Brew 26B - review Coffee Counter UI design before implementation |
-| Recent foundation result | Brew 26A defined the Streamlit-first UI architecture, safety boundaries, and Brew 27 MVP scope |
-| Blockers | No blocker for Brew 26B planning; no UI code or dependency has been added |
+| Current shot | Brew 26 - Coffee Counter UI Design complete |
+| Current milestone | Streamlit-first Coffee Counter UI design complete; ready for Brew 27 planning |
+| Next step | Brew 27 - Streamlit Coffee Counter MVP |
+| Recent foundation result | Brew 26C closed Coffee Counter UI Design after workflow review and validation |
+| Blockers | No blocker for Brew 27 planning; Streamlit dependency still requires explicit approval |
 
 ## Phase 1 goal
 
@@ -177,7 +177,7 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 23 / 23A-23C | Model Routing Policy Refinement | Complete | 2026-07-08 |
 | Brew 24 / 24A-24C | Multi-project Fleet Support | Complete | 2026-07-08 |
 | Brew 25 / 25A-25C | v1.0 Release Closeout | Complete | 2026-07-08 |
-| Brew 26 / 26A-26B | Coffee Counter UI Design | In progress | 2026-07-08 |
+| Brew 26 / 26A-26C | Coffee Counter UI Design | Complete | 2026-07-08 |
 | Brew 27 | Streamlit Coffee Counter MVP | Planned after UI design | TBD |
 | Brew 28 | UI + Evidence Bundle | Planned | TBD |
 | Brew 29 | UI + Routing Approval Gates | Planned | TBD |
