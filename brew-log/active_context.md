@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 16 - Project Coffee dashboard complete.
+Brew 17 - Coffee Doctor MVP implemented.
 
 ## What matters right now
 
@@ -45,19 +45,20 @@ Brew 16 - Project Coffee dashboard complete.
 - Brew 16 / 16A added a standard-library Project Coffee Dashboard CLI for local workflow health checks, section views, JSON output, and strict missing-core validation.
 - Brew 16 / 16B dogfooded the Coffee Dashboard against the Project Coffee root and an incomplete scratch target, then recorded honest Roastery and Ledger evidence.
 - Brew 16 / 16C closed the Coffee Dashboard work after completion criteria, tests, compile checks, help output, root dashboard, JSON output, and tools-section validation passed.
+- Brew 17 / 17A added a standard-library Coffee Doctor MVP for read-only Project Coffee health diagnosis, severity-coded findings, JSON output, section filtering, and strict fail-on-issue behavior.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 17A - Coffee Doctor: stronger project health checks and repair suggestions.
+1. Brew 17B - Dogfood Coffee Doctor and record evidence.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 17 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 17B dogfood. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-06 - Brew 16 / 16C Coffee Dashboard closed
+2026-07-08 - Brew 17 / 17A Coffee Doctor MVP implemented
