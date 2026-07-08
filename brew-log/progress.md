@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 20 / Shot 20A - Release Packaging Check implemented. Next active work: Brew 20 / Shot 20B - Dogfood Release Packaging Check.
+Current status: Brew 20 / Shot 20B - Release Packaging Check dogfood complete. Next active work: Brew 20 / Shot 20C - Close Release Packaging.
 
 ## Completed
 
@@ -121,6 +121,7 @@ Current status: Brew 20 / Shot 20A - Release Packaging Check implemented. Next a
 | 2026-07-08 | Brew 19 / Shot 19B-fix — Fix Ledger Summarizer scratch parsing | Bullet-style Ledger fields for cost, tokens, model/API calls, evidence, and notes now parse correctly; focused tests, compile, scratch acceptance, root summary, JSON, and invalid-date checks passed |
 | 2026-07-08 | Brew 19 / Shot 19C — Close Ledger Summarizer | Completion criteria passed; tests, compile, help, root summary, JSON, max entries, date filtering, output report, failure handling, bullet scratch parsing, guide link, dogfood evidence, and Unified CLI integration confirmed |
 | 2026-07-08 | Brew 20 / Shot 20A — Release Packaging Check | `tools/release_check.py`, focused tests, guide, docs link, and Unified Coffee CLI delegation added for local release readiness checks |
+| 2026-07-08 | Brew 20 / Shot 20B — Dogfood Release Packaging Check | Root release check, JSON, docs/tools/safety/tags sections, strict blocker mode, incomplete scratch-root blockers, focused tests, compile, Unified Coffee CLI delegation, and scratch tracking checks passed |
 
 ## Attempted (blocked)
 
@@ -130,14 +131,14 @@ Current status: Brew 20 / Shot 20A - Release Packaging Check implemented. Next a
 
 ## In progress
 
-Brew 20 / Shot 20B - Dogfood Release Packaging Check.
+None.
 
 ## Up next
 
-1. Brew 20 / Shot 20B - Dogfood Release Packaging Check and record evidence.
+1. Brew 20 / Shot 20C - Close Release Packaging.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 20 planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 20C. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.

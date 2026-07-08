@@ -909,3 +909,77 @@ Needs improvement:
 
 - Brew 19C should close the Ledger Summarizer with the 19B-fix evidence included
   in the completion review.
+
+### 2026-07-08 - Brew 20 / Shot 20B: Release Packaging Check Dogfood
+
+Commands run:
+
+```powershell
+python tools\release_check.py --help
+python tools\release_check.py --root .
+python tools\release_check.py --root . --json
+python tools\release_check.py --root . --section docs
+python tools\release_check.py --root . --section tools
+python tools\release_check.py --root . --section safety
+python tools\release_check.py --root . --section tags
+python tools\release_check.py --root . --fail-on-blocker
+New-Item -ItemType Directory -Force -Path tmp\release-check-smoke
+python tools\release_check.py --root tmp\release-check-smoke
+python tools\release_check.py --root tmp\release-check-smoke --fail-on-blocker
+python -m unittest tests.test_release_check
+python -m py_compile tools\release_check.py
+python tools\coffee.py release-check --root .
+python tools\coffee.py release-check --root . --json
+git status --short --untracked-files=all -- tmp\release-check-smoke
+git ls-files -- tmp\release-check-smoke
+```
+
+Observed behavior:
+
+- Help worked and listed `--root`, `--json`, `--section`, and
+  `--fail-on-blocker`.
+- Project Coffee root release check returned `OK` with 14 OK findings and no
+  info, warnings, or blockers.
+- JSON mode parsed successfully and returned the same root summary.
+- Section filtering worked:
+  - `docs`: 3 OK findings.
+  - `tools`: 1 OK finding.
+  - `safety`: 3 OK findings.
+  - `tags`: 3 OK findings for `v0.1`, `v0.1-proven`, and
+    `v0.1-certified`.
+- `--fail-on-blocker` against Project Coffee root exited `0`.
+- Incomplete scratch root `tmp\release-check-smoke` returned `BLOCKER` status
+  with 5 blockers, 1 warning, and 5 OK findings.
+- Scratch blockers covered missing docs index, tool files, template pack,
+  safety files, and evidence files.
+- `--fail-on-blocker` against the incomplete scratch root exited `1`.
+- Focused Release Check tests passed: 10 tests.
+- Syntax compilation passed for `tools\release_check.py`.
+- Unified Coffee CLI delegation worked in human-readable and JSON modes.
+- Scratch root was not tracked or staged; `git status --short --untracked-files=all -- tmp\release-check-smoke`
+  and `git ls-files -- tmp\release-check-smoke` returned no tracked/staged
+  files.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The checker gives a compact release readiness view across repo, docs, tools,
+  templates, safety, evidence, and tags.
+- Strict blocker mode can be used by humans or scripts without preventing normal
+  warning/info review.
+- Unified Coffee CLI integration makes the release check available from the
+  same command surface as dashboard, doctor, Pantry Search, Roastery report,
+  template install, onboarding check, and Ledger summary.
+
+Needs improvement:
+
+- The incomplete scratch target was inside the Project Coffee Git worktree, so
+  Git status/tag checks inherited parent repository metadata. Missing-file
+  blockers still validated failure behavior, but future polish could report when
+  the checked root is not the Git top-level directory.

@@ -56,19 +56,20 @@ Brew 20 - Release Packaging in progress.
 - Brew 19 / 19B-fix added bullet-style Ledger entry parsing for `Cost:`, `Tokens:`, `Model/API calls:`, `Evidence:`, and `Notes:` fields after dogfood found scratch parsing gaps.
 - Brew 19 / 19C closed the Ledger Summarizer after completion criteria, tests, compile checks, help, root summary, JSON, max entries, date filtering, output report mode, missing-ledger failure, invalid-date failure, bullet scratch parsing, and Unified Coffee CLI validation passed.
 - Brew 20 / 20A added a standard-library Release Packaging Check for repo, docs, tools, templates, safety, evidence, and tag readiness, plus Unified Coffee CLI delegation.
+- Brew 20 / 20B dogfooded the Release Packaging Check against Project Coffee and `tmp/release-check-smoke`, validating help, JSON, section filtering, strict blocker behavior, focused tests, syntax compilation, Unified Coffee CLI delegation, and scratch tracking checks.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 20 / 20B - Dogfood Release Packaging Check and record evidence.
+1. Brew 20 / 20C - Close Release Packaging.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 20B. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 20C. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 20 / 20A Release Packaging Check implemented
+2026-07-08 - Brew 20 / 20B Release Packaging Check dogfooded
