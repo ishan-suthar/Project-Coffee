@@ -159,3 +159,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated the Local RAG guide and design docs to document MVP usage, JSON/output modes, source narrowing, safety boundaries, and non-goals.
 - Dogfooded realistic Project Coffee evidence queries and scratch safety fixtures without embeddings, vector DB, model calls, external APIs, secrets, or raw Roastery output inspection.
 - Marked Local RAG MVP complete and set next recommended work to Brew 23, Model Routing Policy Refinement.
+
+### Added (Brew 23 / Model Routing Policy Refinement)
+
+- Added `docs/design/model-routing-policy.md` to define routing modes, task classes, current Bean roles, approval gates, routing inputs/outputs, safety gates, fallback behavior, Roastery update rules, and future UI implications.
+- Updated House Blend documentation and config to reference the routing policy while keeping current Bean roles provisional and evidence-based.
+- Reviewed the policy against ten realistic Project Coffee scenarios and recorded gaps around context previews, explicit fallback consent, and Brew 24 fleet support.
+- Marked Model Routing Policy Refinement complete and set next recommended work to Brew 24, Multi-project Fleet Support.

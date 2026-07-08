@@ -1,6 +1,6 @@
 # Model Routing Policy
 
-Status: Brew 23 / 23B scenario-reviewed draft
+Status: Brew 23 / 23C closed design
 Date: 2026-07-08
 
 ## Purpose

@@ -131,6 +131,7 @@ Current status: Brew 22 - Local RAG MVP complete. Next active work: Brew 23 - Mo
 | 2026-07-08 | Brew 22 / Shot 22C — Close Local RAG MVP | Completion criteria passed; evidence bundle tool, focused tests, guide/design alignment, dogfood evidence, excluded path safety, JSON/source/output modes, Unified Coffee CLI integration, and no-embedding/no-model boundary confirmed |
 | 2026-07-08 | Brew 23 / Shot 23A — Model Routing Policy Refinement | `docs/design/model-routing-policy.md` drafted with routing modes, Bean roles, task-class decisions, approval rules, routing inputs/outputs, safety gates, failure behavior, Roastery update rule, and UI implications |
 | 2026-07-08 | Brew 23 / Shot 23B — Dogfood Model Routing Policy | Ten realistic Project Coffee routing scenarios reviewed; policy coverage confirmed and gaps recorded for context previews, explicit fallback consent, and Brew 24 fleet support |
+| 2026-07-08 | Brew 23 / Shot 23C — Close Model Routing Policy Refinement | Completion criteria passed; policy design, House Blend guide/config references, scenario review evidence, local-only Ledger/Roastery evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary validation confirmed |
 
 ## Attempted (blocked)
 
@@ -144,10 +145,10 @@ None.
 
 ## Up next
 
-1. Brew 23 / Shot 23C - Close Model Routing Policy Refinement if completion criteria are satisfied.
+1. Brew 24 - Multi-project Fleet Support: create a local project registry and fleet status layer before future UI work.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 23C planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 24 planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
