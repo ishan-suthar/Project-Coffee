@@ -265,4 +265,4 @@ Recommended near-term path:
 
 1. Brew 31 - Streamlit polish pass: complete.
 2. Brew 32 - UI project and fleet switching: complete.
-3. Brew 33 - remote-call approval design, still design-only and gated.
+3. Brew 33 - remote-call approval design: in progress with no remote-call implementation.

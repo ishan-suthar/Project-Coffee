@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 32 - Coffee Counter Project/Fleet Switching complete |
-| Current milestone | Coffee Counter can switch active roots safely, show Project Health, use session-only recent roots, and summarize Fleet status without persistence |
-| Next step | Brew 33 - Remote Call Approval Design |
+| Current shot | Brew 33A - Remote Call Approval Design |
+| Current milestone | Future remote Bean calls are being designed as explicit approval-gated workflows before any implementation |
+| Next step | Brew 33B - Dogfood Remote Call Approval Design |
 | Recent foundation result | Brew 32B dogfooded and closed project/Fleet switching without model/API calls, package installs, persistent config writes, staging, or commits |
-| Blockers | No blocker for Brew 33 planning; remote model routing remains disabled until a future explicitly approved implementation |
+| Blockers | No blocker for Brew 33B design review; remote model routing remains disabled until a future explicitly approved implementation |
 
 ## Phase 1 goal
 
@@ -184,4 +184,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 30 / 30A-30C | UI Packaging / Polish Decision | Complete | 2026-07-08 |
 | Brew 31 | Streamlit Polish Pass | Complete | 2026-07-08 |
 | Brew 32 | Coffee Counter Project/Fleet Switching | Complete | 2026-07-08 |
-| Brew 33 | Remote Call Approval Design | Planned | TBD |
+| Brew 33 / 33A | Remote Call Approval Design | 33A complete; Brew in progress | 2026-07-08 |

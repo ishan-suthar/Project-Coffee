@@ -240,3 +240,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added focused tests for root normalization, marker scoring, root validation, session-only recent roots, active-root command arguments, Fleet registry argument safety, no `shell=True`, disallowed command rejection, and no OpenRouter key requirement.
 - Dogfooded tests, syntax compilation, Fleet Status, Evidence Bundle, Doctor, Release Check, Ledger Summary, Streamlit server health, valid-root startup, invalid-root blocking, valid-root recovery, session-only recent roots, Fleet tab behavior, existing tabs, and safety controls without model/API calls, package installs, persistent config writes, raw-output inspection, staging, or commits.
 - Marked Coffee Counter Project/Fleet Switching complete and set next recommended work to Brew 33, Remote Call Approval Design.
+
+### Added (Brew 33 / Remote Call Approval Design)
+
+- Added `docs/design/remote-call-approval-design.md` to define the future approval-gated remote Bean workflow without implementing remote calls.
+- Documented approval states, context package schema, safety/redaction policy, model/provider selection policy, Ledger requirements, UI design, failure/cancel states, testing strategy, implementation roadmap, and open questions.
+- Updated Coffee Counter UI docs to clarify that current approval gates remain preview-only and the UI still has no OpenRouter call, API key input, network code, or working send-to-model button.

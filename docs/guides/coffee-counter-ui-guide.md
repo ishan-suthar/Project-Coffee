@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 32 complete
+Status: Brew 33A remote-call approval design
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -607,3 +607,42 @@ Validated scenarios:
 
 No product fixes were required during dogfood. Next likely work is Brew 33:
 Remote Call Approval Design.
+
+## Brew 33A Remote Call Approval Design
+
+Brew 33A adds the design document
+[`../design/remote-call-approval-design.md`](../design/remote-call-approval-design.md).
+
+The current UI remains local-only. The design explains how a future remote Bean
+call should work only after explicit approval:
+
+1. classify the request;
+2. retrieve local Evidence Bundle context;
+3. show an exact context preview;
+4. run Safety Gate checks;
+5. require user approval for the exact context package;
+6. show provider/model choice;
+7. prepare Ledger metadata;
+8. send only after approval in a future implementation;
+9. record the outcome honestly.
+
+Approval gates in the current UI are still informational. They mean "this route
+would need approval later," not "Coffee can send context now."
+
+Future remote-call UI must show:
+
+- approval checklist;
+- selected evidence table;
+- excluded paths panel;
+- redaction warning panel;
+- provider/model selection;
+- cost/token estimate or `unknown`;
+- explicit approval checkbox;
+- disabled send button until every condition passes;
+- cancel state;
+- Ledger preview;
+- result card.
+
+Secrets, `.env` files, credentials, hidden credential directories, raw local
+Roastery outputs, private regulated data, large binaries, caches, virtual
+environments, dependency folders, and build artifacts must not be sent.

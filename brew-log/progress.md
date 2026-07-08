@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 32 - Coffee Counter Project/Fleet Switching complete. Next active work: Brew 33 - Remote Call Approval Design.
+Current status: Brew 33A - Remote Call Approval Design drafted. Next active work: Brew 33B - dogfood the design.
 
 ## Completed
 
@@ -157,6 +157,7 @@ Current status: Brew 32 - Coffee Counter Project/Fleet Switching complete. Next 
 | 2026-07-08 | Brew 31 / Shot 31B - Dogfood, Fix, and Close Streamlit Polish Pass | Tests, compile checks, Evidence Bundle current-state and zero-match queries, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and UI harness scenarios passed; no product fixes were required; Brew 31 marked complete |
 | 2026-07-08 | Brew 32 / Shot 32A - Coffee Counter Project and Fleet Switching | Sidebar root validation, Project Coffee marker scoring, session-only recent roots, Project Health, active-root command wiring, Fleet tab summaries, tests, and docs added without persistent config writes |
 | 2026-07-08 | Brew 32 / Shot 32B - Dogfood, Fix, and Close Project/Fleet Switching | Tests, compile checks, Fleet Status, Evidence Bundle, Doctor, Release Check, Ledger Summary, Streamlit server health, invalid-root handling, valid-root recovery, session-only recent roots, Fleet tab, existing tabs, and safety scenarios passed; no product fixes were required; Brew 32 marked complete |
+| 2026-07-08 | Brew 33 / Shot 33A - Remote Call Approval Design | Design doc added for future approval-gated remote Bean calls, including flow, approval states, context package schema, safety/redaction policy, model/provider policy, Ledger fields, UI design, failure/cancel states, testing strategy, and roadmap; no implementation added |
 
 ## Attempted (blocked)
 
@@ -170,10 +171,10 @@ None.
 
 ## Up next
 
-1. Brew 33 - Remote Call Approval Design.
+1. Brew 33B - dogfood the Remote Call Approval Design against realistic scenarios.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 33 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, release tag, staging, or commit has been added by Brew 32. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 33B planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, release tag, staging, or commit has been added by Brew 33A. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.

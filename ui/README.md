@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 32 complete
+Status: Brew 33A remote-call approval design
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -115,6 +115,24 @@ Brew 32B dogfood confirmed valid-root startup, Ask Coffee with the selected
 root, Evidence Bundle with the selected root, invalid-root blocking, return to
 valid root, session-only recent roots, Fleet tab behavior, existing local tool
 tabs, and safety controls. No product fixes were required.
+
+## Brew 33 Remote Call Approval Design
+
+Brew 33A adds a design document for a future approval-gated remote Bean call
+workflow. It defines context preview, Safety Gate, user approval, provider/model
+selection, Ledger recording, and failure/cancel states.
+
+Current UI status is unchanged:
+
+- no remote model calls;
+- no OpenRouter calls;
+- no external API calls;
+- no API key input;
+- no working send-to-model button;
+- no network code;
+- no Git write controls.
+
+The current Routing / Approval tab remains preview-only.
 
 ## Brew 28 Evidence Integration
 
