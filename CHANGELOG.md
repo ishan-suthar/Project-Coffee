@@ -166,3 +166,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated House Blend documentation and config to reference the routing policy while keeping current Bean roles provisional and evidence-based.
 - Reviewed the policy against ten realistic Project Coffee scenarios and recorded gaps around context previews, explicit fallback consent, and Brew 24 fleet support.
 - Marked Model Routing Policy Refinement complete and set next recommended work to Brew 24, Multi-project Fleet Support.
+
+### Added (Brew 24 / Multi-project Fleet Support)
+
+- Added `tools/fleet_status.py`, a standard-library local fleet registry/status tool for safe Project Coffee onboarding marker checks across registered projects.
+- Added `fleet/projects.example.json`, focused Fleet Status tests, the Fleet Support Guide, docs index link, and Unified Coffee CLI `fleet-status` delegation.
+- Dogfooded missing/default registry behavior, example registry parsing/listing, scratch complete/incomplete project checks, project filtering, JSON output, strict fail-on-issue behavior, tests, compile checks, and Unified Coffee CLI delegation without model or API calls.
+- Marked Multi-project Fleet Support complete and set next recommended work to Brew 25, v1.0 Release Closeout.

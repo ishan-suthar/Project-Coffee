@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 23 — Model Routing Policy Refinement complete |
-| Current milestone | Routing policy design, House Blend references, scenario review evidence, approval gates, UI implications, and Brew 24 fleet-support gaps complete |
-| Next step | Brew 24 — Multi-project Fleet Support |
-| Recent foundation result | Brew 23A drafted the routing policy; Brew 23B dogfooded ten realistic scenarios; Brew 23C closed the policy refinement |
-| Blockers | None for Brew 24 planning |
+| Current shot | Brew 24 — Multi-project Fleet Support complete |
+| Current milestone | Fleet registry/status tool, example registry, tests, guide, dogfood evidence, and Unified CLI integration complete |
+| Next step | Brew 25 — v1.0 Release Closeout |
+| Recent foundation result | Brew 24A added Fleet Status; Brew 24B dogfooded missing/example/scratch registries; Brew 24C closed Multi-project Fleet Support |
+| Blockers | None for Brew 25 planning |
 
 ## Phase 1 goal
 
@@ -175,3 +175,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 21 / 21A-21C | Local RAG Design | Complete | 2026-07-08 |
 | Brew 22 / 22A-22C | Local RAG MVP | Complete | 2026-07-08 |
 | Brew 23 / 23A-23C | Model Routing Policy Refinement | Complete | 2026-07-08 |
+| Brew 24 / 24A-24C | Multi-project Fleet Support | Complete | 2026-07-08 |

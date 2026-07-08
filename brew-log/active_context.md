@@ -69,19 +69,20 @@ Brew 24 - Multi-project Fleet Support in progress.
 - Brew 23 / 23C closed Model Routing Policy Refinement after validating the policy, House Blend links, scenario evidence, local-only Ledger/Roastery evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary.
 - Brew 24 / 24A is implementing the Multi-project Fleet Registry MVP with a local registry, safe status checks, docs, tests, and optional Unified Coffee CLI delegation.
 - Brew 24 / 24B dogfooded Fleet Status against missing/default registry behavior, the example registry, scratch complete/incomplete project checks, project filtering, JSON, strict failure behavior, tests, compile checks, and Unified Coffee CLI delegation.
+- Brew 24 / 24C closed Multi-project Fleet Support after validating the tool, example registry, tests, CLI integration, Fleet Support Guide, dogfood evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 24 / 24C - Close Multi-project Fleet Support if completion criteria are satisfied.
+1. Brew 25 - v1.0 Release Closeout: validate docs, safety, tools, release readiness, and handoff quality before the future UI phase.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 24 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 25 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 24 / 24B Fleet Status dogfood evidence recorded
+2026-07-08 - Brew 24 / 24C Multi-project Fleet Support closed
