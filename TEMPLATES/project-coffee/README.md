@@ -21,6 +21,22 @@ details.
 | `roastery/tasting_notes.md` | Workflow/model evidence notes. |
 | `ledger/cost_log.md` | Cost, token, and value notes. |
 
+## Pantry Intake
+
+Use `knowledge/00_index.md` as the first searchable Pantry entry. Add notes only
+when they are safe to store, useful to find later, and labeled with source
+quality, freshness, and search keywords.
+
+Recommended folders for future notes:
+
+```text
+knowledge/project_docs/
+knowledge/research/
+knowledge/datasheets/
+knowledge/decisions/
+knowledge/notes/
+```
+
 ## Copy Rules
 
 - Copy only into a project you are allowed to edit.
