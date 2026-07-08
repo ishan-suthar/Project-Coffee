@@ -150,3 +150,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Defined retrieval sources, excluded sources, retrieval levels, evidence bundle format, grounding rules, query classes, safety rules, remote Bean approval model, integration plan, future UI dependency, and Brew 22 MVP scope.
 - Reviewed the design against ten realistic Project Coffee questions and recorded gaps around source profiles, release-proof evidence, freshness scoring, and conflict handling.
 - Marked Local RAG Design complete and set next recommended work to Brew 22, Local RAG MVP.
+
+### Added (Brew 22 / Local RAG MVP)
+
+- Added `tools/evidence_bundle.py`, a standard-library Local Evidence Bundle tool for safe allowlisted keyword retrieval over Project Coffee files.
+- Added focused tests covering help, source listing, query retrieval, JSON, output mode, source narrowing, excluded paths, `.env` avoidance, raw-output avoidance, binary skips, zero-match behavior, and no OpenRouter key requirement.
+- Integrated `evidence-bundle` into the Unified Coffee CLI.
+- Updated the Local RAG guide and design docs to document MVP usage, JSON/output modes, source narrowing, safety boundaries, and non-goals.
+- Dogfooded realistic Project Coffee evidence queries and scratch safety fixtures without embeddings, vector DB, model calls, external APIs, secrets, or raw Roastery output inspection.
+- Marked Local RAG MVP complete and set next recommended work to Brew 23, Model Routing Policy Refinement.

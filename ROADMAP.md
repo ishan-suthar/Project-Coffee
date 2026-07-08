@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 21 — Local RAG Design complete |
-| Current milestone | Local-first retrieval design, guide, review evidence, safety boundaries, approval model, future UI dependency, and Brew 22 MVP criteria complete |
-| Next step | Brew 22 — Local RAG MVP |
-| Recent foundation result | Brew 21A designed Local RAG, Brew 21B reviewed it against realistic Project Coffee questions, and Brew 21C closed the design without code, embeddings, vector DB, model calls, or external APIs |
-| Blockers | None for Brew 22 planning |
+| Current shot | Brew 22 — Local RAG MVP complete |
+| Current milestone | Local evidence bundle builder, tests, docs, dogfood evidence, safety exclusions, JSON/source/output modes, and Unified CLI integration complete |
+| Next step | Brew 23 — Model Routing Policy Refinement |
+| Recent foundation result | Brew 22A added the Local Evidence Bundle MVP; Brew 22B dogfooded realistic evidence bundles and scratch safety exclusions; Brew 22C closed the MVP |
+| Blockers | None for Brew 23 planning |
 
 ## Phase 1 goal
 
@@ -173,3 +173,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 19 / 19A-19C | Ledger Summarizer | Complete | 2026-07-08 |
 | Brew 20 / 20A-20C | Release Packaging | Complete | 2026-07-08 |
 | Brew 21 / 21A-21C | Local RAG Design | Complete | 2026-07-08 |
+| Brew 22 / 22A-22C | Local RAG MVP | Complete | 2026-07-08 |
