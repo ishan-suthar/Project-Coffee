@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 20 — Release Packaging complete |
-| Current milestone | Release checker, guide, focused tests, dogfood evidence, Unified CLI integration, tag reporting, and closeout docs complete |
-| Next step | Brew 21 — Local RAG Design Only |
-| Recent foundation result | Brew 20A added the Release Packaging Check; Brew 20B dogfooded it; Brew 20C closed the release packaging workflow |
-| Blockers | None for Brew 21 design |
+| Current shot | Brew 21 / 21A — Local RAG Design drafted |
+| Current milestone | Local-first retrieval design, evidence bundle format, safety boundaries, integration plan, and Brew 22 MVP criteria drafted |
+| Next step | Brew 21 / 21B — Review Local RAG design and prepare Brew 22 evidence bundle MVP |
+| Recent foundation result | Brew 21A designed Local RAG without embeddings, vector DB, model calls, external APIs, or chat UI implementation |
+| Blockers | None for Brew 21B |
 
 ## Phase 1 goal
 

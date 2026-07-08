@@ -22,6 +22,13 @@ Practical Project Coffee guides live here.
 | `guides/unified-coffee-cli-guide.md` | How to run common Project Coffee tools through one command surface. |
 | `guides/model-routing-and-house-blend-guide.md` | Practical guide to Beans, House Blend routing, fallback policy, and rerun evidence. |
 | `guides/release-packaging-guide.md` | How to check Project Coffee release readiness before tagging or handoff. |
+| `guides/local-rag-guide.md` | How Project Coffee will use safe local retrieval and evidence bundles. |
+
+## Designs
+
+| Design | Purpose |
+| --- | --- |
+| `design/local-rag-design.md` | Design for the future local-first retrieval and evidence bundle layer. |
 
 ## Templates
 
