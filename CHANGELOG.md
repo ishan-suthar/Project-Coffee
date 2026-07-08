@@ -205,3 +205,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Improved Evidence Bundle display with Markdown output, JSON parsing, structured evidence rows, no-evidence handling, and graceful JSON parse-error handling.
 - Dogfooded focused tests, syntax compilation, evidence JSON, zero-match behavior, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and Streamlit UI harness flows without model/API calls, OpenRouter calls, package installs, raw-output inspection, staging, or commits.
 - Marked UI + Evidence Bundle Integration complete and set next recommended work to Brew 29, UI + Routing Approval Gates.
+
+### Added (Brew 29 / UI + Routing Approval Gates)
+
+- Added routing approval gates to the Coffee Counter UI with a Routing / Approval tab, request classification, route decisions, visible approval requirements, allowed/blocked context, next safe actions, and preview-only context scaffolding.
+- Updated Ask Coffee so local questions show the routing decision before local evidence results.
+- Kept future remote Bean behavior documented but disabled: no remote model button, no OpenRouter call control, and no API key input were added.
+- Dogfooded focused tests, syntax compilation, Evidence Bundle JSON, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit routing smoke, and six Ask Coffee routing scenarios without model/API calls, raw-output inspection, staging, or commits.
+- Marked UI + Routing Approval Gates complete and set next recommended work to Brew 30, UI Packaging / Polish Decision.

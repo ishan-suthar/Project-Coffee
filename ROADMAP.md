@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 28 - UI + Evidence Bundle Integration complete |
-| Current milestone | Coffee Counter now shows structured local evidence and deterministic local-only drafts; ready for Brew 29 routing approval gates |
-| Next step | Brew 29 - UI + Routing Approval Gates |
-| Recent foundation result | Brew 28C closed UI + Evidence Bundle Integration after validation, dogfood evidence, Streamlit smoke, and local-only safety checks |
-| Blockers | No blocker for Brew 29 planning; remote model routing remains disabled until approval gates are designed and implemented |
+| Current shot | Brew 29 - UI + Routing Approval Gates complete |
+| Current milestone | Coffee Counter now shows local evidence, routing decisions, approval gates, and preview-only context; ready for Brew 30 UI packaging / polish decision |
+| Next step | Brew 30 - UI Packaging / Polish Decision |
+| Recent foundation result | Brew 29C closed UI + Routing Approval Gates after validation, dogfood evidence, Streamlit routing smoke, and local-only safety checks |
+| Blockers | No blocker for Brew 30 planning; remote model routing remains disabled until a future explicitly approved implementation |
 
 ## Phase 1 goal
 
@@ -180,5 +180,5 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 26 / 26A-26C | Coffee Counter UI Design | Complete | 2026-07-08 |
 | Brew 27 | Streamlit Coffee Counter MVP | Complete | 2026-07-08 |
 | Brew 28 | UI + Evidence Bundle Integration | Complete | 2026-07-08 |
-| Brew 29 | UI + Routing Approval Gates | Planned | TBD |
-| Brew 30 | UI packaging/polish | Planned | TBD |
+| Brew 29 | UI + Routing Approval Gates | Complete | 2026-07-08 |
+| Brew 30 | UI Packaging / Polish Decision | Planned | TBD |
