@@ -1,13 +1,20 @@
 # Model Routing and House Blend Guide
 
-Status: Brew 9 / 9H  
+Status: Brew 9 / 9H; updated Brew 23 / 23A
 Date: 2026-07-06
+Last updated: 2026-07-08
 
 ## Purpose
 
 This guide explains how Project Coffee chooses Beans for work, what the current provisional House Blend is, how fallbacks work, and when Roastery evidence should be refreshed.
 
 It summarizes recorded Project Coffee evidence only. It does not update model availability, name a permanent winner, or replace human judgment.
+
+## Detailed Routing Policy
+
+The implementation-ready routing rules live in [`../design/model-routing-policy.md`](../design/model-routing-policy.md).
+
+Use that policy when deciding between Decaf / no model, local evidence only, the default House Blend Bean, fallback Beans, comparison Beans, and human approval gates. This guide remains the practical explanation of current Bean roles and evidence.
 
 ## Coffee Core Concept
 

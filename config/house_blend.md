@@ -1,12 +1,13 @@
 # House Blend
 
 Status: Provisional
-Date: 2026-07-06
-Scope: Initial evidence-based routing for local Project Coffee work
+Date: 2026-07-08
+Scope: Evidence-based Bean roles and routing policy status for local Project Coffee work
 
-House Blend is Project Coffee's model-routing policy. It is configuration, not
-identity. Models are replaceable Beans, and routing should change only when
-Roastery evidence supports the change.
+House Blend records Project Coffee's current Bean roles. It is configuration,
+not identity. Models are replaceable Beans, and routing should change only when
+Roastery evidence supports the change. The detailed model routing policy lives
+in `docs/design/model-routing-policy.md`.
 
 Reference evidence:
 
@@ -14,6 +15,21 @@ Reference evidence:
 - `ledger/cost_log.md`
 - `brew-log/progress.md`
 - `brew-log/active_context.md`
+
+## Routing Policy Status
+
+Brew 23 / 23A adds a design-only routing policy at
+`docs/design/model-routing-policy.md`.
+
+- House Blend roles remain provisional and task-limited.
+- Default or fallback changes require Roastery benchmark evidence and human
+  approval.
+- Local-only tools and Decaf Mode remain preferred for safety-sensitive,
+  release/checklist, cost/token, and private/local project questions.
+- Sending a local evidence bundle or non-allowlisted file contents to a remote
+  Bean requires human approval.
+- Future UI should show the selected routing mode, any selected Bean, the
+  approval gate, and the reason before remote context is sent.
 
 ## Current Blend
 

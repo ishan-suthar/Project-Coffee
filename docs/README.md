@@ -29,6 +29,7 @@ Practical Project Coffee guides live here.
 | Design | Purpose |
 | --- | --- |
 | `design/local-rag-design.md` | Design for the future local-first retrieval and evidence bundle layer. |
+| `design/model-routing-policy.md` | Design for safe local-first model routing, approval gates, and House Blend role decisions. |
 
 ## Templates
 
