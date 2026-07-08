@@ -347,6 +347,16 @@ Acceptance criteria:
 - tests cover source selection, exclusions, freshness, JSON, and no-results behavior;
 - docs explain how a future UI would consume bundles.
 
+## Brew 22A MVP Implementation Note
+
+The first implementation target is `tools/evidence_bundle.py`, a standard-library
+CLI that builds local evidence bundles from allowlisted Project Coffee text
+sources. It uses keyword ranking only and intentionally does not implement
+embeddings, vector search, model calls, external API calls, or a chat UI.
+
+The MVP is allowed to expose JSON and Markdown bundle output so future Coffee UI
+work can consume the bundle without changing retrieval safety boundaries.
+
 ## Non-Goals
 
 This design does not include:

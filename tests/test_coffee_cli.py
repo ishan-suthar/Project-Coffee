@@ -57,6 +57,7 @@ class CoffeeCliTests(unittest.TestCase):
         self.assertIn("pantry-search", stdout)
         self.assertIn("ledger-summary", stdout)
         self.assertIn("release-check", stdout)
+        self.assertIn("evidence-bundle", stdout)
         self.assertEqual(commands, [])
 
     def test_version_works(self) -> None:
@@ -244,6 +245,60 @@ class CoffeeCliTests(unittest.TestCase):
             commands,
             "release_check.py",
             ["--root", ".", "--section", "tools", "--json", "--fail-on-blocker"],
+        )
+
+    def test_evidence_bundle_delegates_correctly(self) -> None:
+        code, _stdout, stderr, commands = self.run_cli(
+            "evidence-bundle",
+            "--root",
+            ".",
+            "--query",
+            "House Blend",
+            "--max-results",
+            "3",
+            "--source",
+            "docs",
+            "--source",
+            "config/house_blend.md",
+            "--output",
+            "tmp/evidence.md",
+            "--json",
+        )
+
+        self.assertEqual(code, 0, stderr)
+        self.assert_delegates_to(
+            commands,
+            "evidence_bundle.py",
+            [
+                "--root",
+                ".",
+                "--query",
+                "House Blend",
+                "--max-results",
+                "3",
+                "--source",
+                "docs",
+                "--source",
+                "config/house_blend.md",
+                "--output",
+                "tmp/evidence.md",
+                "--json",
+            ],
+        )
+
+    def test_evidence_bundle_list_sources_delegates_correctly(self) -> None:
+        code, _stdout, stderr, commands = self.run_cli(
+            "evidence-bundle",
+            "--root",
+            ".",
+            "--list-sources",
+        )
+
+        self.assertEqual(code, 0, stderr)
+        self.assert_delegates_to(
+            commands,
+            "evidence_bundle.py",
+            ["--root", ".", "--list-sources"],
         )
 
     def test_missing_delegated_tool_returns_nonzero_and_helpful_error(self) -> None:

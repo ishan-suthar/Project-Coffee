@@ -91,6 +91,15 @@ def build_parser() -> argparse.ArgumentParser:
     release_check.add_argument("--section", help="Release checklist section to run.")
     release_check.add_argument("--fail-on-blocker", action="store_true", help="Exit nonzero when blockers are present.")
 
+    evidence_bundle = subcommands.add_parser("evidence-bundle", help="Build a local evidence bundle.")
+    evidence_bundle.add_argument("--root", default=".", help="Project Coffee root. Default: current directory.")
+    evidence_bundle.add_argument("--query", help="Search query text. Required unless --list-sources is used.")
+    evidence_bundle.add_argument("--max-results", type=int, help="Maximum bundle items to print.")
+    evidence_bundle.add_argument("--json", action="store_true", help="Print JSON output.")
+    evidence_bundle.add_argument("--list-sources", action="store_true", help="List resolved allowlisted sources.")
+    evidence_bundle.add_argument("--source", action="append", help="Restrict retrieval to an allowlisted source.")
+    evidence_bundle.add_argument("--output", help="Optional output path.")
+
     return parser
 
 
@@ -134,6 +143,11 @@ def build_delegation(args: argparse.Namespace) -> Delegation:
         return Delegation(
             script=REPO_ROOT / "tools" / "release_check.py",
             args=release_check_args(args),
+        )
+    if args.command == "evidence-bundle":
+        return Delegation(
+            script=REPO_ROOT / "tools" / "evidence_bundle.py",
+            args=evidence_bundle_args(args),
         )
     raise ValueError(f"Unsupported command: {args.command}")
 
@@ -199,6 +213,18 @@ def release_check_args(args: argparse.Namespace) -> list[str]:
     append_optional(forwarded, "--section", args.section)
     append_flag(forwarded, "--json", args.json)
     append_flag(forwarded, "--fail-on-blocker", args.fail_on_blocker)
+    return forwarded
+
+
+def evidence_bundle_args(args: argparse.Namespace) -> list[str]:
+    forwarded = ["--root", args.root]
+    append_optional(forwarded, "--query", args.query)
+    append_optional(forwarded, "--max-results", args.max_results)
+    for source in args.source or []:
+        forwarded.extend(["--source", source])
+    append_optional(forwarded, "--output", args.output)
+    append_flag(forwarded, "--json", args.json)
+    append_flag(forwarded, "--list-sources", args.list_sources)
     return forwarded
 
 

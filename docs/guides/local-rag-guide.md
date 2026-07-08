@@ -103,6 +103,73 @@ The bundle should also say:
 
 The point is to make evidence reviewable before any future answer or UI uses it.
 
+## Evidence Bundle MVP Usage
+
+Brew 22 adds a local evidence bundle builder:
+
+```powershell
+python tools\evidence_bundle.py --root . --query "House Blend"
+```
+
+The tool searches only allowlisted Project Coffee text sources, returns short
+snippets, and includes path, heading, reason selected, score, freshness signal,
+safety classification, and line numbers.
+
+List the allowlisted sources without reading file contents:
+
+```powershell
+python tools\evidence_bundle.py --root . --list-sources
+```
+
+Use JSON mode for future tool/UI integration:
+
+```powershell
+python tools\evidence_bundle.py --root . --query "Brew 19" --json
+```
+
+Limit the bundle size:
+
+```powershell
+python tools\evidence_bundle.py --root . --query "release check" --max-results 5
+```
+
+Restrict retrieval to one or more allowlisted sources:
+
+```powershell
+python tools\evidence_bundle.py --root . --query "default Bean" --source roastery/tasting_notes.md --source config/house_blend.md
+```
+
+Write a local Markdown bundle:
+
+```powershell
+python tools\evidence_bundle.py --root . --query "onboarding" --output local-evidence.md
+```
+
+Write JSON instead:
+
+```powershell
+python tools\evidence_bundle.py --root . --query "onboarding" --json --output local-evidence.json
+```
+
+Through the Unified Coffee CLI:
+
+```powershell
+python tools\coffee.py evidence-bundle --root . --query "House Blend"
+```
+
+Safety boundaries:
+
+- no embeddings;
+- no vector database;
+- no model calls;
+- no external APIs;
+- no automatic remote context sending;
+- no `.env` files;
+- no hidden credential directories;
+- no raw Roastery local outputs;
+- no `tmp/`, dependency folders, virtual environments, build output, or binary
+  files.
+
 ## Approval Model For Remote Beans
 
 Local RAG should not call a remote Bean automatically.
