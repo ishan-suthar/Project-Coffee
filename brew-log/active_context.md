@@ -70,19 +70,20 @@ Brew 24 - Multi-project Fleet Support in progress.
 - Brew 24 / 24A is implementing the Multi-project Fleet Registry MVP with a local registry, safe status checks, docs, tests, and optional Unified Coffee CLI delegation.
 - Brew 24 / 24B dogfooded Fleet Status against missing/default registry behavior, the example registry, scratch complete/incomplete project checks, project filtering, JSON, strict failure behavior, tests, compile checks, and Unified Coffee CLI delegation.
 - Brew 24 / 24C closed Multi-project Fleet Support after validating the tool, example registry, tests, CLI integration, Fleet Support Guide, dogfood evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary.
+- Brew 25 / 25A is preparing the v1.0 stronger-base release closeout checklist and handoff framework before UI work begins.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 25 - v1.0 Release Closeout: validate docs, safety, tools, release readiness, and handoff quality before the future UI phase.
+1. Brew 25B - dogfood and review the v1.0 closeout checklist and handoff evidence before any release tag.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 25 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 25B planning. No release tag has been created. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 24 / 24C Multi-project Fleet Support closed
+2026-07-08 - Brew 25 / 25A v1.0 release closeout checklist and handoff drafted

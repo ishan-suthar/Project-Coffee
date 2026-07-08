@@ -17,6 +17,17 @@ Project Coffee is not a wrapper around one model, editor, or provider. Models
 are replaceable Beans. Cursor is the current Coffee Counter. OpenRouter is the
 current model gateway. Human judgment remains final.
 
+## v1.0 Stronger-base Closeout
+
+The v1.0 stronger-base closeout lives in
+`docs/releases/v1.0-closeout-checklist.md` and
+`docs/releases/project-coffee-v1.0-handoff.md`. That closeout validates docs,
+safety, tools, evidence, routing, fleet support, and handoff quality before UI
+work begins.
+
+UI work comes after the stronger-base phase. The v1.0 closeout does not add a
+UI, automatic remote context sending, automatic commits, or automatic tags.
+
 ## Core Rules
 
 - One Shot = One Responsibility.

@@ -32,6 +32,13 @@ Practical Project Coffee guides live here.
 | `design/local-rag-design.md` | Design for the future local-first retrieval and evidence bundle layer. |
 | `design/model-routing-policy.md` | Design for safe local-first model routing, approval gates, and House Blend role decisions. |
 
+## Releases
+
+| Release doc | Purpose |
+| --- | --- |
+| `releases/v1.0-closeout-checklist.md` | Checklist for validating Project Coffee v1.0 stronger-base readiness before UI work. |
+| `releases/project-coffee-v1.0-handoff.md` | Handoff summary for the v1.0 stronger-base state and next UI Brews. |
+
 ## Templates
 
 | Template pack | Purpose |

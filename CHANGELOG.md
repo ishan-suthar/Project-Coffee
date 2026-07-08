@@ -173,3 +173,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added `fleet/projects.example.json`, focused Fleet Status tests, the Fleet Support Guide, docs index link, and Unified Coffee CLI `fleet-status` delegation.
 - Dogfooded missing/default registry behavior, example registry parsing/listing, scratch complete/incomplete project checks, project filtering, JSON output, strict fail-on-issue behavior, tests, compile checks, and Unified Coffee CLI delegation without model or API calls.
 - Marked Multi-project Fleet Support complete and set next recommended work to Brew 25, v1.0 Release Closeout.
+
+### Added (Brew 25 / v1.0 Release Closeout)
+
+- Added the v1.0 stronger-base closeout checklist for docs, safety, tools, evidence, release readiness, tag policy, and future UI prerequisites.
+- Added the v1.0 handoff framework summarizing architecture, completed Brews, tool inventory, safety rules, House Blend, validation, onboarding, and future UI direction.
+- Linked release closeout docs from the docs index and added a brief closeout note to the Project Coffee Operating Manual.
+- Updated the roadmap to point from stronger-base closeout toward the future Coffee Counter UI sequence.
