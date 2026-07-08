@@ -1532,3 +1532,37 @@ Needs improvement:
 
 - Brew 29C should close the routing approval gate work if completion criteria remain satisfied.
 - Future UI work should keep remote Bean execution disabled until explicit approval, context preview, Ledger/Roastery evidence, and routing policy enforcement are implemented together.
+
+### 2026-07-08 - Brew 30 / Shot 30B: UI Packaging and Polish Plan Review
+
+Review performed:
+
+- New local user run path: covered by setup notes and the manual Streamlit run command.
+- Existing user faster startup: covered by future `scripts/start_coffee_counter.ps1` helper path.
+- Polished desktop app request: covered by React/Tauri and local desktop wrapper later path with migration criteria.
+- Remote model calls from UI: explicitly out of current packaging scope; future approval-gated design only.
+- Screenshot or product demo: covered as documentation screenshots later, not a Brew 30 blocker.
+- Project switching: covered as fleet project switching polish, not a packaging blocker.
+- Poor retrieval for "current Brew": covered as better current Brew retrieval ranking polish.
+- Auto-commit from UI: covered by no auto-commit / no Git writes safety constraints.
+- Langflow integration: explicit non-goal.
+- Package install command: covered by future `requirements-ui.txt` or helper script, not created without approval.
+
+Result:
+
+- Plan holds.
+- No blocking gaps found.
+- Recommended next Brew is Brew 30C closeout, followed by Brew 31 Streamlit polish pass if closeout criteria remain satisfied.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only docs review; not metered.
+- Cost: none / local-only; no external API cost.
+
+Needs improvement:
+
+- Fresh-user startup is still manual until a future helper or UI requirements file is explicitly approved.
+- Screenshots should wait until after the next polish pass.
+- Project/fleet switching and current Brew retrieval ranking remain usability polish items.

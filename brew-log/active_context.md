@@ -86,19 +86,20 @@ Brew 30 - UI Packaging / Polish Decision in progress.
 - Brew 29 / 29B dogfooded routing approval gates with focused tests, compile checks, local Coffee CLI tools, Streamlit server health, and six Ask Coffee routing scenarios.
 - Brew 29 / 29C closed UI + Routing Approval Gates after completion criteria, validation, dogfood evidence, local-only safety boundaries, and next-work handoff were confirmed.
 - Brew 30 / 30A is designing the UI Packaging and Polish Plan: keep Streamlit near-term, defer React/Tauri, and recommend a polish-first path.
+- Brew 30 / 30B reviewed the UI Packaging and Polish Plan against ten real use scenarios and found no blocking gaps.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 30B - review and dogfood the UI packaging / polish plan.
+1. Brew 30C - close UI Packaging / Polish Decision if completion criteria remain satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 30B planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 30A made no model/API call, OpenRouter call, external API call, package install, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 30C planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 30B made no model/API call, OpenRouter call, external API call, package install, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 30 / 30A UI Packaging and Polish Plan drafted
+2026-07-08 - Brew 30 / 30B UI Packaging and Polish Plan reviewed

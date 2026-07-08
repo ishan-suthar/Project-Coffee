@@ -182,6 +182,47 @@ Brew 30 does not include:
 - packaging scripts;
 - API key handling.
 
+## Brew 30B Scenario Review
+
+The plan was reviewed against ten realistic Coffee Counter packaging and polish
+questions.
+
+| Scenario | Coverage | Result |
+| --- | --- | --- |
+| New local user wants to run Coffee Counter | Setup notes and the manual Streamlit run command are documented. Streamlit remains an explicit dependency and is not hidden. | Covered |
+| Existing user wants faster startup | `scripts/start_coffee_counter.ps1` is identified as a future helper script. | Covered |
+| User wants a polished desktop app | React/Tauri and a local desktop wrapper are documented as later options with migration criteria. | Covered |
+| User wants remote model calls from UI | Remote calls are explicitly outside the current packaging plan and require a future approval-gated design. | Covered |
+| User wants a screenshot or product demo | Documentation screenshots are in the polish backlog and are not required for Brew 30. | Covered |
+| User wants project switching in UI | Fleet project switching is a polish item, not a packaging blocker. | Covered |
+| User sees poor retrieval for "current Brew" | Better current Brew retrieval ranking is in the polish backlog. | Covered |
+| User asks to auto-commit from UI | No auto-commit and no Git writes remain safety constraints. | Covered |
+| User wants Langflow integration | Langflow integration is an explicit non-goal. | Covered |
+| User wants a package install command | A future `requirements-ui.txt` or helper script is identified, but no package/install artifact is created without approval. | Covered |
+
+### Review Gaps
+
+No blocking gaps were found.
+
+Known non-blocking gaps:
+
+- Fresh users still need to follow manual Streamlit setup until a future helper
+  script or UI requirements file is approved.
+- Screenshots and product-demo assets are useful but should wait until after
+  the next polish pass.
+- Project/fleet switching and current Brew retrieval ranking are real usability
+  needs, but they are polish work rather than packaging blockers.
+
+### Review Recommendation
+
+The plan holds. Keep Option A:
+
+1. Brew 30C - close the packaging / polish decision if completion criteria
+   remain satisfied.
+2. Brew 31 - Streamlit polish pass.
+3. Brew 32 - UI project and fleet switching.
+4. Brew 33 - optional remote-call approval design, still local-first and gated.
+
 ## Next Recommended Work
 
 Recommended near-term path:
