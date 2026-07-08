@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 32 - Coffee Counter Project/Fleet Switching in progress.
+Brew 32 - Coffee Counter Project/Fleet Switching complete. Brew 33 is next.
 
 ## What matters right now
 
@@ -91,19 +91,20 @@ Brew 32 - Coffee Counter Project/Fleet Switching in progress.
 - Brew 31 / 31A implemented the Streamlit polish pass: Current State Quick View, Brew Log evidence prioritization, route badges, cleaner command output, no-evidence suggestions, and project-root visibility.
 - Brew 31 / 31B dogfooded and closed the Streamlit polish pass after tests, compile checks, Evidence Bundle queries, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and UI harness scenarios passed.
 - Brew 32 / 32A implemented Coffee Counter project and Fleet switching with root validation, session-only recent roots, Project Health, active-root wiring, and Fleet tab summaries.
+- Brew 32 / 32B dogfooded and closed project/Fleet switching after tests, compile checks, Fleet Status, Evidence Bundle, Doctor, Release Check, Ledger Summary, Streamlit server health, invalid-root handling, valid-root recovery, and UI safety scenarios passed.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 32B - dogfood Coffee Counter project and Fleet switching.
+1. Brew 33 - Remote Call Approval Design.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 32B planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 32A made no model/API call, OpenRouter call, external API call, package install, persistent config write, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 33 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 32 made no model/API call, OpenRouter call, external API call, package install, persistent config write, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 32 / 32A Coffee Counter Project and Fleet Switching implemented
+2026-07-08 - Brew 32 / 32B Coffee Counter Project and Fleet Switching closed

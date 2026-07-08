@@ -1628,3 +1628,65 @@ Needs improvement:
 
 - Brew 32 should make project root and Fleet project switching smoother across multiple Coffee projects.
 - Fresh-user startup still depends on the manual Streamlit command until a future helper script or UI requirements file is approved.
+
+### 2026-07-08 - Brew 32 / Shot 32B: Project/Fleet Switching Dogfood and Closeout
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile ui/coffee_counter_app.py
+python tools/coffee.py fleet-status --root .
+python tools/coffee.py evidence-bundle --root . --query "Coffee Counter project root switching" --max-results 8 --json
+python tools/coffee.py doctor --root .
+python tools/coffee.py release-check --root .
+python tools/coffee.py ledger-summary --root . --max-entries 8
+python -m streamlit run ui/coffee_counter_app.py
+```
+
+Observed behavior:
+
+- Focused Coffee Counter UI tests passed: 54 tests.
+- `ui/coffee_counter_app.py` compiled successfully.
+- Fleet Status safely reported missing default `fleet/projects.json` as `INFO`.
+- Evidence Bundle returned local Brew 32 project/fleet switching evidence.
+- Doctor returned `WARN` with the known non-blocking ADR warning about the literal staged secret-check command.
+- Release Check returned `OK`.
+- Ledger Summary returned recent local-only evidence entries.
+- Streamlit was already installed locally; no package install was performed.
+- Streamlit server smoke passed on a local loopback port with HTTP 200, and the process was stopped.
+
+Manual scenario checklist:
+
+- Valid root startup showed the active root, clear root-exists status, Project Coffee marker status, and Project Health.
+- Ask Coffee with "What is the current Brew?" showed Current State Quick View, Brew Log evidence, selected-root context, and no model/API call.
+- Evidence Bundle query "Coffee Counter project switching" used the selected root and returned local evidence.
+- Invalid root `C:\Users\iisha\Definitely_Not_Project_Coffee_32` showed warnings, blocked command execution, and did not crash the UI.
+- Returning to `C:\Users\iisha\Project_Coffee` restored valid state and command execution.
+- Session-only recent roots were visible in the UI; helper tests cover duplicate handling and max-item capping. No recent-root file or persistent config was written.
+- Fleet tab showed active root, Fleet Status command output, return code, registry status, project count, and an understandable missing-registry warning.
+- Dashboard, Doctor, Release Check, Ledger, and Fleet still worked for the valid root.
+- Safety checks found no API key field, OpenRouter button, model execution button, auto-commit/stage/push control, or arbitrary shell command box.
+
+Fixes made:
+
+- No product fixes were required. A harness-only session-state introspection attempt could not read Streamlit internals directly, but the UI displayed session-only recent roots and the pure helper tests validated recent-root behavior.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Root switching is safer and clearer without writing persistent configuration.
+- Invalid roots fail closed before command execution.
+- Fleet status is more understandable when the default local registry is missing.
+- Existing local-only tabs continued to work with the selected root.
+
+Needs improvement:
+
+- Brew 33 should design the future remote-call approval flow before any remote context can be sent from the UI.
+- A future Brew can design persistent root history or Fleet registry editing separately, with explicit safety rules.

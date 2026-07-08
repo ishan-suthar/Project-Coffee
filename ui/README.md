@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 32A project and fleet switching
+Status: Brew 32 complete
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -110,6 +110,11 @@ Brew 32A improves multi-project comfort while staying local-only:
 
 Root choices and recent roots are not written to disk. The UI does not create
 or edit Fleet registries in this shot.
+
+Brew 32B dogfood confirmed valid-root startup, Ask Coffee with the selected
+root, Evidence Bundle with the selected root, invalid-root blocking, return to
+valid root, session-only recent roots, Fleet tab behavior, existing local tool
+tabs, and safety controls. No product fixes were required.
 
 ## Brew 28 Evidence Integration
 

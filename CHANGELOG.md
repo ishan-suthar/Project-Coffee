@@ -238,3 +238,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Wired Ask Coffee, Current State Quick View, Evidence Bundle, Routing preview, Ledger, and Fleet to the selected active root.
 - Improved Fleet tab output with active-root visibility, optional registry path argument handling, status summary cards, missing/empty registry warnings, and simple registered-project rows.
 - Added focused tests for root normalization, marker scoring, root validation, session-only recent roots, active-root command arguments, Fleet registry argument safety, no `shell=True`, disallowed command rejection, and no OpenRouter key requirement.
+- Dogfooded tests, syntax compilation, Fleet Status, Evidence Bundle, Doctor, Release Check, Ledger Summary, Streamlit server health, valid-root startup, invalid-root blocking, valid-root recovery, session-only recent roots, Fleet tab behavior, existing tabs, and safety controls without model/API calls, package installs, persistent config writes, raw-output inspection, staging, or commits.
+- Marked Coffee Counter Project/Fleet Switching complete and set next recommended work to Brew 33, Remote Call Approval Design.

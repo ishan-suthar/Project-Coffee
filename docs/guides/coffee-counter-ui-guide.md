@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 32A project and fleet switching
+Status: Brew 32 complete
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -581,3 +581,29 @@ models, expose API key inputs, or add Git write controls.
 
 Future work can design a persistent local root registry, but that requires a
 separate safety design and explicit approval.
+
+### Brew 32B Dogfood and Closeout
+
+Brew 32B validated project and Fleet switching with focused tests, syntax
+compilation, Coffee CLI checks, a local Streamlit server smoke, and Streamlit
+UI harness scenarios.
+
+Validated scenarios:
+
+- valid root startup shows the active root, root existence, marker status, and
+  Project Health;
+- Ask Coffee uses the selected root for Current State Quick View and Evidence
+  Bundle;
+- Evidence Bundle commands include the selected root;
+- invalid roots warn, block command execution, and do not crash the UI;
+- returning to a valid root restores command execution;
+- session-only recent roots are visible in-session and are not persisted;
+- Fleet tab shows active root, command output, return code, registry status,
+  project count, and understandable missing-registry guidance;
+- Dashboard, Doctor, Release Check, Ledger, and Fleet still run for a valid
+  root;
+- no API key field, OpenRouter control, model execution button, auto-commit
+  control, persistent config write, or arbitrary command box is exposed.
+
+No product fixes were required during dogfood. Next likely work is Brew 33:
+Remote Call Approval Design.
