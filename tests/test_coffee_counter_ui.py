@@ -159,6 +159,114 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
 
         self.assertEqual(coffee_counter_app.evidence_state(bundle), "no-evidence")
 
+    def test_current_brew_request_routes_to_local_evidence_only(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "What is the current Brew and next Shot?",
+            [],
+        )
+
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_LOCAL_EVIDENCE)
+        self.assertFalse(decision.approval_required)
+
+    def test_docs_how_to_request_routes_to_local_evidence_only(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "How to onboard a project from the docs?",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "docs_how_to")
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_LOCAL_EVIDENCE)
+
+    def test_cost_token_request_references_ledger_and_local_evidence(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "What did tokens and cost look like?",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "cost_token")
+        self.assertIn("Ledger", decision.allowed_context)
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_LOCAL_EVIDENCE)
+
+    def test_benchmark_request_requires_roastery_approval(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "Run a model benchmark with Roastery",
+            [],
+        )
+
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_ROASTERY_REQUIRED)
+        self.assertTrue(decision.approval_required)
+        self.assertTrue(coffee_counter_app.approval_required_for_route(decision.selected_mode))
+
+    def test_code_change_request_requires_approval_before_remote_context(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "Fix a tiny Python bug",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "code_change")
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_REMOTE_APPROVAL)
+        self.assertTrue(decision.approval_required)
+
+    def test_send_repo_context_requires_approval(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "Send this repo context to a model",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "send_repo_context")
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_REMOTE_APPROVAL)
+        self.assertTrue(decision.approval_required)
+
+    def test_commit_request_is_manual_only_no_auto_commit(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "Commit this and push it",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "commit_or_push")
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_DECAF)
+        self.assertIn("must not stage, commit, push, or tag", decision.reason)
+        self.assertIn("commits manually", decision.next_safe_action)
+
+    def test_routing_decision_includes_reason_and_next_safe_action(self) -> None:
+        decision = coffee_counter_app.build_routing_decision("What should I do next?", [])
+
+        self.assertTrue(decision.reason)
+        self.assertTrue(decision.next_safe_action)
+        self.assertIn("Secrets", decision.blocked_context)
+
+    def test_context_preview_includes_source_paths_and_snippets(self) -> None:
+        item = coffee_counter_app.EvidenceItem(
+            source_path="brew-log/progress.md",
+            heading="Current shot",
+            snippet="Current status: Brew 29A",
+            reason_selected="matched body",
+            score=10,
+            freshness_signal="Brew 29",
+            safety_classification="local-project-note",
+            line_start=9,
+            line_end=9,
+        )
+
+        preview = coffee_counter_app.format_context_preview([item], max_items=1)
+
+        self.assertIn("Context preview only", preview)
+        self.assertIn("brew-log/progress.md:9", preview)
+        self.assertIn("Current status: Brew 29A", preview)
+
+    def test_context_preview_handles_missing_evidence_cleanly(self) -> None:
+        preview = coffee_counter_app.format_context_preview([], max_items=3)
+
+        self.assertIn("No eligible evidence snippets", preview)
+        self.assertIn("Excluded:", preview)
+
+    def test_remote_model_execution_is_not_exposed(self) -> None:
+        exposed_actions = " ".join(coffee_counter_app.ALLOWED_ACTIONS)
+
+        self.assertNotIn("openrouter", exposed_actions.lower())
+        self.assertNotIn("remote", exposed_actions.lower())
+        self.assertNotIn("bean", exposed_actions.lower())
+
     def test_subprocess_result_captures_output_and_return_code(self) -> None:
         def fake_runner(args: list[str], timeout: float) -> subprocess.CompletedProcess[str]:
             return subprocess.CompletedProcess(args, 7, stdout="out", stderr="err")

@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 28 complete
+Status: Brew 29A routing approval gates
 Date: 2026-07-08
 
 This guide explains how the future Project Coffee Counter UI should work. It is
@@ -56,6 +56,8 @@ page.
 - Release Check: show release readiness, blockers, warnings, and tag state.
 - Fleet: show registered projects and onboarding status.
 - Ledger: summarize cost/token/workflow evidence.
+- Routing / Approval: show route choice, approval requirement, allowed context,
+  blocked context, and context preview scaffolding.
 - Roastery: show summarized benchmark evidence, not raw local outputs.
 - Settings / Safety: show roots, allowlisted tools, exclusions, and approval
   gates.
@@ -259,12 +261,12 @@ Bean use requires a separate approval gate.
 - The command adapter currently exposes only Dashboard, Doctor, Release Check,
   Ledger Summary, Evidence Bundle, and Fleet Status.
 
-## Future Brew 29 Direction
+## Brew 29 Direction
 
 - Brew 28 improved Evidence Bundle display, citations, no-evidence handling,
   and local answer drafting.
-- Brew 29 should add visible routing approval gates before any remote Bean can
-  receive local context.
+- Brew 29A adds visible routing approval gates before any future remote Bean
+  can receive local context.
 
 ## Brew 28A Evidence Integration
 
@@ -297,7 +299,8 @@ Limitations:
 - It may be incomplete when the source evidence is thin or noisy.
 - The UI still does not edit files, stage files, commit, push, tag, inspect raw
   Roastery local outputs, or send evidence to a remote model.
-- Remote routing remains disabled until Brew 29 adds explicit approval gates.
+- Remote routing remains disabled after Brew 29A; the approval gates are
+  visible scaffolding only.
 
 ## Brew 28C Closeout
 
@@ -306,4 +309,56 @@ Evidence Bundle output, shows structured evidence, creates a deterministic
 local-only draft, handles no-evidence states honestly, and keeps remote model
 calls disabled.
 
-Next recommended work is Brew 29: UI + Routing Approval Gates.
+Next recommended work after 28C was Brew 29: UI + Routing Approval Gates.
+Brew 29A has now implemented the local-only routing approval scaffolding.
+
+## Brew 29A Routing Approval Gates
+
+Brew 29A adds routing visibility and approval-gate scaffolding without enabling
+remote execution.
+
+Routing modes shown in the UI:
+
+- Decaf / no model;
+- Local evidence only;
+- Remote Bean requires approval;
+- Roastery benchmark required.
+
+Default routing mode is Local evidence only.
+
+Routing decisions include:
+
+- selected mode;
+- whether approval is required;
+- reason;
+- allowed context;
+- blocked context;
+- next safe action.
+
+The request classifier is intentionally conservative:
+
+- current status questions route to local evidence only;
+- docs/how-to questions route to local evidence only;
+- cost/token questions route to local evidence plus Ledger;
+- benchmark requests require Roastery workflow and approval;
+- code changes require approval before any future remote context;
+- requests to send repository context to a model require approval;
+- commit/push requests stay manual-only with no UI auto-commit.
+
+Context preview behavior:
+
+- shows eligible local evidence snippets;
+- labels the preview as not sent anywhere;
+- reminds the user that secrets, `.env` files, credentials, hidden credential
+  directories, raw local outputs, and broad repository dumps are excluded.
+
+Non-goals for Brew 29A:
+
+- no OpenRouter button;
+- no API key input;
+- no remote Bean calls;
+- no file editing;
+- no staging, commits, pushes, or tags.
+
+Future remote execution, if ever added, should be a separate Brew with explicit
+approval, context preview confirmation, Ledger evidence, and Roastery evidence.

@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 28 complete
+Status: Brew 29A routing approval gates
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -16,6 +16,8 @@ The MVP helps you:
 - ask Coffee for local evidence only;
 - inspect structured Evidence Bundle items and local snippets;
 - draft a simple grounded local answer without model generation;
+- preview local-only routing decisions and future approval gates;
+- preview eligible local evidence context without sending it anywhere;
 - see command arguments, stdout, stderr, and exit codes;
 - keep approval gates visible before future remote model work.
 
@@ -61,6 +63,23 @@ The Evidence Bundle tab keeps the Markdown command output visible and also
 parses JSON output into a structured table/list when available. Malformed JSON,
 zero matches, missing roots, and command errors are shown honestly.
 
+## Brew 29 Routing Approval Gates
+
+Brew 29 adds local-only routing visibility. The Routing / Approval tab shows:
+
+- routing mode choices;
+- selected routing mode;
+- whether approval would be required;
+- the reason for the route;
+- allowed and blocked context;
+- next safe action;
+- a context preview from local evidence snippets.
+
+Remote model calls remain disabled. The context preview is not sent anywhere.
+Future remote Bean calls will require explicit approval, and secrets, `.env`
+files, credentials, hidden credential directories, and raw local outputs remain
+excluded.
+
 ## Safety Notes
 
 - The MVP is local-only.
@@ -72,6 +91,7 @@ zero matches, missing roots, and command errors are shown honestly.
 - It does not stage, commit, push, or create tags.
 - It does not expose arbitrary shell command execution.
 - It only wraps allowlisted Project Coffee CLI commands.
+- It shows approval gates, but it does not execute remote routes.
 
 ## Troubleshooting
 
@@ -80,6 +100,8 @@ zero matches, missing roots, and command errors are shown honestly.
 - If a command fails, check the displayed stdout, stderr, and exit code.
 - If Evidence Bundle returns no results, try a narrower query or inspect a
   specific local source.
+- If a routing decision requires approval, treat it as a preview. Remote
+  execution is not implemented in this MVP.
 - If Fleet Status reports a missing registry, use `fleet/projects.example.json`
   or intentionally create a local `fleet/projects.json`.
 - If Brew status looks stale, run `python tools/coffee.py dashboard --root .`

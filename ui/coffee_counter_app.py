@@ -27,6 +27,18 @@ ALLOWED_ACTIONS = {
     "fleet-status": "Fleet Status",
 }
 
+ROUTE_DECAF = "Decaf / no model"
+ROUTE_LOCAL_EVIDENCE = "Local evidence only"
+ROUTE_REMOTE_APPROVAL = "Remote Bean requires approval"
+ROUTE_ROASTERY_REQUIRED = "Roastery benchmark required"
+
+ROUTING_MODES = [
+    ROUTE_DECAF,
+    ROUTE_LOCAL_EVIDENCE,
+    ROUTE_REMOTE_APPROVAL,
+    ROUTE_ROASTERY_REQUIRED,
+]
+
 
 Runner = Callable[[Sequence[str], float], subprocess.CompletedProcess[str]]
 
@@ -72,6 +84,17 @@ class EvidenceBundle:
     items: list[EvidenceItem]
     warnings: list[str]
     parse_error: str | None = None
+
+
+@dataclass(frozen=True)
+class RoutingDecision:
+    request_class: str
+    selected_mode: str
+    approval_required: bool
+    reason: str
+    allowed_context: str
+    blocked_context: str
+    next_safe_action: str
 
 
 def default_project_root() -> Path:
@@ -355,6 +378,158 @@ def evidence_table_rows(bundle: EvidenceBundle) -> list[dict[str, object]]:
     return rows
 
 
+def classify_request_for_routing(text: str) -> str:
+    lowered = text.lower()
+    if any(term in lowered for term in ["commit", "push", "tag", "stage this", "git "]):
+        return "commit_or_push"
+    if "send" in lowered and any(term in lowered for term in ["repo context", "repository context", "to a model", "to model"]):
+        return "send_repo_context"
+    if any(term in lowered for term in ["benchmark", "cup test", "roastery", "compare beans", "model eval"]):
+        return "model_benchmark"
+    if any(term in lowered for term in ["fix", "bug", "change code", "edit file", "implement", "refactor"]):
+        return "code_change"
+    if any(term in lowered for term in ["cost", "token", "ledger", "spend"]):
+        return "cost_token"
+    if any(term in lowered for term in ["how to", "setup", "guide", "docs", "documentation", "onboard"]):
+        return "docs_how_to"
+    if any(term in lowered for term in ["current brew", "next shot", "status", "what is current"]):
+        return "current_status"
+    return "local_evidence_question"
+
+
+def approval_required_for_route(route: str) -> bool:
+    return route in {ROUTE_REMOTE_APPROVAL, ROUTE_ROASTERY_REQUIRED}
+
+
+def build_routing_decision(
+    request_text: str,
+    evidence_items: Sequence[EvidenceItem],
+) -> RoutingDecision:
+    request_class = classify_request_for_routing(request_text)
+    evidence_note = (
+        "Local Evidence Bundle snippets are available for preview."
+        if evidence_items
+        else "No evidence snippets are currently selected."
+    )
+    blocked_context = (
+        "Secrets, .env files, credentials, tokens, hidden credential directories, "
+        "raw Roastery local outputs, broad repository dumps, and unreviewed private data."
+    )
+
+    if request_class == "current_status":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_LOCAL_EVIDENCE,
+            approval_required=False,
+            reason="Current Brew and next Shot questions are answered from local Brew Log and roadmap evidence.",
+            allowed_context=f"Brew Log, Roadmap, Dashboard output, and local evidence snippets. {evidence_note}",
+            blocked_context=blocked_context,
+            next_safe_action="Run or review the local Evidence Bundle and Dashboard output.",
+        )
+    if request_class == "docs_how_to":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_LOCAL_EVIDENCE,
+            approval_required=False,
+            reason="Docs and how-to questions should be grounded in local guides before any model is considered.",
+            allowed_context=f"Docs, guides, Brew Log notes, and local evidence snippets. {evidence_note}",
+            blocked_context=blocked_context,
+            next_safe_action="Use the local evidence draft and verify cited guide paths.",
+        )
+    if request_class == "cost_token":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_LOCAL_EVIDENCE,
+            approval_required=False,
+            reason="Cost and token questions should use local Ledger evidence and local summaries.",
+            allowed_context=f"Coffee Ledger, Ledger Summary, and local evidence snippets. {evidence_note}",
+            blocked_context=blocked_context,
+            next_safe_action="Run Ledger Summary and cite Ledger entries.",
+        )
+    if request_class == "model_benchmark":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_ROASTERY_REQUIRED,
+            approval_required=True,
+            reason="Model benchmarking can involve remote Beans, cost, and recorded evaluation evidence.",
+            allowed_context="Roastery Cup Test prompts, summarized evidence, and approved benchmark metadata.",
+            blocked_context=blocked_context,
+            next_safe_action="Use Roastery workflow with explicit approval before any model call.",
+        )
+    if request_class == "code_change":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_REMOTE_APPROVAL,
+            approval_required=True,
+            reason="Code changes may require sending local context to a remote Bean later, but Brew 29 keeps remote execution disabled.",
+            allowed_context=f"Local evidence snippets and human-approved file excerpts only. {evidence_note}",
+            blocked_context=blocked_context,
+            next_safe_action="Stay local-first: plan, review evidence, and ask before any remote context is sent.",
+        )
+    if request_class == "send_repo_context":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_REMOTE_APPROVAL,
+            approval_required=True,
+            reason="Sending repository context to a model is a remote-context action and requires explicit approval.",
+            allowed_context="Previewed, allowlisted local snippets only after future approval gates are satisfied.",
+            blocked_context=blocked_context,
+            next_safe_action="Show the context preview only; do not send anything in this MVP.",
+        )
+    if request_class == "commit_or_push":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_DECAF,
+            approval_required=True,
+            reason="Git writes stay human-controlled. The UI may show manual checklists but must not stage, commit, push, or tag.",
+            allowed_context="Local status, diff summaries, and manual command reminders.",
+            blocked_context=blocked_context,
+            next_safe_action="Human reviews the diff, stages intended files, runs the staged secret-pattern check, and commits manually.",
+        )
+    return RoutingDecision(
+        request_class=request_class,
+        selected_mode=ROUTE_LOCAL_EVIDENCE,
+        approval_required=False,
+        reason="Default route is local evidence only until a request clearly requires approval.",
+        allowed_context=f"Local Evidence Bundle snippets and public Project Coffee docs. {evidence_note}",
+        blocked_context=blocked_context,
+        next_safe_action="Run the local Evidence Bundle and verify cited sources.",
+    )
+
+
+def format_context_preview(
+    evidence_items: Sequence[EvidenceItem],
+    max_items: int = 3,
+) -> str:
+    if not evidence_items:
+        return (
+            "Context preview only - not sent anywhere.\n\n"
+            "No eligible evidence snippets are selected yet.\n\n"
+            "Excluded: secrets, .env files, credentials, raw local outputs, hidden "
+            "credential directories, and broad repository dumps."
+        )
+
+    lines = [
+        "Context preview only - not sent anywhere.",
+        "",
+        f"Eligible local evidence snippets shown: {min(max_items, len(evidence_items))}",
+        "",
+    ]
+    for index, item in enumerate(evidence_items[:max_items], start=1):
+        snippet = item.snippet or "(no snippet available)"
+        heading = item.heading or "(no heading)"
+        lines.append(f"{index}. {item.reference} - {heading}")
+        lines.append(f"   {snippet}")
+    lines.extend(
+        [
+            "",
+            "Excluded: secrets, .env files, credentials, raw local outputs, hidden "
+            "credential directories, and broad repository dumps.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def render_app() -> None:
     try:
         import streamlit as st
@@ -386,6 +561,7 @@ def render_app() -> None:
             "Home / Overview",
             "Ask Coffee",
             "Evidence Bundle",
+            "Routing / Approval",
             "Ledger",
             "Fleet",
             "Safety / Commands",
@@ -402,12 +578,15 @@ def render_app() -> None:
         render_evidence_tab(st, root_input, int(max_results))
 
     with tabs[3]:
-        render_ledger_tab(st, root_input)
+        render_routing_tab(st, root_input, int(max_results))
 
     with tabs[4]:
-        render_fleet_tab(st, root_input)
+        render_ledger_tab(st, root_input)
 
     with tabs[5]:
+        render_fleet_tab(st, root_input)
+
+    with tabs[6]:
         render_safety_tab(st, selected_action)
 
 
@@ -434,6 +613,9 @@ def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
         value=default_max_results,
         key="ask-max-results",
     )
+    if question.strip():
+        st.write("Routing decision")
+        render_routing_decision(st, build_routing_decision(question, []))
     if st.button("Build local evidence bundle"):
         if not question.strip():
             st.warning("Enter a question or Order first.")
@@ -449,6 +631,9 @@ def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
             display_result(st, result, "Local Evidence Bundle", expand_stdout=False)
             if result is not None:
                 bundle = parse_evidence_bundle_json(result.stdout)
+                st.write("Routing decision with evidence preview")
+                render_routing_decision(st, build_routing_decision(question, bundle.items))
+                render_context_preview(st, bundle.items, max_items=3)
                 render_evidence_bundle_summary(st, bundle, result.return_code)
                 st.subheader("Local evidence draft")
                 st.caption("Local evidence draft, not model-generated. No model call was made.")
@@ -494,6 +679,62 @@ def render_evidence_tab(st: object, root: str, default_max_results: int) -> None
             render_evidence_bundle_summary(st, bundle, json_result.return_code)
 
 
+def render_routing_tab(st: object, root: str, default_max_results: int) -> None:
+    st.subheader("Routing / Approval")
+    st.info(
+        "Remote model calls are disabled in this MVP. Future remote Bean calls "
+        "will require explicit approval."
+    )
+    selected_mode = st.selectbox(
+        "Routing mode choices",
+        options=ROUTING_MODES,
+        index=ROUTING_MODES.index(ROUTE_LOCAL_EVIDENCE),
+    )
+    st.caption(f"Default routing mode: {ROUTE_LOCAL_EVIDENCE}. Selected mode is preview-only.")
+    request_text = st.text_area(
+        "Request to route",
+        value="What is the current Brew and next Shot?",
+        height=120,
+        key="routing-request",
+    )
+    max_results = st.number_input(
+        "Preview evidence items",
+        min_value=1,
+        max_value=10,
+        value=min(default_max_results, 5),
+        key="routing-max-results",
+    )
+    decision = build_routing_decision(request_text, [])
+    render_routing_decision(st, decision)
+
+    if st.button("Preview eligible local context"):
+        result = safe_run_for_ui(
+            st,
+            "evidence-bundle",
+            root=root,
+            query=request_text,
+            max_results=int(max_results),
+            json_output=True,
+        )
+        display_result(st, result, "Context Preview Evidence", expand_stdout=False)
+        if result is not None:
+            bundle = parse_evidence_bundle_json(result.stdout)
+            render_routing_decision(st, build_routing_decision(request_text, bundle.items))
+            render_context_preview(st, bundle.items, max_items=int(max_results))
+            render_evidence_bundle_summary(st, bundle, result.return_code)
+
+    st.write("Approval gate copy")
+    st.markdown(
+        """
+- Remote model calls are disabled in this MVP.
+- Future remote Bean calls will require explicit approval.
+- Secrets, `.env` files, credentials, tokens, and raw local outputs are excluded.
+- This tab previews routing decisions only; it does not send context anywhere.
+"""
+    )
+    st.caption(f"Preview-selected mode was `{selected_mode}`; no remote execution exists.")
+
+
 def render_ledger_tab(st: object, root: str) -> None:
     st.subheader("Ledger")
     max_entries = st.number_input("Max recent entries", min_value=1, max_value=50, value=8)
@@ -534,6 +775,7 @@ def render_safety_tab(st: object, selected_action: str) -> None:
 - no remote model calls
 - no OpenRouter calls
 - no external API calls
+- approval gates are visible, but remote execution is disabled
 - no file editing from the UI
 - no raw Roastery output inspection
 - no staging, commits, pushes, or tags
@@ -546,6 +788,7 @@ def render_safety_tab(st: object, selected_action: str) -> None:
         """
 - Remote Bean calls require approval.
 - Sending local evidence to a remote Bean requires approval.
+- Brew 29 only shows approval scaffolding; it cannot send context remotely.
 - Git operations require human review and approval.
 - Dependency installs require approval.
 - Secrets and raw local outputs are excluded.
@@ -556,8 +799,36 @@ def render_safety_tab(st: object, selected_action: str) -> None:
 def render_evidence_safety_notice(st: object) -> None:
     st.info(
         "Local evidence only. Evidence is retrieved from allowlisted local Project Coffee "
-        "sources; excluded paths are not searched. Remote Bean calls remain disabled in Brew 28."
+        "sources; excluded paths are not searched. Remote Bean calls remain disabled in Brew 29."
     )
+
+
+def render_routing_decision(st: object, decision: RoutingDecision) -> None:
+    st.write(
+        {
+            "request_class": decision.request_class,
+            "selected_mode": decision.selected_mode,
+            "approval_required": "yes" if decision.approval_required else "no",
+            "reason": decision.reason,
+            "allowed_context": decision.allowed_context,
+            "blocked_context": decision.blocked_context,
+            "next_safe_action": decision.next_safe_action,
+        }
+    )
+    if decision.approval_required:
+        st.warning("Approval required before this route can use remote context.")
+    else:
+        st.success("No remote approval needed for this local-only route.")
+
+
+def render_context_preview(
+    st: object,
+    evidence_items: Sequence[EvidenceItem],
+    max_items: int,
+) -> None:
+    st.subheader("Context preview")
+    st.caption("Preview only. Nothing is sent anywhere.")
+    st.code(format_context_preview(evidence_items, max_items=max_items), language="markdown")
 
 
 def render_evidence_bundle_summary(

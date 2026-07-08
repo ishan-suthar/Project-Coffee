@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 28 - UI + Evidence Bundle Integration complete. Next active work: Brew 29 - UI + Routing Approval Gates.
+Current status: Brew 29A - Routing approval gates implemented in the Coffee Counter UI. Next active work: Brew 29B - dogfood the routing approval gates.
 
 ## Completed
 
@@ -147,6 +147,7 @@ Current status: Brew 28 - UI + Evidence Bundle Integration complete. Next active
 | 2026-07-08 | Brew 28 / Shot 28A - Evidence Bundle UI Integration | Ask Coffee now renders structured local evidence and deterministic evidence drafts; Evidence Bundle keeps Markdown output and adds JSON parsing, zero-match handling, command display, tests, and docs |
 | 2026-07-08 | Brew 28 / Shot 28B - Dogfood UI Evidence Bundle Integration | Focused tests, compile checks, evidence JSON, zero-match JSON, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and UI harness checks passed without model/API calls |
 | 2026-07-08 | Brew 28 / Shot 28C - Close UI Evidence Bundle Integration | Completion criteria passed; Ask Coffee evidence, structured JSON display, local-only drafts, no-evidence handling, validation stack, dogfood evidence, Brew Log, Roadmap, and Changelog closeout confirmed |
+| 2026-07-08 | Brew 29 / Shot 29A - Routing Approval Gates | Coffee Counter UI gained a Routing / Approval tab, request classification, routing decisions, context preview scaffolding, Ask Coffee routing display, tests, and docs without enabling remote execution |
 
 ## Attempted (blocked)
 
@@ -160,10 +161,10 @@ None.
 
 ## Up next
 
-1. Brew 29 - UI + Routing Approval Gates.
+1. Brew 29B - dogfood the Coffee Counter routing approval gates.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 29 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, release tag, staging, or commit has been added by Brew 28C. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 29B planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, release tag, staging, or commit has been added by Brew 29A. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
