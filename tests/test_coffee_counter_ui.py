@@ -508,6 +508,58 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
         self.assertIn("No eligible evidence snippets", preview)
         self.assertIn("Excluded:", preview)
 
+    def test_context_package_preview_builder_returns_preview_only_package(self) -> None:
+        item = coffee_counter_app.EvidenceItem(
+            source_path="brew-log/progress.md",
+            heading="Current shot",
+            snippet="Current status: Brew 34A",
+            reason_selected="matched body",
+            score=10,
+            freshness_signal="current-status-file",
+            safety_classification="local-project-note",
+        )
+        decision = coffee_counter_app.build_routing_decision("What is the current Brew?", [item])
+        with tempfile.TemporaryDirectory() as tmp:
+            package = coffee_counter_app.build_context_package_preview(
+                "What is the current Brew?",
+                decision,
+                tmp,
+                [item],
+                max_context_items=3,
+            )
+
+        self.assertEqual(package["package_status"], "preview_only")
+        self.assertEqual(package["provider_model"]["status"], "not_selected")
+        self.assertFalse(package["user_approval"]["approved"])
+        self.assertEqual(package["safety_checks"]["status"], "passed")
+
+    def test_context_package_summary_reports_counts_for_ui(self) -> None:
+        item = coffee_counter_app.EvidenceItem(
+            source_path="brew-log/progress.md",
+            heading="Current shot",
+            snippet="Current status: Brew 34A",
+            reason_selected="matched body",
+            score=10,
+            freshness_signal="current-status-file",
+            safety_classification="local-project-note",
+        )
+        decision = coffee_counter_app.build_routing_decision("What is next?", [item])
+        with tempfile.TemporaryDirectory() as tmp:
+            package = coffee_counter_app.build_context_package_preview(
+                "What is next?",
+                decision,
+                tmp,
+                [item],
+                max_context_items=3,
+            )
+
+        summary = coffee_counter_app.context_package_summary(package)
+
+        self.assertEqual(summary["package_status"], "preview_only")
+        self.assertEqual(summary["evidence_item_count"], 1)
+        self.assertEqual(summary["included_item_count"], 1)
+        self.assertEqual(summary["approval_status"], "not_approved")
+
     def test_no_evidence_suggestions_are_produced(self) -> None:
         suggestions = coffee_counter_app.no_evidence_suggestions("What is the current Brew?")
 

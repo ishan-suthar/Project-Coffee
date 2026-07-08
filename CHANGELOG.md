@@ -248,3 +248,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated Coffee Counter UI docs to clarify that current approval gates remain preview-only and the UI still has no OpenRouter call, API key input, network code, or working send-to-model button.
 - Dogfooded the design against twelve future UI/API scenarios and refined whole-repo context blocking, secret-risk blocking, missing-key handling, provider failure, Ledger failure, cancellation, active-root-change invalidation, and generated-code/manual-review behavior.
 - Marked Remote Call Approval Design complete and set next recommended work to Brew 34, Remote Context Package Builder.
+
+### Added (Brew 34 / Remote Context Package Builder)
+
+- Added `tools/coffee_context_package.py` for local-only context package previews and Safety Gate checks.
+- Added focused tests for package schema defaults, evidence limits, unsafe path exclusion, suspicious text redaction labels, token estimates, and stable summaries.
+- Updated the Coffee Counter Routing / Approval tab to display package status, route decision, token estimate, evidence counts, Safety Gate result, and preview JSON.
+- Kept provider/model placeholders unselected and user approval false by default.
+- Documented that Brew 34A adds no OpenRouter integration, API key input, network code, model/API call, send-to-model button, remote execution, file write, Git write, auto-commit, or auto-push.
+- Set next recommended work to Brew 35, Dry-run Approval UI.

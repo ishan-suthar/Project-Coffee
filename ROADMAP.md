@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 33 - Remote Call Approval Design complete |
-| Current milestone | Future remote Bean calls now have an approval-gated design; no implementation exists yet |
-| Next step | Brew 34 - Remote Context Package Builder |
-| Recent foundation result | Brew 33B dogfooded and closed the remote-call approval design without model/API calls, network code, API key input, or send-to-model button |
-| Blockers | No blocker for Brew 34 planning; remote model routing remains disabled until a future explicitly approved implementation |
+| Current shot | Brew 34A - Remote Context Package Builder implemented |
+| Current milestone | Coffee Counter can preview a local context package and Safety Gate result; no remote call exists |
+| Next step | Brew 35 - Dry-run Approval UI |
+| Recent foundation result | Brew 34A added a local-only context package builder, Safety Gate, token estimate, UI preview, tests, and docs without model/API calls |
+| Blockers | No blocker for Brew 35 planning; remote model routing remains disabled until a future explicitly approved implementation |
 
 ## Phase 1 goal
 
@@ -185,4 +185,5 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 31 | Streamlit Polish Pass | Complete | 2026-07-08 |
 | Brew 32 | Coffee Counter Project/Fleet Switching | Complete | 2026-07-08 |
 | Brew 33 | Remote Call Approval Design | Complete | 2026-07-08 |
-| Brew 34 | Remote Context Package Builder | Planned | TBD |
+| Brew 34 | Remote Context Package Builder | Complete | 2026-07-08 |
+| Brew 35 | Dry-run Approval UI | Planned | TBD |

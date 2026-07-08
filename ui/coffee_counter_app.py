@@ -13,6 +13,8 @@ import subprocess
 import sys
 from typing import Any, Callable, Sequence
 
+from tools import coffee_context_package
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COFFEE_CLI = REPO_ROOT / "tools" / "coffee.py"
@@ -977,6 +979,46 @@ def format_context_preview(
     return "\n".join(lines)
 
 
+def _evidence_item_for_context_package(item: EvidenceItem) -> dict[str, object]:
+    return {
+        "source_path": item.source_path,
+        "heading": item.heading,
+        "snippet": item.snippet,
+        "score": item.score,
+        "reason_selected": item.reason_selected,
+        "freshness_signal": item.freshness_signal,
+        "safety_classification": item.safety_classification,
+        "line_start": item.line_start,
+        "line_end": item.line_end,
+    }
+
+
+def build_context_package_preview(
+    request_text: str,
+    decision: RoutingDecision,
+    root: str | Path,
+    evidence_items: Sequence[EvidenceItem],
+    *,
+    max_context_items: int,
+) -> dict[str, Any]:
+    return coffee_context_package.build_context_package(
+        request_text=request_text,
+        route_decision=decision,
+        active_root=str(validate_root(root)),
+        evidence_items=[_evidence_item_for_context_package(item) for item in evidence_items],
+        max_context_items=max_context_items,
+        brew_shot="Brew 34 / Shot 34A",
+    )
+
+
+def format_context_package_json(package: dict[str, Any]) -> str:
+    return json.dumps(package, indent=2, sort_keys=True)
+
+
+def context_package_summary(package: dict[str, Any]) -> dict[str, Any]:
+    return coffee_context_package.summarize_context_package(package)
+
+
 def render_app() -> None:
     try:
         import streamlit as st
@@ -1265,8 +1307,16 @@ def render_routing_tab(st: object, root: str, default_max_results: int) -> None:
                     items=prioritize_evidence_items_for_question(request_text, bundle.items),
                     warnings=bundle.warnings,
                 )
-            render_routing_decision(st, build_routing_decision(request_text, bundle.items))
-            render_context_preview(st, bundle.items, max_items=int(max_results))
+            decision_with_evidence = build_routing_decision(request_text, bundle.items)
+            render_routing_decision(st, decision_with_evidence)
+            package = build_context_package_preview(
+                request_text,
+                decision_with_evidence,
+                root,
+                bundle.items,
+                max_context_items=int(max_results),
+            )
+            render_context_package_preview(st, package)
             render_evidence_bundle_summary(st, bundle, result.return_code)
 
     st.write("Approval gate copy")
@@ -1441,6 +1491,61 @@ def render_context_preview(
     st.subheader("Context preview")
     st.caption("Preview only. Nothing is sent anywhere.")
     st.code(format_context_preview(evidence_items, max_items=max_items), language="markdown")
+
+
+def render_context_package_preview(st: object, package: dict[str, Any]) -> None:
+    summary = context_package_summary(package)
+    safety = package.get("safety_checks", {})
+    blocked_reasons = safety.get("blocked_reasons", []) if isinstance(safety, dict) else []
+    warnings = safety.get("warnings", []) if isinstance(safety, dict) else []
+    redaction_notes = safety.get("redaction_notes", []) if isinstance(safety, dict) else []
+
+    st.subheader("Context package preview")
+    st.caption(
+        "Context package preview only. No model call is available in Brew 34. "
+        "No data is sent anywhere."
+    )
+
+    columns = st.columns(4)
+    columns[0].metric("Package status", str(summary["package_status"]))
+    columns[1].metric("Safety status", str(summary["safety_status"]))
+    columns[2].metric("Estimated tokens", str(summary["estimated_tokens"]))
+    columns[3].metric("Evidence items", str(summary["evidence_item_count"]))
+
+    columns = st.columns(4)
+    columns[0].metric("Included items", str(summary["included_item_count"]))
+    columns[1].metric("Excluded items", str(summary["excluded_item_count"]))
+    columns[2].metric("Selected files", str(summary["selected_file_count"]))
+    columns[3].metric("Provider/model", str(summary["provider_model_status"]))
+
+    st.markdown(
+        f"""
+- Active root: `{summary["active_root"]}`
+- Route decision: `{summary["route_decision"]}`
+- User approval: `{summary["approval_status"]}`
+- Brew / Shot: `{package.get("brew_shot", "unknown")}`
+"""
+    )
+
+    if blocked_reasons:
+        st.error("Safety Gate blocked this package.")
+        for reason in blocked_reasons:
+            st.markdown(f"- {reason}")
+    elif warnings or redaction_notes:
+        st.warning("Safety Gate returned warnings; review before any future approval.")
+    else:
+        st.success("Safety Gate passed for this local preview.")
+
+    for warning in warnings:
+        st.warning(str(warning))
+    for note in redaction_notes:
+        if isinstance(note, dict):
+            st.warning(f"Redaction note: {note.get('label', 'suspicious content')} at {note.get('location', 'unknown location')}.")
+
+    with st.expander("context package preview JSON", expanded=False):
+        st.code(format_context_package_json(package), language="json")
+
+    st.button("Send disabled until future Brew", disabled=True)
 
 
 def render_evidence_bundle_summary(

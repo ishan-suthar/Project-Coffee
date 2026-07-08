@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 33 complete
+Status: Brew 34A context package preview implemented
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -666,5 +666,51 @@ The review confirmed:
 - active-root changes invalidate approval;
 - generated code stays advisory with manual file and Git review.
 
-No remote-call implementation was added. Next likely work is Brew 34: local
-context package builder and Safety Gate, still with no remote model calls.
+No remote-call implementation was added in Brew 33. Brew 34A has now added the
+local context package builder and Safety Gate, still with no remote model calls.
+
+## Brew 34A Context Package Preview
+
+Brew 34A adds a local-only context package builder and Safety Gate, then wires
+the preview into the Coffee Counter Routing / Approval tab.
+
+The context package is a review object, not a remote API payload. It includes:
+
+- request text;
+- route decision;
+- active root;
+- selected files;
+- normalized local evidence items;
+- excluded paths;
+- Safety Gate result;
+- estimated tokens using a local character-count estimate;
+- user approval defaulting to not approved;
+- provider/model placeholders set to not selected;
+- Ledger plan fields;
+- package status and package version.
+
+The Routing / Approval tab now shows:
+
+- package status;
+- active root;
+- route decision;
+- estimated tokens;
+- evidence item count;
+- included and excluded item counts;
+- Safety Gate status;
+- Safety Gate warnings or block reasons;
+- preview JSON in an expander.
+
+The package builder labels suspicious secret-like text without showing matched
+values and redacts suspicious snippets in the preview. Unsafe paths such as
+`.env`, `.git`, hidden credential directories, dependency folders, caches, build
+output, databases, and key-like files are excluded or blocked.
+
+Brew 34A still has no OpenRouter integration, API key input, network code,
+model/API call, send-to-model button, remote execution, file write, Git write,
+auto-commit, or auto-push.
+
+The disabled UI placeholder says `Send disabled until future Brew`. It is a
+label for the future approval workflow, not an action. Brew 35 should build the
+dry-run approval UI around this local package before any remote-call
+implementation is considered.

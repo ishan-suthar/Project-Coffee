@@ -266,4 +266,5 @@ Recommended near-term path:
 1. Brew 31 - Streamlit polish pass: complete.
 2. Brew 32 - UI project and fleet switching: complete.
 3. Brew 33 - remote-call approval design: complete.
-4. Brew 34 - local context package builder and Safety Gate, still no remote model calls.
+4. Brew 34 - local context package builder and Safety Gate: implemented in Brew 34A.
+5. Brew 35 - dry-run approval UI around the local context package, still no remote model calls.

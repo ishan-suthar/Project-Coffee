@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 33 complete
+Status: Brew 34A context package preview implemented
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -139,6 +139,47 @@ Current UI status is unchanged:
 - no Git write controls.
 
 The current Routing / Approval tab remains preview-only.
+
+## Brew 34 Context Package Preview
+
+Brew 34A adds a local-only context package builder and Safety Gate. The Routing
+/ Approval tab can now build a preview-only context package from the current
+request, routing decision, and local Evidence Bundle results.
+
+The preview shows:
+
+- package status;
+- active root;
+- route decision;
+- estimated tokens;
+- evidence item count;
+- included and excluded item count;
+- Safety Gate status;
+- warnings or block reasons;
+- preview JSON.
+
+The package is not a remote API payload. It is not sent anywhere. Provider and
+model fields remain placeholders with no provider and no model selected. User
+approval defaults to not approved.
+
+The Safety Gate excludes or blocks unsafe paths and redacts suspicious
+secret-like snippets without printing matched values.
+
+Still not present:
+
+- OpenRouter integration;
+- API key input;
+- model/API calls;
+- network code;
+- send-to-model button;
+- remote execution;
+- file writes;
+- Git writes;
+- auto-commit or auto-push.
+
+The disabled placeholder labeled `Send disabled until future Brew` is not a
+working send control. Brew 35 should use this package for dry-run approval UI
+only.
 
 ## Brew 28 Evidence Integration
 

@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 33 - Remote Call Approval Design complete. Next active work: Brew 34 - Remote Context Package Builder.
+Current status: Brew 34A - Remote Context Package Builder implemented. Next active work: Brew 35 - Dry-run Approval UI.
 
 ## Completed
 
@@ -159,6 +159,7 @@ Current status: Brew 33 - Remote Call Approval Design complete. Next active work
 | 2026-07-08 | Brew 32 / Shot 32B - Dogfood, Fix, and Close Project/Fleet Switching | Tests, compile checks, Fleet Status, Evidence Bundle, Doctor, Release Check, Ledger Summary, Streamlit server health, invalid-root handling, valid-root recovery, session-only recent roots, Fleet tab, existing tabs, and safety scenarios passed; no product fixes were required; Brew 32 marked complete |
 | 2026-07-08 | Brew 33 / Shot 33A - Remote Call Approval Design | Design doc added for future approval-gated remote Bean calls, including flow, approval states, context package schema, safety/redaction policy, model/provider policy, Ledger fields, UI design, failure/cancel states, testing strategy, and roadmap; no implementation added |
 | 2026-07-08 | Brew 33 / Shot 33B - Dogfood, Refine, and Close Remote Call Approval Design | Twelve future UI/API scenarios reviewed; whole-repo context, secret-risk, missing-key, provider-failure, Ledger-failure, cancellation, active-root-change, and generated-code behaviors refined; Brew 33 marked complete with no remote-call implementation |
+| 2026-07-08 | Brew 34 / Shot 34A - Remote Context Package Builder | Local-only context package builder and Safety Gate added, focused tests written, and Coffee Counter Routing / Approval tab updated with preview-only package status, route decision, token estimate, evidence counts, Safety Gate result, and JSON preview; no remote call or send path added |
 
 ## Attempted (blocked)
 
@@ -172,10 +173,10 @@ None.
 
 ## Up next
 
-1. Brew 34 - Remote Context Package Builder.
+1. Brew 35 - Dry-run Approval UI around the local context package.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 34 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, send-to-model button, release tag, staging, or commit has been added by Brew 33. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 35 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, send-to-model button, release tag, staging, or commit has been added by Brew 34A. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.

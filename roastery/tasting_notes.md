@@ -1757,3 +1757,45 @@ What worked:
 Needs improvement:
 
 - Brew 34 should implement the local context package builder, Safety Gate report, token estimate placeholder, and approval-ready preview object without network calls.
+
+### 2026-07-08 - Brew 34 / Shot 34A: Remote Context Package Builder Implementation
+
+Commands run during implementation:
+
+```powershell
+python -m unittest tests.test_context_package
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile tools/coffee_context_package.py
+python -m py_compile ui/coffee_counter_app.py
+```
+
+Implementation summary:
+
+- Added `tools/coffee_context_package.py` as a local-only context package builder and Safety Gate.
+- Added focused package tests for schema fields, default approval state, provider/model placeholder state, evidence limits, unsafe path exclusion, suspicious text redaction labels, token estimates, and summary output.
+- Updated Coffee Counter Routing / Approval to show a preview-only context package built from request text, route decision, active root, and local Evidence Bundle items.
+- The UI preview shows package status, active root, route decision, estimated tokens, evidence counts, included/excluded counts, Safety Gate status, warnings/block reasons, and JSON preview.
+
+Safety observations:
+
+- Provider/model fields remain placeholders with `provider: null`, `model: null`, and `status: not_selected`.
+- User approval defaults to false with no approval timestamp or approved context hash.
+- Suspicious content is labeled and redacted without printing the matched value.
+- Unsafe paths such as `.env`, hidden credential directories, dependency folders, build output, caches, databases, and key-like files are excluded or blocked.
+- No OpenRouter integration, API key input, model/API call, network code, send-to-model button, remote execution, file write, Git write, auto-commit, or auto-push was added.
+
+Evidence quality:
+
+- Focused tests and compile checks passed before final validation.
+- The package remains a schema-like local preview object, not a remote API payload.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for implementation; package token estimates are local character-count estimates only.
+- Cost: none / local-only; no external API cost.
+
+Needs improvement:
+
+- Brew 35 should build only a dry-run approval UI around the local package before any future remote-call implementation is considered.

@@ -1,6 +1,6 @@
 # Remote Call Approval Design
 
-Status: Brew 33 complete
+Status: Brew 34A local context package builder implemented
 Date: 2026-07-08
 
 ## 1. Purpose
@@ -104,8 +104,8 @@ State transitions must be visible. Silent transitions are not allowed.
 
 ## 6. Context Package Schema
 
-The context package is the exact review object shown before approval. It is not
-persisted or sent in Brew 33.
+The context package is the exact review object shown before approval. Brew 34A
+can build and preview this object locally, but it is not sent anywhere.
 
 ### Markdown Shape
 
@@ -412,17 +412,63 @@ context-package builder without adding remote calls.
 - Generated code remains advisory and must never trigger automatic file or Git
   writes.
 
-## 14. Implementation Roadmap
+## 14. Brew 34A Local Context Package Builder
+
+Brew 34A implements `tools/coffee_context_package.py` as a local-only package
+builder and Safety Gate. The package is a schema-like preview object, not a
+remote API payload.
+
+The package includes:
+
+- request text;
+- route decision;
+- active root;
+- selected files;
+- normalized evidence items;
+- excluded paths;
+- Safety Gate result;
+- local token estimate;
+- max context item limit;
+- default unapproved user approval state;
+- placeholder provider/model state with no provider and no model selected;
+- Ledger plan fields;
+- package status and version.
+
+The Safety Gate:
+
+- excludes unsafe paths such as `.env`, `.git`, hidden credential directories,
+  dependency folders, caches, build output, databases, and key-like files;
+- labels suspicious secret-like content without printing matched values;
+- redacts suspicious snippets in the preview;
+- blocks packages with suspicious text and warns when unsafe evidence paths
+  are excluded.
+
+The Coffee Counter Routing / Approval tab can now build and display a
+preview-only context package from the current request, route decision, and local
+Evidence Bundle results. It shows package status, Safety Gate status, active
+root, route decision, estimated tokens, evidence counts, included/excluded
+counts, warnings or block reasons, and a JSON preview.
+
+Brew 34A still does not add OpenRouter integration, API key input, network
+code, model calls, a send-to-model button, remote execution, file writes, Git
+writes, auto-commit, or auto-push.
+
+This prepares Brew 35 to design and implement a dry-run approval UI around the
+local package. Brew 35 should still avoid real remote calls unless a separate
+future Brew explicitly approves that implementation.
+
+## 15. Implementation Roadmap
 
 Recommended future sequence:
 
-1. Brew 34: implement local context package builder and Safety Gate only.
-2. Future Brew: add non-executing UI preview helpers and tests only.
+1. Brew 34: local context package builder and Safety Gate - implemented in
+   Brew 34A.
+2. Brew 35: add dry-run approval UI around the local package only.
 3. Future Brew: add Ledger planned-call preview.
 4. Future Brew: consider remote call implementation only after explicit human
    approval and fresh Roastery/routing review.
 
-## 15. Open Questions
+## 16. Open Questions
 
 - Should approval IDs be generated in memory or written only when a remote call
   actually occurs?
