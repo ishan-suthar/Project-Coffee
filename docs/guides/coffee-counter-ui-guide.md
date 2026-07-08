@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 30A packaging and polish planning
+Status: Brew 30C packaging decision complete
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -393,3 +393,13 @@ Recommended polish path:
 
 The detailed plan lives in
 [`../design/ui-packaging-and-polish-plan.md`](../design/ui-packaging-and-polish-plan.md).
+
+## Brew 30C Closeout
+
+Brew 30 closed with the decision to keep Streamlit as the working Coffee
+Counter UI for now and defer React/Tauri migration. The next recommended work
+is Brew 31: Streamlit Polish Pass.
+
+Brew 31 should improve usability without changing the architecture: route
+badges, status cards, better evidence ranking UX, cleaner output sections,
+project root persistence, and clearer no-evidence suggestions.

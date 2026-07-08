@@ -213,3 +213,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Kept future remote Bean behavior documented but disabled: no remote model button, no OpenRouter call control, and no API key input were added.
 - Dogfooded focused tests, syntax compilation, Evidence Bundle JSON, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit routing smoke, and six Ask Coffee routing scenarios without model/API calls, raw-output inspection, staging, or commits.
 - Marked UI + Routing Approval Gates complete and set next recommended work to Brew 30, UI Packaging / Polish Decision.
+
+### Added (Brew 30 / UI Packaging and Polish Decision)
+
+- Added `docs/design/ui-packaging-and-polish-plan.md` to decide the near-term Coffee Counter UI packaging and polish direction.
+- Kept Streamlit as the working UI and documented React/Tauri as a later optional migration.
+- Documented the manual Streamlit run command, future helper script option, future `requirements-ui.txt` option, polish backlog, safety constraints, migration criteria, and non-goals.
+- Reviewed ten packaging/polish scenarios and found no blocking gaps.
+- Marked UI Packaging / Polish Decision complete and set next recommended work to Brew 31, Streamlit Polish Pass.

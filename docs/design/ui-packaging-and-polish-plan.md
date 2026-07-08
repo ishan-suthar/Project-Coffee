@@ -1,6 +1,6 @@
 # UI Packaging and Polish Plan
 
-Status: Brew 30A design
+Status: Brew 30C complete
 Date: 2026-07-08
 
 ## Purpose
@@ -223,12 +223,44 @@ The plan holds. Keep Option A:
 3. Brew 32 - UI project and fleet switching.
 4. Brew 33 - optional remote-call approval design, still local-first and gated.
 
+## Brew 30C Closeout
+
+Brew 30 is complete.
+
+Closeout decision:
+
+- keep Streamlit as the working Coffee Counter UI for now;
+- do not migrate to React/Tauri yet;
+- do not add packaging scripts yet;
+- do not add a UI requirements file yet;
+- prioritize a Streamlit polish pass before packaging mechanics.
+
+Next implementation direction:
+
+- Brew 31 - Streamlit Polish Pass.
+
+Brew 31 should improve the existing UI without changing the architecture:
+
+- route badges;
+- status cards;
+- better evidence ranking UX;
+- cleaner output sections;
+- project root persistence;
+- clearer no-evidence suggestions.
+
+Closeout safety notes:
+
+- no package/install scripts were added;
+- no `requirements-ui.txt` was added;
+- no React/Tauri migration was started;
+- no model or API calls were made;
+- no secrets were touched;
+- no raw Roastery local outputs were inspected.
+
 ## Next Recommended Work
 
 Recommended near-term path:
 
-1. Brew 30B - review and dogfood this packaging / polish plan.
-2. Brew 30C - close the packaging / polish decision if the plan holds.
-3. Brew 31 - Streamlit polish pass.
-4. Brew 32 - UI project and fleet switching.
-5. Brew 33 - optional remote-call approval design, still local-first and gated.
+1. Brew 31 - Streamlit polish pass.
+2. Brew 32 - UI project and fleet switching.
+3. Brew 33 - optional remote-call approval design, still local-first and gated.

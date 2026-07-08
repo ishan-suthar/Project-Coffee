@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 30A packaging and polish planning
+Status: Brew 30C packaging decision complete
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -57,6 +57,9 @@ Future packaging options may include:
 - a dedicated `requirements-ui.txt`;
 - a local desktop wrapper;
 - React/Tauri after the Streamlit workflow proves its limits.
+
+Current decision: keep Streamlit for now and polish the existing UI before
+adding packaging helpers or considering React/Tauri migration.
 
 ## Brew 28 Evidence Integration
 

@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 30 - UI Packaging / Polish Decision in progress.
+Brew 30 - UI Packaging / Polish Decision complete.
 
 ## What matters right now
 
@@ -87,19 +87,20 @@ Brew 30 - UI Packaging / Polish Decision in progress.
 - Brew 29 / 29C closed UI + Routing Approval Gates after completion criteria, validation, dogfood evidence, local-only safety boundaries, and next-work handoff were confirmed.
 - Brew 30 / 30A is designing the UI Packaging and Polish Plan: keep Streamlit near-term, defer React/Tauri, and recommend a polish-first path.
 - Brew 30 / 30B reviewed the UI Packaging and Polish Plan against ten real use scenarios and found no blocking gaps.
+- Brew 30 / 30C closed the UI Packaging / Polish Decision: keep Streamlit as the working UI, defer React/Tauri, and move next to Brew 31 Streamlit Polish Pass.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 30C - close UI Packaging / Polish Decision if completion criteria remain satisfied.
+1. Brew 31 - Streamlit Polish Pass.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 30C planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 30B made no model/API call, OpenRouter call, external API call, package install, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 31 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 30C made no model/API call, OpenRouter call, external API call, package install, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 30 / 30B UI Packaging and Polish Plan reviewed
+2026-07-08 - Brew 30 / 30C UI Packaging / Polish Decision closed
