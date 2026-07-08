@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 29 - UI + Routing Approval Gates complete |
-| Current milestone | Coffee Counter now shows local evidence, routing decisions, approval gates, and preview-only context; ready for Brew 30 UI packaging / polish decision |
-| Next step | Brew 30 - UI Packaging / Polish Decision |
-| Recent foundation result | Brew 29C closed UI + Routing Approval Gates after validation, dogfood evidence, Streamlit routing smoke, and local-only safety checks |
-| Blockers | No blocker for Brew 30 planning; remote model routing remains disabled until a future explicitly approved implementation |
+| Current shot | Brew 30A - UI Packaging / Polish Plan |
+| Current milestone | Coffee Counter keeps Streamlit as the working UI while planning polish before broader packaging |
+| Next step | Brew 30B - review and dogfood the UI packaging / polish plan |
+| Recent foundation result | Brew 30A drafted the Streamlit-first packaging and polish plan with React/Tauri deferred |
+| Blockers | No blocker for Brew 30B planning; remote model routing remains disabled until a future explicitly approved implementation |
 
 ## Phase 1 goal
 
@@ -181,4 +181,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 27 | Streamlit Coffee Counter MVP | Complete | 2026-07-08 |
 | Brew 28 | UI + Evidence Bundle Integration | Complete | 2026-07-08 |
 | Brew 29 | UI + Routing Approval Gates | Complete | 2026-07-08 |
-| Brew 30 | UI Packaging / Polish Decision | Planned | TBD |
+| Brew 30 / 30A | UI Packaging / Polish Plan | In progress | 2026-07-08 |

@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 29A routing approval gates
+Status: Brew 30A packaging and polish planning
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -44,6 +44,19 @@ From the Project Coffee root:
 ```powershell
 python -m streamlit run ui/coffee_counter_app.py
 ```
+
+## Packaging Status
+
+The supported launch path is still the manual Streamlit command above. Brew 30A
+keeps Streamlit as the working Coffee Counter UI and defers React/Tauri until
+the UI workflows are stable enough to justify a rewrite.
+
+Future packaging options may include:
+
+- a small `scripts/start_coffee_counter.ps1` helper;
+- a dedicated `requirements-ui.txt`;
+- a local desktop wrapper;
+- React/Tauri after the Streamlit workflow proves its limits.
 
 ## Brew 28 Evidence Integration
 
@@ -92,6 +105,14 @@ excluded.
 - It does not expose arbitrary shell command execution.
 - It only wraps allowlisted Project Coffee CLI commands.
 - It shows approval gates, but it does not execute remote routes.
+
+## Known Limitations
+
+- There is no start helper script yet.
+- There is no separate UI requirements file yet.
+- There is no desktop wrapper or production installer.
+- There is no remote model execution path.
+- Project root persistence and fleet project switching still need polish.
 
 ## Troubleshooting
 

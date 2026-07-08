@@ -24,7 +24,7 @@ Practical Project Coffee guides live here.
 | `guides/release-packaging-guide.md` | How to check Project Coffee release readiness before tagging or handoff. |
 | `guides/local-rag-guide.md` | How Project Coffee will use safe local retrieval and evidence bundles. |
 | `guides/fleet-support-guide.md` | How to use the local multi-project fleet registry and status tool. |
-| `guides/coffee-counter-ui-guide.md` | Streamlit-first guide for the future Project Coffee Counter UI. |
+| `guides/coffee-counter-ui-guide.md` | Streamlit-first guide for the Project Coffee Counter UI and near-term polish path. |
 
 ## Designs
 
@@ -33,6 +33,7 @@ Practical Project Coffee guides live here.
 | `design/local-rag-design.md` | Design for the future local-first retrieval and evidence bundle layer. |
 | `design/model-routing-policy.md` | Design for safe local-first model routing, approval gates, and House Blend role decisions. |
 | `design/coffee-counter-ui-design.md` | Design for the Streamlit-first Project Coffee Counter control panel. |
+| `design/ui-packaging-and-polish-plan.md` | Plan for keeping Streamlit near-term, polishing the UI, and deferring React/Tauri migration. |
 
 ## Releases
 

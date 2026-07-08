@@ -1,10 +1,12 @@
 # Coffee Counter UI Guide
 
-Status: Brew 29A routing approval gates
+Status: Brew 30A packaging and polish planning
 Date: 2026-07-08
 
-This guide explains how the future Project Coffee Counter UI should work. It is
-for planning and reviewing the Streamlit MVP before implementation.
+This guide explains how the Project Coffee Counter UI works today and how it
+should evolve. It began as a Streamlit-first planning guide and now tracks the
+implemented MVP, Evidence Bundle integration, Routing Approval Gates, and
+packaging/polish direction.
 
 ## Purpose
 
@@ -62,9 +64,9 @@ page.
 - Settings / Safety: show roots, allowlisted tools, exclusions, and approval
   gates.
 
-## MVP Scope
+## Initial MVP Scope
 
-Brew 27 should implement:
+Brew 27 implemented the initial local-only Streamlit MVP around:
 
 - Home / Overview;
 - Ask Coffee local-only;
@@ -72,8 +74,8 @@ Brew 27 should implement:
 - Doctor summary;
 - Fleet summary.
 
-Brew 27 can leave Release Check, Ledger, Roastery, routing details, and settings
-as links, placeholders, or read-only summaries if needed.
+Brew 28 and Brew 29 then added structured Evidence Bundle display, local-only
+drafting, and routing approval scaffolding.
 
 ## Safety Boundaries
 
@@ -362,3 +364,32 @@ Non-goals for Brew 29A:
 
 Future remote execution, if ever added, should be a separate Brew with explicit
 approval, context preview confirmation, Ledger evidence, and Roastery evidence.
+
+## Brew 30A Packaging and Polish Plan
+
+Brew 30A keeps Streamlit as the working Coffee Counter UI. React and Tauri
+remain later optional migration paths after the UI workflows stabilize.
+
+Current recommended run command from the Project Coffee root:
+
+```powershell
+python -m streamlit run ui/coffee_counter_app.py
+```
+
+Packaging plan summary:
+
+- keep the manual Streamlit command as the supported path for now;
+- consider `scripts/start_coffee_counter.ps1` later as a small local helper;
+- consider `requirements-ui.txt` later if UI dependencies need a separate
+  explicit install path;
+- defer React/Tauri until Streamlit layout or desktop packaging needs justify
+  the rewrite.
+
+Recommended polish path:
+
+- Brew 31: Streamlit polish pass;
+- Brew 32: UI project and fleet switching;
+- Brew 33: optional remote-call approval design.
+
+The detailed plan lives in
+[`../design/ui-packaging-and-polish-plan.md`](../design/ui-packaging-and-polish-plan.md).
