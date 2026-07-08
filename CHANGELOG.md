@@ -228,3 +228,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Prioritized current-state evidence toward Brew Log, Roadmap, and Changelog files without bypassing the local Evidence Bundle flow.
 - Added clearer route badge text, grouped command output sections, improved evidence item display, no-evidence suggestions, and project-root visibility.
 - Added focused tests for current-state detection, priority ordering, quick-view safety, route badges, suggestions, command summaries, malformed JSON handling, adapter safety, no `shell=True`, and no OpenRouter key requirement.
+- Dogfooded tests, syntax compilation, current-state and zero-match Evidence Bundle queries, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and UI harness scenarios without model/API calls, package installs, raw-output inspection, staging, or commits.
+- Marked Streamlit Polish Pass complete and set next recommended work to Brew 32, Coffee Counter Project/Fleet Switching.

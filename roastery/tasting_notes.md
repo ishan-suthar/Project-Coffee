@@ -1566,3 +1566,65 @@ Needs improvement:
 - Fresh-user startup is still manual until a future helper or UI requirements file is explicitly approved.
 - Screenshots should wait until after the next polish pass.
 - Project/fleet switching and current Brew retrieval ranking remain usability polish items.
+
+### 2026-07-08 - Brew 31 / Shot 31B: Streamlit Polish Pass Dogfood and Closeout
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile ui/coffee_counter_app.py
+python tools/coffee.py evidence-bundle --root . --query "What is the current Brew?" --max-results 8 --json
+python tools/coffee.py evidence-bundle --root . --query "zzzz_unique_no_match_query_310000" --max-results 5 --json
+python tools/coffee.py doctor --root .
+python tools/coffee.py release-check --root .
+python tools/coffee.py ledger-summary --root . --max-entries 8
+python tools/coffee.py fleet-status --root .
+python -m streamlit run ui/coffee_counter_app.py
+```
+
+Observed behavior:
+
+- Focused Coffee Counter UI tests passed: 40 tests.
+- `ui/coffee_counter_app.py` compiled successfully.
+- Current-state Evidence Bundle query returned local evidence with Brew Log items in the results.
+- Zero-match Evidence Bundle query exited successfully with `total_matches: 0` and an empty bundle.
+- Doctor returned `WARN` with the known non-blocking ADR warning about the literal staged secret-check command.
+- Release Check returned `OK`.
+- Ledger Summary returned recent local-only evidence entries with no warnings.
+- Fleet Status safely reported missing default `fleet/projects.json` as `INFO`.
+- Streamlit was already installed locally; no package install was performed.
+- Streamlit server smoke passed on a local loopback port with HTTP 200, and the process was stopped.
+
+Scenario checklist:
+
+- "What is the current Brew?" showed Current State Quick View, Brew Log evidence, Local evidence only routing, a local evidence draft, and "No model call was made."
+- "What should I do next?" showed Current State Quick View, next-work evidence, and no model call.
+- "Send repo context to a model." showed Approval required, preview-only context behavior, no remote execution, and blocked-context / secrets warnings.
+- `zzzz_unique_no_match_query_310000` showed an honest no-evidence state with suggestions.
+- Home / Overview command output exposed command, return code, status summary, stdout, and stderr sections.
+- Ledger Summary still worked.
+- Safety checks found no arbitrary command execution, API key input, OpenRouter button, model-call control, or auto-commit control.
+
+Fixes made:
+
+- No product fixes were required. A harness-only readability probe was adjusted during review after confirming command output is exposed through named expanders.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Current-state questions are easier to answer from local Brew Log evidence.
+- Route badges make local-only, approval-required, Roastery-required, manual-only Git, and Decaf/no-model states easier to scan.
+- Output grouping makes command results more reviewable without hiding stderr.
+- No-evidence states are honest and actionable.
+
+Needs improvement:
+
+- Brew 32 should make project root and Fleet project switching smoother across multiple Coffee projects.
+- Fresh-user startup still depends on the manual Streamlit command until a future helper script or UI requirements file is approved.

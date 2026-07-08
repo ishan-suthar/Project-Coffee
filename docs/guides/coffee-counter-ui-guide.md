@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 31A Streamlit polish pass
+Status: Brew 31 complete
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -404,9 +404,9 @@ Brew 31 should improve usability without changing the architecture: route
 badges, status cards, better evidence ranking UX, cleaner output sections,
 project root persistence, and clearer no-evidence suggestions.
 
-## Brew 31A Streamlit Polish Pass
+## Brew 31 Streamlit Polish Pass
 
-Brew 31A improves the working Streamlit UI without changing architecture or
+Brew 31 improved the working Streamlit UI without changing architecture or
 adding packaging scripts.
 
 ### Asking for Current State
@@ -473,4 +473,26 @@ running Doctor, asking for current state, or verifying the file exists.
 - Remote model calls, OpenRouter calls, API key inputs, auto-commit, file
   editing, React/Tauri migration, and package installation remain out of scope.
 
-Next likely work is Brew 31B: dogfood the Streamlit polish pass.
+### Brew 31B Dogfood and Closeout
+
+Brew 31B validated the polish pass with focused tests, syntax compilation,
+Coffee CLI checks, a local Streamlit server smoke, and Streamlit UI harness
+scenarios.
+
+Validated scenarios:
+
+- current Brew questions show Current State Quick View, Brew Log evidence,
+  Local evidence only routing, a local evidence draft, and no model call;
+- next-action questions show Current State Quick View and point to current
+  Brew/Shot evidence;
+- repo-context-to-model requests show Approval required, preview-only context,
+  blocked context / secrets warnings, and no remote call;
+- zero-match evidence queries show no-evidence state and suggestions;
+- Home / Overview command outputs expose command, return code, status summary,
+  stdout, and stderr sections;
+- Ledger Summary still works;
+- no arbitrary command execution, API key input, OpenRouter button, or
+  auto-commit control is exposed.
+
+No product fixes were required during dogfood. Next likely work is Brew 32:
+Coffee Counter Project/Fleet Switching.

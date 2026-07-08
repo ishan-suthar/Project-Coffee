@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 31A Streamlit polish pass
+Status: Brew 31 complete
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -65,7 +65,7 @@ adding packaging helpers or considering React/Tauri migration.
 
 ## Brew 31 Polish
 
-Brew 31A improves day-to-day usability while keeping the UI local-only:
+Brew 31 improved day-to-day usability while keeping the UI local-only:
 
 - Current State Quick View appears for current Brew / next Shot / blocker
   questions.
@@ -79,8 +79,14 @@ Brew 31A improves day-to-day usability while keeping the UI local-only:
   and safety labels when available.
 - No-evidence states now show concrete suggestions.
 
+Brew 31B dogfood confirmed current-state questions, next-action questions,
+approval-required repo-context previews, zero-match evidence states, Home /
+Overview command output, Ledger Summary, and safety controls. No product fixes
+were required during dogfood.
+
 No model call is made. No OpenRouter call is made. No API key input, file edit,
-Git write, package install, or remote execution path is added.
+Git write, package install, arbitrary command execution, or remote execution
+path is added.
 
 ## Brew 28 Evidence Integration
 

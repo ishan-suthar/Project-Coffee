@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 31 - Streamlit Polish Pass. Shot 31A implemented; Shot 31B is next.
+Brew 31 - Streamlit Polish Pass complete. Brew 32 is next.
 
 ## What matters right now
 
@@ -89,19 +89,20 @@ Brew 31 - Streamlit Polish Pass. Shot 31A implemented; Shot 31B is next.
 - Brew 30 / 30B reviewed the UI Packaging and Polish Plan against ten real use scenarios and found no blocking gaps.
 - Brew 30 / 30C closed the UI Packaging / Polish Decision: keep Streamlit as the working UI, defer React/Tauri, and move next to Brew 31 Streamlit Polish Pass.
 - Brew 31 / 31A implemented the Streamlit polish pass: Current State Quick View, Brew Log evidence prioritization, route badges, cleaner command output, no-evidence suggestions, and project-root visibility.
+- Brew 31 / 31B dogfooded and closed the Streamlit polish pass after tests, compile checks, Evidence Bundle queries, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and UI harness scenarios passed.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 31B - dogfood the Streamlit polish pass.
+1. Brew 32 - Coffee Counter Project/Fleet Switching.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 31B planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 31A made no model/API call, OpenRouter call, external API call, package install, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 32 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 31 made no model/API call, OpenRouter call, external API call, package install, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 31 / 31A Streamlit Polish Pass implemented
+2026-07-08 - Brew 31 / 31B Streamlit Polish Pass closed
