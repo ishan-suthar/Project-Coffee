@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 16 — Project Coffee Dashboard complete |
-| Current milestone | Dashboard CLI, guide, focused tests, dogfood evidence, and closeout docs complete |
-| Next step | Brew 17A — Coffee Doctor: stronger project health checks and repair suggestions |
-| Recent foundation result | Brew 16A added the dashboard CLI; Brew 16B dogfooded it; Brew 16C closed the dashboard workflow |
-| Blockers | None for Brew 17 planning |
+| Current shot | Brew 17 — Coffee Doctor complete |
+| Current milestone | Doctor CLI, guide, focused tests, dogfood evidence, and closeout docs complete |
+| Next step | Brew 18A — Unified Coffee CLI |
+| Recent foundation result | Brew 17A added Coffee Doctor; Brew 17B dogfooded it; Brew 17C closed the health diagnosis workflow |
+| Blockers | None for Brew 18 planning |
 
 ## Phase 1 goal
 
@@ -168,3 +168,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 14 / 14A-14D | Roastery multi-task benchmark pack and captured evidence | Complete | 2026-07-06 |
 | Brew 15 / 15A-15C | Roastery report generator | Complete | 2026-07-06 |
 | Brew 16 / 16A-16C | Project Coffee Dashboard CLI | Complete | 2026-07-06 |
+| Brew 17 / 17A-17C | Coffee Doctor MVP | Complete | 2026-07-08 |

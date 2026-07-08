@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 17 - Coffee Doctor dogfood complete.
+Brew 17 - Coffee Doctor complete.
 
 ## What matters right now
 
@@ -47,19 +47,20 @@ Brew 17 - Coffee Doctor dogfood complete.
 - Brew 16 / 16C closed the Coffee Dashboard work after completion criteria, tests, compile checks, help output, root dashboard, JSON output, and tools-section validation passed.
 - Brew 17 / 17A added a standard-library Coffee Doctor MVP for read-only Project Coffee health diagnosis, severity-coded findings, JSON output, section filtering, and strict fail-on-issue behavior.
 - Brew 17 / 17B dogfooded Coffee Doctor against the Project Coffee root and an incomplete scratch target, then recorded honest Roastery and Ledger evidence.
+- Brew 17 / 17C closed Coffee Doctor after completion criteria, tests, compile checks, help output, root Doctor, JSON output, tools-section, and ignored-paths validation passed.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 17C - Close Coffee Doctor MVP.
+1. Brew 18A - Unified Coffee CLI wrapping dashboard, doctor, pantry-search, roastery-report, and template install/check.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 17C closeout. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 18 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 17 / 17B Coffee Doctor dogfood evidence recorded
+2026-07-08 - Brew 17 / 17C Coffee Doctor closed

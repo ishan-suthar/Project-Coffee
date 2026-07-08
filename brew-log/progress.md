@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 17 / 17B - Coffee Doctor dogfood complete. Next active work: Brew 17C - close Coffee Doctor MVP.
+Current status: Brew 17 - Coffee Doctor complete. Next active work: Brew 18A - Unified Coffee CLI.
 
 ## Completed
 
@@ -112,6 +112,7 @@ Current status: Brew 17 / 17B - Coffee Doctor dogfood complete. Next active work
 | 2026-07-06 | Brew 16 / Shot 16C — Close Project Coffee Dashboard | Completion criteria passed; dashboard CLI, tests, guide link, dogfood evidence, Brew Log, Roadmap, and Changelog closeout confirmed |
 | 2026-07-08 | Brew 17 / Shot 17A — Coffee Doctor MVP | `tools/coffee_doctor.py`, focused tests, and guide added for read-only health diagnosis, severity-coded findings, JSON output, section filtering, and strict fail-on-issue behavior |
 | 2026-07-08 | Brew 17 / Shot 17B — Dogfood Coffee Doctor | Root Doctor, JSON, section filters, strict fail-on-issue, incomplete scratch-root diagnosis, focused tests, and compile validation passed; evidence recorded in Roastery and Ledger |
+| 2026-07-08 | Brew 17 / Shot 17C — Close Coffee Doctor | Completion criteria passed; Doctor CLI, tests, guide link, dogfood evidence, Brew Log, Roadmap, and Changelog closeout confirmed |
 
 ## Attempted (blocked)
 
@@ -125,10 +126,10 @@ None.
 
 ## Up next
 
-1. Brew 17C - Close Coffee Doctor MVP.
+1. Brew 18A - Unified Coffee CLI wrapping dashboard, doctor, pantry-search, roastery-report, and template install/check.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 17C closeout. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 18 planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.

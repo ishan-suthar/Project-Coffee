@@ -109,3 +109,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added focused tests and the Coffee Dashboard Guide, linked from the docs index.
 - Dogfooded human-readable output, JSON output, section filtering, strict missing-core checks, and incomplete scratch-root reporting without model or API calls.
 - Recorded dashboard evidence in Roastery and Ledger, then marked the Coffee Dashboard complete and set next recommended work to Brew 17A, Coffee Doctor.
+
+### Added (Brew 17 / Coffee Doctor)
+
+- Added `tools/coffee_doctor.py`, a standard-library read-only health diagnosis tool for Project Coffee.
+- Added focused tests and the Coffee Doctor Guide, linked from the docs index.
+- Dogfooded root diagnosis, JSON output, section filtering, strict fail-on-issue behavior, and incomplete scratch-root failure behavior without model or API calls.
+- Recorded the existing root Doctor warning for `docs/adr/0005-local-openrouter-coffee-core.md` as honest evidence without changing the ADR in this closeout.
+- Marked Coffee Doctor complete and set next recommended work to Brew 18A, Unified Coffee CLI.
