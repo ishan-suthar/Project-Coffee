@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 27A - Streamlit Coffee Counter MVP implemented. Next active work: Brew 27B - dogfood the local UI after approved Streamlit setup.
+Current status: Brew 27B - Streamlit Coffee Counter MVP dogfooded. Next active work: Brew 27C - close the local UI MVP if completion criteria pass.
 
 ## Completed
 
@@ -142,6 +142,7 @@ Current status: Brew 27A - Streamlit Coffee Counter MVP implemented. Next active
 | 2026-07-08 | Brew 26 / Shot 26B - Dogfood Coffee Counter UI Design | Ten realistic UI workflows reviewed; design supports the MVP with gaps recorded for command wrapper, local-only Ask Coffee, warning detail display, no-evidence handling, and disabled remote/Git write actions |
 | 2026-07-08 | Brew 26 / Shot 26C - Close Coffee Counter UI Design | Completion criteria passed; design, guide, docs link, workflow review evidence, validation stack, and local-only Brew 27 scope confirmed |
 | 2026-07-08 | Brew 27 / Shot 27A - Streamlit Coffee Counter MVP | Local Streamlit UI skeleton, safe allowlisted command adapter, adapter tests, UI README, guide update, and Brew Log updates added without installing packages or calling models/APIs |
+| 2026-07-08 | Brew 27 / Shot 27B - Dogfood Streamlit Coffee Counter MVP | Adapter tests, app compile, wrapped Coffee CLI commands, adapter safety checks, Streamlit local server smoke, and Streamlit tab/button checks passed without model/API calls, app logic edits, staging, or commits |
 
 ## Attempted (blocked)
 
@@ -155,10 +156,10 @@ None.
 
 ## Up next
 
-1. Brew 27B - dogfood the Streamlit Coffee Counter MVP after human-approved Streamlit setup.
+1. Brew 27C - close the Streamlit Coffee Counter MVP if completion criteria pass.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Keep the first UI MVP local-only: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection.
 
 ## Blockers
 
-No active blocker for Brew 27B planning. Streamlit dependency setup remains human-approved and was not installed by the assistant. No model/API call, release tag, staging, or commit has been added by Brew 27A. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 27C planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, release tag, staging, or commit has been added by Brew 27B. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.

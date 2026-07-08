@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 26 - Coffee Counter UI Design complete.
+Brew 27 - Streamlit Coffee Counter MVP dogfood complete.
 
 ## What matters right now
 
@@ -77,19 +77,20 @@ Brew 26 - Coffee Counter UI Design complete.
 - Brew 26 / 26B reviewed the Coffee Counter UI design against ten realistic workflows and kept the Brew 27 MVP local-only.
 - Brew 26 / 26C closed Coffee Counter UI Design and set next work to Brew 27 Streamlit Coffee Counter MVP.
 - Brew 27 / 27A is implementing the local-only Streamlit Coffee Counter MVP with a safe allowlisted command adapter.
+- Brew 27 / 27B dogfooded the Streamlit Coffee Counter MVP command adapter and local UI smoke path with tests, compile checks, wrapped Coffee CLI commands, Streamlit server health, and Streamlit tab/button checks.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 27B - dogfood the Streamlit Coffee Counter MVP after human-approved Streamlit setup.
+1. Brew 27C - close the Streamlit Coffee Counter MVP if completion criteria pass.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep the first UI MVP local-only: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection.
 
 ## Blockers
 
-No active blocker for Brew 27B planning. Streamlit dependency setup remains human-approved and was not installed by the assistant. No model/API call, release tag, staging, or commit has been added by Brew 27A.
+No active blocker for Brew 27C planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 27B made no model/API call, release tag, staging action, or commit.
 
 ## Last updated
 
-2026-07-08 - Brew 27 / 27A Streamlit Coffee Counter MVP implemented
+2026-07-08 - Brew 27 / 27B Streamlit Coffee Counter MVP dogfooded

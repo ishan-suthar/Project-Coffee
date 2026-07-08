@@ -1364,3 +1364,63 @@ Cost and token evidence:
 - API calls: none.
 - Tokens: none / local-only for this design review; not metered.
 - Cost: none / local-only; no external API cost.
+
+### 2026-07-08 - Brew 27 / Shot 27B: Streamlit Coffee Counter MVP Dogfood
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile ui\coffee_counter_app.py
+python tools\coffee.py dashboard --root .
+python tools\coffee.py doctor --root .
+python tools\coffee.py release-check --root .
+python tools\coffee.py ledger-summary --root . --max-entries 5
+python tools\coffee.py evidence-bundle --root . --query "Coffee Counter UI" --max-results 5
+python tools\coffee.py fleet-status --root .
+python -m streamlit run ui\coffee_counter_app.py --server.headless true --server.port 8765 --browser.gatherUsageStats false
+```
+
+Additional local adapter/UI smoke checks:
+
+- Imported `ui.coffee_counter_app` without requiring a module-level Streamlit object.
+- Confirmed the adapter allowlist includes only Dashboard, Doctor, Release Check, Ledger Summary, Evidence Bundle, and Fleet Status.
+- Confirmed a non-allowlisted `commit` action is rejected with `CommandAdapterError`.
+- Confirmed `subprocess.run` is called with `shell=False` through focused unit coverage.
+- Started Streamlit locally with usage stats disabled and confirmed the app server returned HTTP 200 and health `ok`.
+- Used Streamlit's local testing harness to confirm the six expected tabs:
+  Home / Overview, Ask Coffee, Evidence Bundle, Ledger, Fleet, and Safety / Commands.
+- Used the local testing harness to click Dashboard, Doctor, Evidence Bundle, Ledger Summary, and Fleet Status buttons; each returned exit code 0 through the UI adapter.
+
+Observed behavior:
+
+- Focused UI adapter tests passed: 10 tests.
+- `ui/coffee_counter_app.py` compiled successfully.
+- Dashboard returned `OK`.
+- Doctor returned `WARN` with the known non-blocking warning state.
+- Release Check returned `OK`.
+- Ledger Summary returned recent local-only evidence entries.
+- Evidence Bundle found Coffee Counter UI guide/design/Brew evidence.
+- Fleet Status safely reported missing default `fleet/projects.json` as `INFO`.
+- Streamlit was already installed locally; no package install was performed.
+- The Streamlit app opened locally in server-smoke form and its visible tab/button structure was verified through Streamlit's test harness.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The Coffee Counter MVP can wrap the core local Coffee CLI tools without exposing arbitrary command execution.
+- The UI adapter remains importable for tests without requiring Streamlit.
+- The first Streamlit surface exposes the expected local-only screens and command actions.
+- Dashboard, Doctor, Evidence Bundle, Ledger Summary, and Fleet Status work through the UI adapter.
+
+Needs improvement:
+
+- Brew 27C should close the MVP if the completion criteria remain satisfied.
+- A future UI polish pass can improve visual layout and warning display depth after the local-only command surface is accepted.
+- Remote Bean routing, file edits, Git operations, raw Roastery output inspection, and background automation remain intentionally out of scope.
