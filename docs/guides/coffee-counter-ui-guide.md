@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 34A context package preview implemented
+Status: Brew 34 complete
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -714,3 +714,39 @@ The disabled UI placeholder says `Send disabled until future Brew`. It is a
 label for the future approval workflow, not an action. Brew 35 should build the
 dry-run approval UI around this local package before any remote-call
 implementation is considered.
+
+### Brew 34B Dogfood and Closeout
+
+Brew 34B dogfooded the context package preview against current-state, docs,
+remote-helpful, whole-repo, `.env`, suspicious-token, selected-root, and
+empty-evidence scenarios.
+
+What worked:
+
+- current-state questions built preview-only packages from local Evidence
+  Bundle items and prioritized Brew Log evidence where possible;
+- docs questions produced local evidence and normalized package items;
+- explicit model-help requests now route to approval-needed preview mode;
+- broad whole-repo context requests are blocked until narrowed;
+- `.env` requests are blocked without reading or printing secret values;
+- fake token-like text is labeled/redacted without echoing the value;
+- package `active_root` follows the selected project root;
+- empty-evidence questions still build a no-evidence preview without crashing.
+
+Fixes made:
+
+- request-level Safety Gate blocking for broad repository context;
+- request-level Safety Gate blocking for blocked path patterns such as `.env`;
+- routing classification for explicit model-help and secret-context requests;
+- regression tests for the new Safety Gate and routing behavior.
+
+Remaining Brew 35 work:
+
+- dry-run approval UI around the local package;
+- clearer context selection controls;
+- approval state display;
+- optional Ledger planned-call preview.
+
+Still absent in Brew 34: OpenRouter integration, API key input, model/API calls,
+network code, send-to-model button, remote execution, file writes, Git writes,
+auto-commit, and auto-push.

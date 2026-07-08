@@ -1799,3 +1799,52 @@ Cost and token evidence:
 Needs improvement:
 
 - Brew 35 should build only a dry-run approval UI around the local package before any future remote-call implementation is considered.
+
+### 2026-07-08 - Brew 34 / Shot 34B: Remote Context Package Builder Dogfood and Closeout
+
+Dogfood scenarios reviewed:
+
+- Ask Coffee / Current State: `What is the current Brew?`
+- Docs question: `What does the Coffee Counter UI currently do?`
+- Remote-helpful request: `Use a model to explain the project state and suggest next steps.`
+- Risky whole-repo request: `Send my whole repo to a model.`
+- Secret-risk request: `Include my .env file in the context package.`
+- Suspicious token-like text using a runtime fake value only.
+- Active root / selected root handling.
+- Empty evidence query.
+
+What worked:
+
+- Local Evidence Bundle queries returned Project Coffee evidence without model/API calls.
+- Context packages built from request text, route decision, selected active root, and local evidence.
+- Current-state packages included Brew Log evidence after UI prioritization.
+- Provider/model stayed not selected.
+- User approval stayed false.
+- Empty-evidence packages built without crashing.
+- The fake token-like runtime probe was labeled as suspicious and the matched value was not echoed.
+
+Issues found and fixed:
+
+- Explicit model-help requests initially stayed local-only; routing now classifies them as approval-needed previews.
+- Whole-repository context requests initially produced a passing package; the Safety Gate now blocks broad repository context until narrowed.
+- `.env` requests needed request-level blocking even when no evidence item was selected; the Safety Gate now blocks requested blocked path patterns.
+- Secret-context requests now route to a blocked local/Decaf path.
+
+Validation notes:
+
+- Focused tests were expanded for broad-repo blocking, `.env` request blocking, empty-evidence package builds, explicit model-help routing, and secret-context routing.
+- Docs query evidence was usable but a little noisy; Brew 35 can improve UI context selection and ranking display without changing the safety boundary.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only dogfood; package token estimates are local character-count estimates only.
+- Cost: none / local-only; no external API cost.
+
+Closeout:
+
+- Brew 34 dogfood confirmed that Coffee Counter can build a local, preview-only context package from request text, route decision, active root, and local evidence.
+- The Safety Gate excludes blocked paths such as `.env` and labels suspicious secret-like patterns without printing secret values.
+- No OpenRouter, API key input, model call, network call, or send-to-model action exists in Brew 34.
+- Remaining work moves to Brew 35: dry-run approval UI.

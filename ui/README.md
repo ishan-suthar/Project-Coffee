@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 34A context package preview implemented
+Status: Brew 34 complete
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -180,6 +180,26 @@ Still not present:
 The disabled placeholder labeled `Send disabled until future Brew` is not a
 working send control. Brew 35 should use this package for dry-run approval UI
 only.
+
+Brew 34B dogfood confirmed:
+
+- local current-state and docs packages build from Evidence Bundle items;
+- explicit model-help requests route to approval-needed preview mode;
+- broad whole-repo context is blocked until narrowed;
+- `.env` requests are blocked without reading or printing secret values;
+- suspicious token-like text is labeled/redacted without echoing matched
+  values;
+- selected active root is reflected in the package;
+- empty-evidence packages build without crashing.
+
+Fixes made during dogfood:
+
+- Safety Gate now blocks broad repository context from request text.
+- Safety Gate now blocks requested blocked path patterns such as `.env`.
+- Routing now recognizes explicit model-help and secret-context requests.
+
+Next work is Brew 35: dry-run approval UI around the local context package,
+still without remote calls.
 
 ## Brew 28 Evidence Integration
 

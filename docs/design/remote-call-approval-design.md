@@ -1,6 +1,6 @@
 # Remote Call Approval Design
 
-Status: Brew 34A local context package builder implemented
+Status: Brew 34 complete
 Date: 2026-07-08
 
 ## 1. Purpose
@@ -457,18 +457,56 @@ This prepares Brew 35 to design and implement a dry-run approval UI around the
 local package. Brew 35 should still avoid real remote calls unless a separate
 future Brew explicitly approves that implementation.
 
-## 15. Implementation Roadmap
+## 15. Brew 34B Dogfood and Closeout
+
+Brew 34B dogfooded the local context package builder against current-state,
+docs, remote-helpful, whole-repo, `.env`, suspicious-token, selected-root, and
+empty-evidence scenarios.
+
+Confirmed behavior:
+
+- current-state and docs questions build preview-only packages from local
+  Evidence Bundle items;
+- current-state evidence can be prioritized toward Brew Log files in the UI;
+- remote-helpful requests route to approval-needed preview mode;
+- user approval remains false;
+- provider/model remain not selected;
+- whole-repository context requests are blocked until narrowed;
+- `.env` requests are blocked without reading or printing secret values;
+- fake token-like text is labeled and redacted without echoing the matched
+  value;
+- active root is copied into the package from the selected project root;
+- zero-evidence requests still build an empty preview package without crashing.
+
+Fixes made during dogfood:
+
+- Added request-level Safety Gate blocking for broad repository context
+  requests.
+- Added request-level Safety Gate blocking for blocked path patterns such as
+  `.env`.
+- Classified explicit model-help requests as approval-needed.
+- Classified secret-bearing context requests as blocked local/Decaf paths.
+- Added regression tests for these cases.
+
+Brew 34 dogfood confirmed that Coffee Counter can build a local, preview-only
+context package from request text, route decision, active root, and local
+evidence. The Safety Gate excludes blocked paths such as `.env` and labels
+suspicious secret-like patterns without printing secret values. No OpenRouter,
+API key input, model call, network call, or send-to-model action exists in Brew
+34. Remaining work moves to Brew 35: dry-run approval UI.
+
+## 16. Implementation Roadmap
 
 Recommended future sequence:
 
 1. Brew 34: local context package builder and Safety Gate - implemented in
-   Brew 34A.
+   Brew 34A and dogfooded/closed in Brew 34B.
 2. Brew 35: add dry-run approval UI around the local package only.
 3. Future Brew: add Ledger planned-call preview.
 4. Future Brew: consider remote call implementation only after explicit human
    approval and fresh Roastery/routing review.
 
-## 16. Open Questions
+## 17. Open Questions
 
 - Should approval IDs be generated in memory or written only when a remote call
   actually occurs?

@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 34A - Remote Context Package Builder implemented. Next active work: Brew 35 - Dry-run Approval UI.
+Current status: Brew 34 - Remote Context Package Builder complete. Next active work: Brew 35 - Dry-run Approval UI.
 
 ## Completed
 
@@ -160,6 +160,7 @@ Current status: Brew 34A - Remote Context Package Builder implemented. Next acti
 | 2026-07-08 | Brew 33 / Shot 33A - Remote Call Approval Design | Design doc added for future approval-gated remote Bean calls, including flow, approval states, context package schema, safety/redaction policy, model/provider policy, Ledger fields, UI design, failure/cancel states, testing strategy, and roadmap; no implementation added |
 | 2026-07-08 | Brew 33 / Shot 33B - Dogfood, Refine, and Close Remote Call Approval Design | Twelve future UI/API scenarios reviewed; whole-repo context, secret-risk, missing-key, provider-failure, Ledger-failure, cancellation, active-root-change, and generated-code behaviors refined; Brew 33 marked complete with no remote-call implementation |
 | 2026-07-08 | Brew 34 / Shot 34A - Remote Context Package Builder | Local-only context package builder and Safety Gate added, focused tests written, and Coffee Counter Routing / Approval tab updated with preview-only package status, route decision, token estimate, evidence counts, Safety Gate result, and JSON preview; no remote call or send path added |
+| 2026-07-08 | Brew 34 / Shot 34B - Dogfood, Fix, and Close Remote Context Package Builder | Dogfooded current-state, docs, remote-helpful, whole-repo, `.env`, suspicious-token, selected-root, and empty-evidence scenarios; fixed request-level Safety Gate blocking and routing classification; Brew 34 marked complete |
 
 ## Attempted (blocked)
 
@@ -179,4 +180,4 @@ None.
 
 ## Blockers
 
-No active blocker for Brew 35 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, send-to-model button, release tag, staging, or commit has been added by Brew 34A. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 35 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, send-to-model button, release tag, staging, or commit has been added by Brew 34. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.

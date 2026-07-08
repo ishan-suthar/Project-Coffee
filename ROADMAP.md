@@ -11,10 +11,10 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 34A - Remote Context Package Builder implemented |
+| Current shot | Brew 34 - Remote Context Package Builder complete |
 | Current milestone | Coffee Counter can preview a local context package and Safety Gate result; no remote call exists |
 | Next step | Brew 35 - Dry-run Approval UI |
-| Recent foundation result | Brew 34A added a local-only context package builder, Safety Gate, token estimate, UI preview, tests, and docs without model/API calls |
+| Recent foundation result | Brew 34B dogfooded and closed the local context package builder, including broad-repo, `.env`, fake token-like, active-root, and empty-evidence scenarios |
 | Blockers | No blocker for Brew 35 planning; remote model routing remains disabled until a future explicitly approved implementation |
 
 ## Phase 1 goal

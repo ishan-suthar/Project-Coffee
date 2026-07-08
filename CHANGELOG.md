@@ -256,4 +256,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated the Coffee Counter Routing / Approval tab to display package status, route decision, token estimate, evidence counts, Safety Gate result, and preview JSON.
 - Kept provider/model placeholders unselected and user approval false by default.
 - Documented that Brew 34A adds no OpenRouter integration, API key input, network code, model/API call, send-to-model button, remote execution, file write, Git write, auto-commit, or auto-push.
-- Set next recommended work to Brew 35, Dry-run Approval UI.
+- Dogfooded current-state, docs, remote-helpful, whole-repo, `.env`, suspicious-token, selected-root, and empty-evidence scenarios.
+- Fixed request-level Safety Gate blocking for broad repository context and blocked path patterns such as `.env`.
+- Fixed routing classification for explicit model-help and secret-context requests.
+- Marked Remote Context Package Builder complete and set next recommended work to Brew 35, Dry-run Approval UI.

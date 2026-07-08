@@ -445,6 +445,28 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
         self.assertTrue(decision.approval_required)
         self.assertTrue(coffee_counter_app.approval_required_for_route(decision.selected_mode))
 
+    def test_remote_help_request_requires_approval_before_send_exists(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "Use a model to explain the project state and suggest next steps.",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "remote_help_request")
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_REMOTE_APPROVAL)
+        self.assertTrue(decision.approval_required)
+        self.assertIn("no send action exists", decision.next_safe_action)
+
+    def test_sensitive_context_request_stays_blocked_local(self) -> None:
+        decision = coffee_counter_app.build_routing_decision(
+            "Include my .env file in the context package.",
+            [],
+        )
+
+        self.assertEqual(decision.request_class, "sensitive_context")
+        self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_DECAF)
+        self.assertTrue(decision.approval_required)
+        self.assertIn("secret-bearing", decision.reason)
+
     def test_code_change_request_requires_approval_before_remote_context(self) -> None:
         decision = coffee_counter_app.build_routing_decision(
             "Fix a tiny Python bug",

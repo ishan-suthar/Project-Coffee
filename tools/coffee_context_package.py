@@ -62,6 +62,26 @@ SUSPICIOUS_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private key material-like value", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
 )
 
+BROAD_CONTEXT_TERMS = (
+    "whole repo",
+    "entire repo",
+    "full repo",
+    "whole repository",
+    "entire repository",
+    "full repository",
+    "repository dump",
+    "repo dump",
+)
+
+REQUEST_BLOCKED_PATH_PATTERNS = (
+    ".env",
+    ".env.",
+    ".ssh",
+    ".aws",
+    ".gcp",
+    ".azure",
+)
+
 
 def timestamp() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -221,6 +241,26 @@ def run_context_safety_gate(
     if request_scan["labels"]:
         blocked_reasons.append("Suspicious content detected in request_text.")
         redaction_notes.extend(request_scan["redaction_notes"])
+
+    lowered_request = request_text.lower()
+    if any(term in lowered_request for term in BROAD_CONTEXT_TERMS):
+        blocked_reasons.append("Request asks for broad repository context; narrow to selected evidence or files first.")
+        excluded_paths.append(
+            {
+                "path": "whole repository",
+                "reason": "broad repository dumps are not allowed in context packages",
+            }
+        )
+
+    for pattern in REQUEST_BLOCKED_PATH_PATTERNS:
+        if pattern in lowered_request:
+            blocked_reasons.append(f"Request asks for blocked path pattern `{pattern}`.")
+            excluded_paths.append(
+                {
+                    "path": pattern,
+                    "reason": "blocked path pattern requested",
+                }
+            )
 
     for file_item in selected_files or []:
         normalized = _normalize_selected_file(file_item)

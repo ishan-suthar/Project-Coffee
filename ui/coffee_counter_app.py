@@ -831,8 +831,12 @@ def classify_request_for_routing(text: str) -> str:
     lowered = text.lower()
     if any(term in lowered for term in ["commit", "push", "tag", "stage this", "git "]):
         return "commit_or_push"
+    if any(term in lowered for term in [".env", "api key", "secret", "credential", "private key"]):
+        return "sensitive_context"
     if "send" in lowered and any(term in lowered for term in ["repo context", "repository context", "to a model", "to model"]):
         return "send_repo_context"
+    if any(term in lowered for term in ["use a model", "ask a model", "remote model", "remote bean", "model to explain"]):
+        return "remote_help_request"
     if any(term in lowered for term in ["benchmark", "cup test", "roastery", "compare beans", "model eval"]):
         return "model_benchmark"
     if any(term in lowered for term in ["fix", "bug", "change code", "edit file", "implement", "refactor"]):
@@ -904,6 +908,26 @@ def build_routing_decision(
             allowed_context="Roastery Cup Test prompts, summarized evidence, and approved benchmark metadata.",
             blocked_context=blocked_context,
             next_safe_action="Use Roastery workflow with explicit approval before any model call.",
+        )
+    if request_class == "remote_help_request":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_REMOTE_APPROVAL,
+            approval_required=True,
+            reason="The request explicitly asks for model help. Brew 34 can only build a local context package preview.",
+            allowed_context=f"Previewed, allowlisted local evidence snippets only. {evidence_note}",
+            blocked_context=blocked_context,
+            next_safe_action="Build the local context package preview; no send action exists in Brew 34.",
+        )
+    if request_class == "sensitive_context":
+        return RoutingDecision(
+            request_class=request_class,
+            selected_mode=ROUTE_DECAF,
+            approval_required=True,
+            reason="The request mentions secret-bearing or credential-like context, so it must stay blocked/local.",
+            allowed_context="Safe labels and exclusion reasons only; secret-bearing files are not eligible context.",
+            blocked_context=blocked_context,
+            next_safe_action="Do not include the requested secret-bearing path. Remove or summarize safely outside the package.",
         )
     if request_class == "code_change":
         return RoutingDecision(

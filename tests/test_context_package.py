@@ -86,6 +86,30 @@ class ContextPackageTests(unittest.TestCase):
         self.assertIn(".env", package["excluded_paths"][0]["path"])
         self.assertEqual(package["safety_checks"]["status"], "warning")
 
+    def test_request_for_env_path_is_blocked_without_reading_file(self) -> None:
+        package = coffee_context_package.build_context_package(
+            request_text="Include my .env file in the context package.",
+            route_decision=self.route(),
+            active_root=".",
+            evidence_items=[],
+        )
+
+        self.assertEqual(package["package_status"], "blocked")
+        self.assertEqual(package["safety_checks"]["status"], "blocked")
+        self.assertTrue(any(item["path"] == ".env" for item in package["excluded_paths"]))
+
+    def test_whole_repo_request_is_blocked_until_narrowed(self) -> None:
+        package = coffee_context_package.build_context_package(
+            request_text="Send my whole repo to a model.",
+            route_decision=self.route(),
+            active_root=".",
+            evidence_items=[],
+        )
+
+        self.assertEqual(package["package_status"], "blocked")
+        self.assertEqual(package["safety_checks"]["status"], "blocked")
+        self.assertTrue(any(item["path"] == "whole repository" for item in package["excluded_paths"]))
+
     def test_suspicious_text_is_labeled_without_exposing_value(self) -> None:
         suspicious_value = "Bearer " + ("x" * 32)
         package = coffee_context_package.build_context_package(
@@ -101,6 +125,18 @@ class ContextPackageTests(unittest.TestCase):
         self.assertIn("Bearer token-like value", snippet)
         self.assertNotIn(suspicious_value, serialized)
         self.assertIn("Suspicious content detected", package["safety_checks"]["blocked_reasons"][0])
+
+    def test_empty_evidence_package_still_builds(self) -> None:
+        package = coffee_context_package.build_context_package(
+            request_text="zzzz_unique_no_match_query",
+            route_decision=self.route(),
+            active_root=".",
+            evidence_items=[],
+        )
+
+        self.assertEqual(package["package_status"], "preview_only")
+        self.assertEqual(package["evidence_items"], [])
+        self.assertEqual(package["safety_checks"]["status"], "passed")
 
     def test_produces_estimated_token_count(self) -> None:
         self.assertEqual(coffee_context_package.estimate_context_tokens("abcd"), 1)

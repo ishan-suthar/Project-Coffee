@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 34A - Remote Context Package Builder implemented. Brew 35 is next.
+Brew 34 - Remote Context Package Builder complete. Brew 35 is next.
 
 ## What matters right now
 
@@ -95,6 +95,7 @@ Brew 34A - Remote Context Package Builder implemented. Brew 35 is next.
 - Brew 33 / 33A is designing the future approval-gated remote-call workflow without implementing remote calls, OpenRouter calls, API key input, network code, or a working send-to-model button.
 - Brew 33 / 33B dogfooded and closed the remote-call approval design against twelve future UI/API scenarios, then refined blocked whole-repo context, secret-risk, missing-key, failure, cancellation, active-root-change, Ledger-failure, and generated-code behavior.
 - Brew 34 / 34A implemented a local-only context package builder and Safety Gate, added focused tests, and wired a preview-only package display into the Coffee Counter Routing / Approval tab without adding remote calls, API key input, network code, provider selection, or a send path.
+- Brew 34 / 34B dogfooded and closed the context package builder; fixes added request-level blocking for broad repository context and `.env` requests, plus routing for explicit model-help and secret-context requests.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
@@ -106,8 +107,8 @@ Brew 34A - Remote Context Package Builder implemented. Brew 35 is next.
 
 ## Blockers
 
-No active blocker for Brew 35 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 34A made no model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, send-to-model button, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 35 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 34 made no model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, send-to-model button, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 34 / 34A Remote Context Package Builder implemented
+2026-07-08 - Brew 34 / 34B Remote Context Package Builder closed
