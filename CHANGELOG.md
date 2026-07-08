@@ -197,3 +197,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Kept the command adapter allowlisted, testable without importing Streamlit, and limited to local Coffee CLI tools.
 - Dogfooded tests, syntax compilation, wrapped Coffee CLI commands, adapter safety checks, Streamlit server health, and Streamlit tab/button behavior without model/API calls, OpenRouter calls, package installs, raw-output inspection, staging, or commits.
 - Marked the Streamlit Coffee Counter MVP complete and set next recommended work to Brew 28, UI + Evidence Bundle Integration.
+
+### Added (Brew 28 / UI + Evidence Bundle Integration)
+
+- Improved Ask Coffee so it runs the local Evidence Bundle tool in JSON mode and displays structured evidence status, source paths, snippets, scores, freshness, and safety labels.
+- Added deterministic local-only evidence drafts that are clearly labeled as not model-generated and include local evidence references when available.
+- Improved Evidence Bundle display with Markdown output, JSON parsing, structured evidence rows, no-evidence handling, and graceful JSON parse-error handling.
+- Dogfooded focused tests, syntax compilation, evidence JSON, zero-match behavior, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and Streamlit UI harness flows without model/API calls, OpenRouter calls, package installs, raw-output inspection, staging, or commits.
+- Marked UI + Evidence Bundle Integration complete and set next recommended work to Brew 29, UI + Routing Approval Gates.

@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 28A evidence integration
+Status: Brew 28 complete
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command

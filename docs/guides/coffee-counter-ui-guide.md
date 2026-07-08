@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 28A evidence integration
+Status: Brew 28 complete
 Date: 2026-07-08
 
 This guide explains how the future Project Coffee Counter UI should work. It is
@@ -250,7 +250,8 @@ Bean use requires a separate approval gate.
 
 ## Known Limitations
 
-- Streamlit is not installed by this shot.
+- Fresh checkouts may still need Streamlit installed after explicit human
+  approval.
 - The UI does not edit files.
 - The UI does not stage, commit, push, or tag.
 - The UI does not inspect raw Roastery outputs.
@@ -258,9 +259,9 @@ Bean use requires a separate approval gate.
 - The command adapter currently exposes only Dashboard, Doctor, Release Check,
   Ledger Summary, Evidence Bundle, and Fleet Status.
 
-## Future Brew 28 / 29 Direction
+## Future Brew 29 Direction
 
-- Brew 28 improves Evidence Bundle display, citations, no-evidence handling,
+- Brew 28 improved Evidence Bundle display, citations, no-evidence handling,
   and local answer drafting.
 - Brew 29 should add visible routing approval gates before any remote Bean can
   receive local context.
@@ -297,3 +298,12 @@ Limitations:
 - The UI still does not edit files, stage files, commit, push, tag, inspect raw
   Roastery local outputs, or send evidence to a remote model.
 - Remote routing remains disabled until Brew 29 adds explicit approval gates.
+
+## Brew 28C Closeout
+
+Brew 28 UI + Evidence Bundle Integration is complete. Ask Coffee uses local
+Evidence Bundle output, shows structured evidence, creates a deterministic
+local-only draft, handles no-evidence states honestly, and keeps remote model
+calls disabled.
+
+Next recommended work is Brew 29: UI + Routing Approval Gates.
