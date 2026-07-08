@@ -694,3 +694,90 @@ Needs improvement:
 - Brew 17C should decide whether to fix the existing ADR policy warning as a
   separate one-responsibility documentation shot or leave it as tracked Doctor
   evidence for now.
+
+### 2026-07-08 - Brew 18 / Shot 18B: Unified Coffee CLI Dogfood
+
+Scratch target:
+
+```text
+tmp/coffee-cli-template-smoke
+```
+
+Commands run:
+
+```powershell
+python tools\coffee.py --help
+python tools\coffee.py --version
+python tools\coffee.py dashboard --root .
+python tools\coffee.py dashboard --root . --json
+python tools\coffee.py dashboard --root . --section tools
+python tools\coffee.py doctor --root .
+python tools\coffee.py doctor --root . --json
+python tools\coffee.py doctor --root . --section tools
+python tools\coffee.py pantry-search --root . --query "House Blend" --max-results 3
+python tools\coffee.py pantry-search --root . --query "Coffee Doctor" --max-results 3 --json
+python tools\coffee.py check-onboarding --target .
+python tools\coffee.py install-template --target tmp\coffee-cli-template-smoke
+python tools\coffee.py roastery-report --run-dir roastery\local_cup_outputs
+python -m unittest tests.test_coffee_cli
+python -m py_compile tools\coffee.py
+git ls-files -- tmp/coffee-cli-template-smoke
+git status --short --untracked-files=all -- tmp/coffee-cli-template-smoke
+```
+
+Observed behavior:
+
+- Unified CLI help worked and listed dashboard, doctor, Pantry Search,
+  Roastery report, template install, and onboarding check subcommands.
+- `--version` worked and printed `Project Coffee CLI v0.1`.
+- Dashboard delegation worked against the Project Coffee root and reported
+  `Status: OK`.
+- Dashboard JSON forwarding parsed successfully and reported `status=OK` with
+  overview, Brew Log, docs, tools, Roastery, Ledger, and House Blend sections.
+- Dashboard section forwarding worked for `--section tools`.
+- Doctor delegation worked against the Project Coffee root and reported
+  `Status: WARN` with 38 OK findings, 1 WARN finding, and 0 FAIL findings.
+- The Doctor WARN is the existing
+  `docs/adr/0005-local-openrouter-coffee-core.md` literal staged
+  secret-check command warning; it was not introduced by Brew 18B.
+- Doctor JSON forwarding parsed successfully and preserved the same summary
+  counts.
+- Doctor section forwarding worked for `--section tools`.
+- Pantry Search delegation worked. The `House Blend` query returned relevant
+  results including the progress log, ADR-0004, and `config/house_blend.md`.
+- Pantry Search JSON forwarding worked for `Coffee Doctor` and returned 3
+  results.
+- Onboarding check delegation worked against the Project Coffee root and
+  reported `COMPLETE`.
+- Template install delegation stayed in default dry-run mode against the
+  scratch target and reported the files that would be created with no writes.
+- Roastery report delegation worked against existing local manifests under
+  `roastery/local_cup_outputs` without previews or raw output contents.
+- Focused Unified Coffee CLI tests passed: 15 tests.
+- Syntax compilation passed for `tools\coffee.py`.
+- Scratch tracking checks returned no tracked or untracked files under
+  `tmp\coffee-cli-template-smoke`.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The wrapper preserved underlying tool behavior and exit codes while making
+  common commands easier to discover.
+- JSON and section flags forwarded correctly for dashboard and doctor.
+- Pantry Search, onboarding check, template dry-run, and Roastery report all
+  worked through the unified surface.
+- Roastery report stayed local and did not include raw output previews.
+
+Needs improvement:
+
+- Dashboard and Doctor tool inventories do not yet list `tools/coffee.py`
+  because their internal expected-file lists predate Brew 18. Brew 18C should
+  decide whether to update those health checks as a small closeout polish item.
+- The pre-existing ADR policy warning remains visible in Doctor output and
+  should stay tracked separately from Unified CLI behavior.

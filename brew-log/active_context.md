@@ -49,19 +49,20 @@ Brew 18 - Unified Coffee CLI in progress.
 - Brew 17 / 17B dogfooded Coffee Doctor against the Project Coffee root and an incomplete scratch target, then recorded honest Roastery and Ledger evidence.
 - Brew 17 / 17C closed Coffee Doctor after completion criteria, tests, compile checks, help output, root Doctor, JSON output, tools-section, and ignored-paths validation passed.
 - Brew 18 / 18A added a standard-library Unified Coffee CLI MVP that delegates dashboard, doctor, Pantry Search, Roastery report, template install, and onboarding check commands to the existing tools.
+- Brew 18 / 18B dogfooded the Unified Coffee CLI against the Project Coffee root, scratch template target, Pantry Search queries, onboarding check, and local Roastery report manifests; no models or external APIs were called.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 18B - Dogfood the Unified Coffee CLI and record honest evidence.
+1. Brew 18C - Close the Unified Coffee CLI if completion criteria are satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 18B dogfood. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 18C closeout. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 18 / 18A Unified Coffee CLI MVP implemented
+2026-07-08 - Brew 18 / 18B Unified Coffee CLI dogfood evidence recorded
