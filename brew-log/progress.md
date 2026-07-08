@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 19 - Ledger Summarizer complete. Next active work: Brew 20 - Release Packaging.
+Current status: Brew 20 / Shot 20A - Release Packaging Check implemented. Next active work: Brew 20 / Shot 20B - Dogfood Release Packaging Check.
 
 ## Completed
 
@@ -120,6 +120,7 @@ Current status: Brew 19 - Ledger Summarizer complete. Next active work: Brew 20 
 | 2026-07-08 | Brew 19 / Shot 19B — Dogfood Ledger Summarizer | Project Coffee Ledger summary, JSON, max entries, date filtering, output report, scratch Ledger parsing, invalid-date failure, focused tests, compile, and Unified Coffee CLI delegation passed; evidence recorded in Roastery and Ledger |
 | 2026-07-08 | Brew 19 / Shot 19B-fix — Fix Ledger Summarizer scratch parsing | Bullet-style Ledger fields for cost, tokens, model/API calls, evidence, and notes now parse correctly; focused tests, compile, scratch acceptance, root summary, JSON, and invalid-date checks passed |
 | 2026-07-08 | Brew 19 / Shot 19C — Close Ledger Summarizer | Completion criteria passed; tests, compile, help, root summary, JSON, max entries, date filtering, output report, failure handling, bullet scratch parsing, guide link, dogfood evidence, and Unified CLI integration confirmed |
+| 2026-07-08 | Brew 20 / Shot 20A — Release Packaging Check | `tools/release_check.py`, focused tests, guide, docs link, and Unified Coffee CLI delegation added for local release readiness checks |
 
 ## Attempted (blocked)
 
@@ -129,11 +130,11 @@ Current status: Brew 19 - Ledger Summarizer complete. Next active work: Brew 20 
 
 ## In progress
 
-None.
+Brew 20 / Shot 20B - Dogfood Release Packaging Check.
 
 ## Up next
 
-1. Brew 20 - Release Packaging.
+1. Brew 20 / Shot 20B - Dogfood Release Packaging Check and record evidence.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 

@@ -85,6 +85,12 @@ def build_parser() -> argparse.ArgumentParser:
     ledger_summary.add_argument("--max-entries", type=int, help="Maximum recent entries to print.")
     ledger_summary.add_argument("--output", help="Optional Markdown report output path.")
 
+    release_check = subcommands.add_parser("release-check", help="Run the Project Coffee release checklist.")
+    release_check.add_argument("--root", default=".", help="Project Coffee root. Default: current directory.")
+    release_check.add_argument("--json", action="store_true", help="Print JSON output.")
+    release_check.add_argument("--section", help="Release checklist section to run.")
+    release_check.add_argument("--fail-on-blocker", action="store_true", help="Exit nonzero when blockers are present.")
+
     return parser
 
 
@@ -123,6 +129,11 @@ def build_delegation(args: argparse.Namespace) -> Delegation:
         return Delegation(
             script=REPO_ROOT / "tools" / "ledger_summary.py",
             args=ledger_summary_args(args),
+        )
+    if args.command == "release-check":
+        return Delegation(
+            script=REPO_ROOT / "tools" / "release_check.py",
+            args=release_check_args(args),
         )
     raise ValueError(f"Unsupported command: {args.command}")
 
@@ -180,6 +191,14 @@ def ledger_summary_args(args: argparse.Namespace) -> list[str]:
     append_optional(forwarded, "--max-entries", args.max_entries)
     append_optional(forwarded, "--output", args.output)
     append_flag(forwarded, "--json", args.json)
+    return forwarded
+
+
+def release_check_args(args: argparse.Namespace) -> list[str]:
+    forwarded = ["--root", args.root]
+    append_optional(forwarded, "--section", args.section)
+    append_flag(forwarded, "--json", args.json)
+    append_flag(forwarded, "--fail-on-blocker", args.fail_on_blocker)
     return forwarded
 
 

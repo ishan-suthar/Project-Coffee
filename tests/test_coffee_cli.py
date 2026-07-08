@@ -56,6 +56,7 @@ class CoffeeCliTests(unittest.TestCase):
         self.assertIn("doctor", stdout)
         self.assertIn("pantry-search", stdout)
         self.assertIn("ledger-summary", stdout)
+        self.assertIn("release-check", stdout)
         self.assertEqual(commands, [])
 
     def test_version_works(self) -> None:
@@ -225,6 +226,24 @@ class CoffeeCliTests(unittest.TestCase):
                 "4",
                 "--json",
             ],
+        )
+
+    def test_release_check_delegates_correctly(self) -> None:
+        code, _stdout, stderr, commands = self.run_cli(
+            "release-check",
+            "--root",
+            ".",
+            "--section",
+            "tools",
+            "--json",
+            "--fail-on-blocker",
+        )
+
+        self.assertEqual(code, 0, stderr)
+        self.assert_delegates_to(
+            commands,
+            "release_check.py",
+            ["--root", ".", "--section", "tools", "--json", "--fail-on-blocker"],
         )
 
     def test_missing_delegated_tool_returns_nonzero_and_helpful_error(self) -> None:

@@ -21,6 +21,7 @@ Practical Project Coffee guides live here.
 | `guides/coffee-doctor-guide.md` | How to diagnose Project Coffee repository health issues and safe next actions. |
 | `guides/unified-coffee-cli-guide.md` | How to run common Project Coffee tools through one command surface. |
 | `guides/model-routing-and-house-blend-guide.md` | Practical guide to Beans, House Blend routing, fallback policy, and rerun evidence. |
+| `guides/release-packaging-guide.md` | How to check Project Coffee release readiness before tagging or handoff. |
 
 ## Templates
 
