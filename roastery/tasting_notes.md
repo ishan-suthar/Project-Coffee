@@ -1477,3 +1477,58 @@ Needs improvement:
 - Brew 28C should close the integration if completion criteria remain satisfied.
 - Future UI work can make evidence tables easier to scan and add clearer citation affordances.
 - Brew 29 should add routing approval gates before any remote Bean can receive local context.
+
+### 2026-07-08 - Brew 29 / Shot 29B: UI Routing Approval Gates Dogfood
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile ui\coffee_counter_app.py
+python tools\coffee.py evidence-bundle --root . --query "model routing approval gate" --max-results 8 --json
+python tools\coffee.py doctor --root .
+python tools\coffee.py release-check --root .
+python tools\coffee.py ledger-summary --root . --max-entries 5
+python tools\coffee.py fleet-status --root .
+python -m streamlit run ui/coffee_counter_app.py
+```
+
+Observed behavior:
+
+- Focused Coffee Counter UI tests passed: 28 tests.
+- `ui/coffee_counter_app.py` compiled successfully.
+- Evidence Bundle JSON returned routing-policy, Brew Log, UI guide, House Blend, Roastery, and Ledger evidence.
+- Doctor returned `WARN` with the known non-blocking ADR warning about the literal staged secret-check command.
+- Release Check returned `OK`.
+- Ledger Summary returned recent local-only evidence entries.
+- Fleet Status safely reported missing default `fleet/projects.json` as `INFO`.
+- Streamlit was already installed locally; no package install was performed.
+- Streamlit server smoke passed after launch on a local loopback port; health returned HTTP 200 and the process was stopped.
+- Streamlit UI harness verified the Routing / Approval tab is visible and no OpenRouter, API-key, or model-call controls appear.
+- Ask Coffee scenario checks passed:
+  - "What is the current Brew?" routed to Local evidence only; approval not required.
+  - "How do I onboard a project?" routed to Local evidence only; approval not required.
+  - "How much did Brew 14 cost?" routed to Local evidence only with Ledger context; approval not required.
+  - "Run a benchmark for a new model." routed to Roastery benchmark required; approval required.
+  - "Send repo context to a model." routed to Remote Bean requires approval; preview only.
+  - "Commit this change." routed to Decaf / no model with manual-only next action; no auto-commit behavior.
+- Each scenario showed preview-only context behavior; no remote call path was exposed.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Routing decisions match the policy-backed task classes expected by the UI.
+- Approval gates are visible for benchmark, repo-context, and commit-like requests.
+- Context preview remains preview-only and does not send evidence anywhere.
+- Existing local-only command surfaces remain available.
+
+Needs improvement:
+
+- Brew 29C should close the routing approval gate work if completion criteria remain satisfied.
+- Future UI work should keep remote Bean execution disabled until explicit approval, context preview, Ledger/Roastery evidence, and routing policy enforcement are implemented together.

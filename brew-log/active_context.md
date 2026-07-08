@@ -83,19 +83,20 @@ Brew 29 - UI + Routing Approval Gates in progress.
 - Brew 28 / 28B dogfooded the Evidence Bundle UI path with focused tests, compile checks, JSON and zero-match CLI queries, supporting Coffee CLI tools, Streamlit server health, and Streamlit UI harness checks.
 - Brew 28 / 28C closed UI + Evidence Bundle Integration after completion criteria, validation, dogfood evidence, and local-only safety boundaries were confirmed.
 - Brew 29 / 29A added routing approval gates, request classification, routing decisions, and local context-preview scaffolding to the Coffee Counter UI without enabling remote model calls.
+- Brew 29 / 29B dogfooded routing approval gates with focused tests, compile checks, local Coffee CLI tools, Streamlit server health, and six Ask Coffee routing scenarios.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 29B - dogfood the Coffee Counter routing approval gates.
+1. Brew 29C - close UI Routing Approval Gates if completion criteria remain satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 29B planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 29A made no model/API call, OpenRouter call, external API call, release tag, staging action, or commit.
+No active blocker for Brew 29C planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 29B made no model/API call, OpenRouter call, external API call, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 29 / 29A Routing Approval Gates implemented
+2026-07-08 - Brew 29 / 29B Routing Approval Gates dogfooded
