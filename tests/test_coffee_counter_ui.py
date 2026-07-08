@@ -28,6 +28,101 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
         with self.assertRaises(coffee_counter_app.CommandAdapterError):
             coffee_counter_app.build_command("dashboard", root="definitely-missing-root")
 
+    def test_normalize_project_root_input_handles_blank_input(self) -> None:
+        self.assertIsNone(coffee_counter_app.normalize_project_root_input(""))
+        self.assertIsNone(coffee_counter_app.normalize_project_root_input("   "))
+
+    def test_normalize_project_root_input_handles_relative_path(self) -> None:
+        normalized = coffee_counter_app.normalize_project_root_input("relative-root")
+
+        self.assertEqual(normalized, (Path.cwd() / "relative-root").resolve())
+
+    def test_validate_project_root_rejects_missing_path(self) -> None:
+        status = coffee_counter_app.validate_project_root("definitely-missing-root")
+
+        self.assertFalse(status.exists)
+        self.assertFalse(status.safe_for_commands)
+
+    def test_validate_project_root_accepts_temp_valid_coffee_like_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tools").mkdir()
+            (root / "tools" / "coffee.py").write_text("print('coffee')\n", encoding="utf-8")
+            (root / "brew-log").mkdir()
+            (root / "brew-log" / "active_context.md").write_text("# Active\n", encoding="utf-8")
+            (root / "brew-log" / "progress.md").write_text("# Progress\n", encoding="utf-8")
+            (root / "ledger").mkdir()
+            (root / "roastery").mkdir()
+            (root / "docs").mkdir()
+
+            status = coffee_counter_app.validate_project_root(root)
+
+        self.assertTrue(status.safe_for_commands)
+        self.assertTrue(status.looks_like_project_coffee)
+
+    def test_score_project_root_markers_counts_expected_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tools").mkdir()
+            (root / "tools" / "coffee.py").write_text("print('coffee')\n", encoding="utf-8")
+            (root / "brew-log").mkdir()
+
+            score = coffee_counter_app.score_project_root_markers(root)
+
+        self.assertEqual(score.count, 2)
+        self.assertIn("tools/coffee.py", score.present)
+        self.assertIn("brew-log", score.present)
+
+    def test_add_recent_root_adds_new_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            recent = coffee_counter_app.add_recent_root([], tmp, max_items=5)
+
+        self.assertEqual(len(recent), 1)
+
+    def test_add_recent_root_moves_duplicate_to_front(self) -> None:
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            recent = coffee_counter_app.add_recent_root([first, second], second, max_items=5)
+
+        self.assertEqual(recent[0], str(Path(second).resolve()))
+        self.assertEqual(len(recent), 2)
+
+    def test_add_recent_root_caps_max_items(self) -> None:
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            recent = coffee_counter_app.add_recent_root([first, second], first, max_items=1)
+
+        self.assertEqual(recent, [str(Path(first).resolve())])
+
+    def test_choose_active_root_falls_back_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as fallback:
+            active = coffee_counter_app.choose_active_root("", fallback)
+
+        self.assertEqual(active, Path(fallback).resolve())
+
+    def test_command_adapter_uses_selected_root_in_arguments(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = coffee_counter_app.build_command("dashboard", root=tmp)
+
+        self.assertEqual(args[args.index("--root") + 1], str(Path(tmp).resolve()))
+
+    def test_ask_coffee_evidence_command_uses_active_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = coffee_counter_app.build_command(
+                "evidence-bundle",
+                root=tmp,
+                query="current Brew",
+                max_results=5,
+                json_output=True,
+            )
+
+        self.assertEqual(args[args.index("--root") + 1], str(Path(tmp).resolve()))
+        self.assertIn("--json", args)
+
+    def test_fleet_status_command_uses_active_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            args = coffee_counter_app.build_command("fleet-status", root=tmp)
+
+        self.assertEqual(args[args.index("--root") + 1], str(Path(tmp).resolve()))
+
     def test_evidence_bundle_query_is_passed_as_argument_list(self) -> None:
         query = 'House Blend"; git commit'
         with tempfile.TemporaryDirectory() as tmp:
@@ -496,6 +591,26 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
 
         self.assertIn("--registry", args)
         self.assertEqual(args[args.index("--registry") + 1], "fleet/projects.example.json")
+
+    def test_fleet_status_registry_argument_remains_argument_not_shell(self) -> None:
+        registry = 'fleet/projects.example.json"; git status'
+        with tempfile.TemporaryDirectory() as tmp:
+            args = coffee_counter_app.build_command(
+                "fleet-status",
+                root=tmp,
+                registry=registry,
+            )
+
+        self.assertEqual(args[args.index("--registry") + 1], registry)
+
+    def test_unsafe_registry_path_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(coffee_counter_app.CommandAdapterError):
+                coffee_counter_app.build_command(
+                    "fleet-status",
+                    root=tmp,
+                    registry=".ssh/config",
+                )
 
 
 if __name__ == "__main__":

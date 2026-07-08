@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 31 complete
+Status: Brew 32A project and fleet switching
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -496,3 +496,88 @@ Validated scenarios:
 
 No product fixes were required during dogfood. Next likely work is Brew 32:
 Coffee Counter Project/Fleet Switching.
+
+## Brew 32A Project and Fleet Switching
+
+Brew 32A makes the existing Streamlit UI more comfortable across multiple
+Project Coffee roots without adding persistence or remote execution.
+
+### Switching Project Roots
+
+Use the sidebar Project root input to enter a local root path. Blank input
+falls back to the previous active root or the Project Coffee repository root.
+Relative paths are resolved from the current working directory.
+
+The sidebar shows:
+
+- active root path;
+- whether the path exists and is a directory;
+- whether the path is blocked because it looks credential-related;
+- Project Coffee marker score;
+- found and missing marker details.
+
+Marker checks are intentionally shallow. They check only known marker paths,
+including:
+
+- `tools/coffee.py`;
+- `brew-log/`;
+- `brew-log/active_context.md`;
+- `brew-log/progress.md`;
+- `ledger/`;
+- `roastery/`;
+- `docs/`.
+
+Missing markers are warnings. A project can still be inspected if the root
+exists, is a directory, and is not a blocked credential-like path.
+
+### Session-Only Recent Roots
+
+Recent roots are stored only in Streamlit session state. They are not written
+to disk, they do not create a registry, and they reset when the app restarts.
+
+### Project Health
+
+The Home / Overview tab includes Project Health:
+
+- root exists;
+- Coffee marker score;
+- safe local-only status;
+- last command status for this UI session.
+
+This section does not run extra commands for other projects.
+
+### Fleet Tab
+
+The Fleet tab shows the active root and the exact Fleet Status command output.
+An optional registry path may be supplied if the Fleet CLI supports it. The
+registry value is passed as a path argument, not executed as a command.
+
+After Fleet Status runs, the UI summarizes:
+
+- Fleet status;
+- registry status;
+- project count;
+- simple registered-project rows when the CLI output includes them.
+
+If the default registry is missing or empty, the UI shows that as an honest
+local status rather than a failure.
+
+### Invalid Root Troubleshooting
+
+If commands do not run:
+
+- confirm the root exists;
+- confirm it is a directory;
+- avoid `.env`, `.ssh`, credential, secret, token, raw-output, and hidden
+  credential-like paths;
+- check the marker details to see whether Project Coffee files are present;
+- try the repository root again.
+
+### Limits
+
+Brew 32A does not persist roots, create `fleet/projects.json`, scan entire
+drives, run commands against other Fleet projects automatically, call remote
+models, expose API key inputs, or add Git write controls.
+
+Future work can design a persistent local root registry, but that requires a
+separate safety design and explicit approval.

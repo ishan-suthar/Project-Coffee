@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 31 complete
+Status: Brew 32A project and fleet switching
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -21,6 +21,8 @@ The MVP helps you:
 - preview local-only routing decisions and future approval gates;
 - preview eligible local evidence context without sending it anywhere;
 - see command arguments, stdout, stderr, and exit codes;
+- switch the active project root for local commands;
+- inspect root health and session-only recent roots;
 - keep approval gates visible before future remote model work.
 
 ## Requirements
@@ -87,6 +89,27 @@ were required during dogfood.
 No model call is made. No OpenRouter call is made. No API key input, file edit,
 Git write, package install, arbitrary command execution, or remote execution
 path is added.
+
+## Brew 32 Project and Fleet Switching
+
+Brew 32A improves multi-project comfort while staying local-only:
+
+- the sidebar shows the active root path;
+- root validation shows whether the path exists, is a directory, and avoids
+  blocked credential-like path components;
+- Project Coffee marker scoring checks only known marker paths such as
+  `tools/coffee.py`, `brew-log/`, `ledger/`, `roastery/`, and `docs/`;
+- session-only recent roots live in Streamlit session state and reset when the
+  app restarts;
+- the Home tab includes a Project Health section;
+- Ask Coffee, Current State Quick View, Evidence Bundle, Routing preview,
+  Ledger, and Fleet all use the selected active root;
+- the Fleet tab shows the active root, optional registry argument, Fleet Status
+  command output, return code, registry status, project count, and simple
+  registered-project rows when available.
+
+Root choices and recent roots are not written to disk. The UI does not create
+or edit Fleet registries in this shot.
 
 ## Brew 28 Evidence Integration
 

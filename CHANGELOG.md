@@ -230,3 +230,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added focused tests for current-state detection, priority ordering, quick-view safety, route badges, suggestions, command summaries, malformed JSON handling, adapter safety, no `shell=True`, and no OpenRouter key requirement.
 - Dogfooded tests, syntax compilation, current-state and zero-match Evidence Bundle queries, Doctor, Release Check, Ledger Summary, Fleet Status, Streamlit server health, and UI harness scenarios without model/API calls, package installs, raw-output inspection, staging, or commits.
 - Marked Streamlit Polish Pass complete and set next recommended work to Brew 32, Coffee Counter Project/Fleet Switching.
+
+### Added (Brew 32 / Coffee Counter Project and Fleet Switching)
+
+- Improved the Coffee Counter sidebar with active-root display, root validation, shallow Project Coffee marker scoring, and session-only recent roots.
+- Added Project Health to the Home tab with root existence, marker score, safe local-only status, and last command status.
+- Wired Ask Coffee, Current State Quick View, Evidence Bundle, Routing preview, Ledger, and Fleet to the selected active root.
+- Improved Fleet tab output with active-root visibility, optional registry path argument handling, status summary cards, missing/empty registry warnings, and simple registered-project rows.
+- Added focused tests for root normalization, marker scoring, root validation, session-only recent roots, active-root command arguments, Fleet registry argument safety, no `shell=True`, disallowed command rejection, and no OpenRouter key requirement.

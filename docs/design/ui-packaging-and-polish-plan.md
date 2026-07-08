@@ -264,5 +264,5 @@ Closeout safety notes:
 Recommended near-term path:
 
 1. Brew 31 - Streamlit polish pass: complete.
-2. Brew 32 - UI project and fleet switching.
+2. Brew 32 - UI project and fleet switching: in progress with Brew 32A session-only root switching and Fleet tab polish.
 3. Brew 33 - optional remote-call approval design, still local-first and gated.

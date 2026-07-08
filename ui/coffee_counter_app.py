@@ -38,6 +38,37 @@ CURRENT_STATE_TERMS = [
     "project status",
 ]
 
+PROJECT_ROOT_MARKERS = [
+    "tools/coffee.py",
+    "brew-log",
+    "brew-log/active_context.md",
+    "brew-log/progress.md",
+    "ledger",
+    "roastery",
+    "docs",
+]
+
+UNSAFE_ROOT_PARTS = {
+    ".env",
+    ".git",
+    ".ssh",
+    ".aws",
+    ".azure",
+    ".gcp",
+    ".config",
+    "local_cup_outputs",
+    "local_reports",
+}
+
+UNSAFE_ROOT_SUBSTRINGS = (
+    "secret",
+    "secrets",
+    "credential",
+    "credentials",
+    "token",
+    "tokens",
+)
+
 ALLOWED_ACTIONS = {
     "dashboard": "Dashboard",
     "doctor": "Doctor",
@@ -130,13 +161,49 @@ class CurrentStateItem:
 
 
 @dataclass(frozen=True)
+class ProjectRootMarkerScore:
+    present: tuple[str, ...]
+    missing: tuple[str, ...]
+
+    @property
+    def count(self) -> int:
+        return len(self.present)
+
+    @property
+    def total(self) -> int:
+        return len(self.present) + len(self.missing)
+
+    @property
+    def summary(self) -> str:
+        return f"{self.count}/{self.total} markers present"
+
+    @property
+    def looks_like_project_coffee(self) -> bool:
+        return self.count >= 2 and (
+            "tools/coffee.py" in self.present or "brew-log" in self.present
+        )
+
+
+@dataclass(frozen=True)
 class ProjectRootStatus:
     path: Path
     exists: bool
     is_dir: bool
+    marker_score: ProjectRootMarkerScore
+    unsafe_reason: str | None = None
+
+    @property
+    def safe_for_commands(self) -> bool:
+        return self.exists and self.is_dir and self.unsafe_reason is None
+
+    @property
+    def looks_like_project_coffee(self) -> bool:
+        return self.marker_score.looks_like_project_coffee
 
     @property
     def message(self) -> str:
+        if self.unsafe_reason:
+            return f"Project root is blocked: {self.unsafe_reason}"
         if self.exists and self.is_dir:
             return f"Using project root: {self.path}"
         if self.exists:
@@ -148,17 +215,133 @@ def default_project_root() -> Path:
     return REPO_ROOT
 
 
-def validate_root(root: str | Path) -> Path:
-    root_path = Path(root).expanduser()
+def normalize_project_root_input(text: str | Path | None) -> Path | None:
+    if text is None:
+        return None
+    raw = str(text).strip()
+    if not raw:
+        return None
+    root_path = Path(raw).expanduser()
     if not root_path.is_absolute():
         root_path = (Path.cwd() / root_path).resolve()
     else:
         root_path = root_path.resolve()
-    if not root_path.exists():
-        raise CommandAdapterError(f"Project root does not exist: {root_path}")
-    if not root_path.is_dir():
-        raise CommandAdapterError(f"Project root is not a directory: {root_path}")
     return root_path
+
+
+def _empty_marker_score() -> ProjectRootMarkerScore:
+    return ProjectRootMarkerScore(present=(), missing=tuple(PROJECT_ROOT_MARKERS))
+
+
+def _unsafe_path_reason(path: Path) -> str | None:
+    lowered_parts = [part.lower() for part in path.parts]
+    for part in lowered_parts:
+        if part in UNSAFE_ROOT_PARTS:
+            return f"path contains blocked component `{part}`"
+        if any(term in part for term in UNSAFE_ROOT_SUBSTRINGS):
+            return f"path contains sensitive-looking component `{part}`"
+    return None
+
+
+def score_project_root_markers(path: str | Path | None) -> ProjectRootMarkerScore:
+    root_path = normalize_project_root_input(path)
+    if root_path is None:
+        return _empty_marker_score()
+    if _unsafe_path_reason(root_path):
+        return _empty_marker_score()
+    if not root_path.exists() or not root_path.is_dir():
+        return _empty_marker_score()
+
+    present: list[str] = []
+    missing: list[str] = []
+    for marker in PROJECT_ROOT_MARKERS:
+        candidate = root_path / marker
+        if candidate.exists():
+            present.append(marker)
+        else:
+            missing.append(marker)
+    return ProjectRootMarkerScore(present=tuple(present), missing=tuple(missing))
+
+
+def validate_project_root(path: str | Path | None) -> ProjectRootStatus:
+    root_path = normalize_project_root_input(path) or default_project_root()
+    unsafe_reason = _unsafe_path_reason(root_path)
+    if unsafe_reason:
+        return ProjectRootStatus(
+            path=root_path,
+            exists=False,
+            is_dir=False,
+            marker_score=_empty_marker_score(),
+            unsafe_reason=unsafe_reason,
+        )
+
+    exists = root_path.exists()
+    is_dir = root_path.is_dir() if exists else False
+    marker_score = score_project_root_markers(root_path) if exists and is_dir else _empty_marker_score()
+    return ProjectRootStatus(
+        path=root_path,
+        exists=exists,
+        is_dir=is_dir,
+        marker_score=marker_score,
+    )
+
+
+def choose_active_root(input_root: str | Path | None, fallback_root: str | Path | None) -> Path:
+    return (
+        normalize_project_root_input(input_root)
+        or normalize_project_root_input(fallback_root)
+        or default_project_root()
+    )
+
+
+def add_recent_root(
+    recent_roots: Sequence[str | Path],
+    root: str | Path | None,
+    max_items: int,
+) -> list[str]:
+    if max_items < 1:
+        return []
+
+    normalized_root = normalize_project_root_input(root)
+    ordered: list[str] = []
+    if normalized_root is not None:
+        ordered.append(str(normalized_root))
+
+    for existing in recent_roots:
+        normalized_existing = normalize_project_root_input(existing)
+        if normalized_existing is None:
+            continue
+        existing_text = str(normalized_existing)
+        if existing_text not in ordered:
+            ordered.append(existing_text)
+
+    return ordered[:max_items]
+
+
+def validate_root(root: str | Path) -> Path:
+    status = validate_project_root(root)
+    if status.unsafe_reason:
+        raise CommandAdapterError(f"Project root is unsafe: {status.unsafe_reason}")
+    if not status.exists:
+        raise CommandAdapterError(f"Project root does not exist: {status.path}")
+    if not status.is_dir:
+        raise CommandAdapterError(f"Project root is not a directory: {status.path}")
+    return status.path
+
+
+def validate_registry_argument(registry: str | None) -> str | None:
+    if registry is None:
+        return None
+    raw = registry.strip()
+    if not raw:
+        return None
+    if any(character in raw for character in "\r\n\0"):
+        raise CommandAdapterError("Registry path contains unsupported control characters.")
+    registry_path = Path(raw).expanduser()
+    reason = _unsafe_path_reason(registry_path)
+    if reason:
+        raise CommandAdapterError(f"Registry path is unsafe: {reason}")
+    return raw
 
 
 def validate_positive_int(value: int | None, name: str) -> int | None:
@@ -200,8 +383,10 @@ def build_command(
         if max_entries is not None:
             args.extend(["--max-entries", str(max_entries)])
 
-    if action == "fleet-status" and registry:
-        args.extend(["--registry", registry])
+    if action == "fleet-status":
+        registry_arg = validate_registry_argument(registry)
+        if registry_arg is not None:
+            args.extend(["--registry", registry_arg])
 
     return args
 
@@ -274,16 +459,7 @@ def format_command(args: Sequence[str]) -> str:
 
 
 def describe_project_root(root: str | Path) -> ProjectRootStatus:
-    root_path = Path(root).expanduser()
-    if not root_path.is_absolute():
-        root_path = (Path.cwd() / root_path).resolve()
-    else:
-        root_path = root_path.resolve()
-    return ProjectRootStatus(
-        path=root_path,
-        exists=root_path.exists(),
-        is_dir=root_path.is_dir(),
-    )
+    return validate_project_root(root)
 
 
 def is_current_state_question(text: str) -> bool:
@@ -440,6 +616,61 @@ def command_status_summary(result: CommandResult) -> str:
     if result.return_code == 0:
         return "Completed successfully"
     return "Returned a nonzero exit code"
+
+
+@dataclass(frozen=True)
+class FleetProjectSummary:
+    project_id: str
+    name: str
+    project_type: str
+    status: str
+    path: str
+    check_status: str
+
+
+@dataclass(frozen=True)
+class FleetStatusSummary:
+    status: str
+    registry_status: str
+    project_count: int
+    projects: tuple[FleetProjectSummary, ...]
+
+
+def _line_value(text: str, prefix: str) -> str:
+    for line in text.splitlines():
+        if line.startswith(prefix):
+            return line.removeprefix(prefix).strip()
+    return ""
+
+
+def parse_fleet_status_output(text: str) -> FleetStatusSummary:
+    status = _line_value(text, "Status:") or "unknown"
+    registry_status = _line_value(text, "Registry status:") or "unknown"
+    project_count = _as_int(_line_value(text, "Project count:"), default=0)
+    projects: list[FleetProjectSummary] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|") or stripped.startswith("| ---"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) != 6 or cells[0] == "ID":
+            continue
+        projects.append(
+            FleetProjectSummary(
+                project_id=cells[0],
+                name=cells[1],
+                project_type=cells[2],
+                status=cells[3],
+                path=cells[4],
+                check_status=cells[5],
+            )
+        )
+    return FleetStatusSummary(
+        status=status,
+        registry_status=registry_status,
+        project_count=project_count,
+        projects=tuple(projects),
+    )
 
 
 def _as_int(value: Any, default: int = 0) -> int:
@@ -760,16 +991,30 @@ def render_app() -> None:
 
     with st.sidebar:
         st.header("Counter")
+        if "recent_roots" not in st.session_state:
+            st.session_state["recent_roots"] = []
+        fallback_root = st.session_state.get("active_root", str(default_project_root()))
         root_input = st.text_input(
             "Project root",
-            value=str(default_project_root()),
-            help="Local Project Coffee root to inspect. This is not persisted to disk.",
+            value=str(fallback_root),
+            help="Local Project Coffee root to inspect. Recent roots are session-only and are not written to disk.",
         )
-        root_status = describe_project_root(root_input)
-        if root_status.exists and root_status.is_dir:
-            st.success(root_status.message)
-        else:
-            st.warning(root_status.message)
+        active_root_path = choose_active_root(root_input, fallback_root)
+        root_status = describe_project_root(active_root_path)
+        render_project_root_status(st, root_status)
+        if root_status.safe_for_commands:
+            st.session_state["active_root"] = str(root_status.path)
+            st.session_state["recent_roots"] = add_recent_root(
+                st.session_state.get("recent_roots", []),
+                root_status.path,
+                max_items=5,
+            )
+        recent_roots = st.session_state.get("recent_roots", [])
+        if recent_roots:
+            with st.expander("Session recent roots", expanded=False):
+                st.caption("Session-only. Resets when the app restarts; nothing is written to disk.")
+                for recent_root in recent_roots:
+                    st.code(recent_root, language="text")
         selected_action = st.selectbox(
             "Selected tool/action",
             options=list(ALLOWED_ACTIONS.keys()),
@@ -794,30 +1039,79 @@ def render_app() -> None:
     )
 
     with tabs[0]:
-        render_home_tab(st, root_input)
+        render_home_tab(st, str(root_status.path))
 
     with tabs[1]:
-        render_ask_tab(st, root_input, int(max_results))
+        render_ask_tab(st, str(root_status.path), int(max_results))
 
     with tabs[2]:
-        render_evidence_tab(st, root_input, int(max_results))
+        render_evidence_tab(st, str(root_status.path), int(max_results))
 
     with tabs[3]:
-        render_routing_tab(st, root_input, int(max_results))
+        render_routing_tab(st, str(root_status.path), int(max_results))
 
     with tabs[4]:
-        render_ledger_tab(st, root_input)
+        render_ledger_tab(st, str(root_status.path))
 
     with tabs[5]:
-        render_fleet_tab(st, root_input)
+        render_fleet_tab(st, str(root_status.path))
 
     with tabs[6]:
         render_safety_tab(st, selected_action)
 
 
+def render_project_root_status(st: object, status: ProjectRootStatus) -> None:
+    st.caption("Active root")
+    st.code(str(status.path), language="text")
+    if status.safe_for_commands:
+        st.success(status.message)
+    else:
+        st.warning(status.message)
+
+    if status.looks_like_project_coffee:
+        st.success(f"Looks like a Project Coffee root: {status.marker_score.summary}.")
+    elif status.safe_for_commands:
+        st.warning(f"Root exists, but Project Coffee markers are incomplete: {status.marker_score.summary}.")
+    else:
+        st.caption(f"Project Coffee markers: {status.marker_score.summary}.")
+
+    with st.expander("Project root marker details", expanded=status.safe_for_commands and not status.looks_like_project_coffee):
+        for marker in status.marker_score.present:
+            st.markdown(f"- Found: `{marker}`")
+        for marker in status.marker_score.missing:
+            st.markdown(f"- Missing: `{marker}`")
+
+
+def render_project_health(st: object, root: str) -> None:
+    status = validate_project_root(root)
+    st.subheader("Project Health")
+    columns = st.columns(4)
+    columns[0].metric("Root exists", "yes" if status.exists else "no")
+    columns[1].metric("Coffee markers", status.marker_score.summary)
+    columns[2].metric("Safe local-only", "yes" if status.safe_for_commands else "no")
+    last_status = "No command run this session."
+    session_state = getattr(st, "session_state", {})
+    if isinstance(session_state, dict):
+        last_status = str(session_state.get("last_command_status", last_status))
+    else:
+        try:
+            last_status = str(session_state.get("last_command_status", last_status))
+        except AttributeError:
+            pass
+    columns[3].write("Last command status")
+    columns[3].caption(last_status)
+    if not status.safe_for_commands:
+        st.warning("Commands are blocked until the active root exists, is a directory, and is not a blocked credential-like path.")
+    elif not status.looks_like_project_coffee:
+        st.warning("This root is usable for local commands, but Project Coffee markers are incomplete.")
+    else:
+        st.success("Active root is ready for local Project Coffee commands.")
+
+
 def render_home_tab(st: object, root: str) -> None:
     st.subheader("Home / Overview")
     st.write("Run local Project Coffee status tools. Outputs stay on this machine.")
+    render_project_health(st, root)
     columns = st.columns(4)
     actions = ["dashboard", "doctor", "release-check", "fleet-status"]
     for column, action in zip(columns, actions):
@@ -827,9 +1121,18 @@ def render_home_tab(st: object, root: str) -> None:
                 display_result(st, result, ALLOWED_ACTIONS[action])
 
 
+def render_active_root_notice(st: object, root: str, *, purpose: str) -> ProjectRootStatus:
+    status = validate_project_root(root)
+    st.caption(f"Active root for {purpose}: {status.path}")
+    if not status.safe_for_commands:
+        st.warning("Active root is invalid or blocked; local commands will not run until it is fixed.")
+    return status
+
+
 def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
     st.subheader("Ask Coffee - local only")
     render_evidence_safety_notice(st)
+    render_active_root_notice(st, root, purpose="Ask Coffee")
     question = st.text_area("Question or Coffee Order", height=140)
     max_results = st.number_input(
         "Max evidence results",
@@ -881,6 +1184,7 @@ def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
 def render_evidence_tab(st: object, root: str, default_max_results: int) -> None:
     st.subheader("Evidence Bundle")
     render_evidence_safety_notice(st)
+    render_active_root_notice(st, root, purpose="Evidence Bundle")
     query = st.text_input("Evidence query", value="current Brew next Shot")
     max_results = st.number_input(
         "Max results",
@@ -915,6 +1219,7 @@ def render_evidence_tab(st: object, root: str, default_max_results: int) -> None
 
 def render_routing_tab(st: object, root: str, default_max_results: int) -> None:
     st.subheader("Routing / Approval")
+    render_active_root_notice(st, root, purpose="Routing preview")
     st.info(
         "Remote model calls are disabled in this MVP. Future remote Bean calls "
         "will require explicit approval."
@@ -978,6 +1283,7 @@ def render_routing_tab(st: object, root: str, default_max_results: int) -> None:
 
 def render_ledger_tab(st: object, root: str) -> None:
     st.subheader("Ledger")
+    render_active_root_notice(st, root, purpose="Ledger")
     max_entries = st.number_input("Max recent entries", min_value=1, max_value=50, value=8)
     if st.button("Run ledger-summary"):
         result = safe_run_for_ui(
@@ -991,7 +1297,9 @@ def render_ledger_tab(st: object, root: str) -> None:
 
 def render_fleet_tab(st: object, root: str) -> None:
     st.subheader("Fleet")
+    render_active_root_notice(st, root, purpose="Fleet")
     registry = st.text_input("Optional registry path", value="")
+    st.caption("Registry path is passed as a path argument only. It is not executed and is not persisted.")
     if st.button("Run fleet-status"):
         result = safe_run_for_ui(
             st,
@@ -1000,6 +1308,45 @@ def render_fleet_tab(st: object, root: str) -> None:
             registry=registry.strip() or None,
         )
         display_result(st, result, "Fleet Status")
+        if result is not None:
+            render_fleet_status_summary(st, parse_fleet_status_output(result.stdout), result.return_code)
+
+
+def render_fleet_status_summary(
+    st: object,
+    summary: FleetStatusSummary,
+    return_code: int,
+) -> None:
+    st.subheader("Fleet summary")
+    columns = st.columns(3)
+    columns[0].metric("Fleet status", summary.status)
+    columns[1].metric("Registry", summary.registry_status)
+    columns[2].metric("Projects", str(summary.project_count))
+
+    if return_code != 0:
+        st.warning("Fleet command returned a nonzero exit code; review stdout and stderr above.")
+    if summary.registry_status in {"missing", "unsafe", "invalid-json"}:
+        st.warning("Fleet registry is missing, unsafe, or invalid. Use the example registry only after local review.")
+    elif summary.project_count == 0:
+        st.info("No projects are registered yet.")
+
+    if summary.projects:
+        st.write("Registered projects")
+        st.dataframe(
+            [
+                {
+                    "ID": project.project_id,
+                    "Name": project.name,
+                    "Type": project.project_type,
+                    "Status": project.status,
+                    "Path": project.path,
+                    "Check": project.check_status,
+                }
+                for project in summary.projects
+            ],
+            width="stretch",
+        )
+        st.caption("Project cards are based on Fleet Status output only; no extra commands are run for other roots.")
 
 
 def render_safety_tab(st: object, selected_action: str) -> None:
@@ -1142,10 +1489,17 @@ def render_evidence_bundle_summary(
 
 def safe_run_for_ui(st: object, action: str, **kwargs: object) -> CommandResult | None:
     try:
-        return run_coffee_command(action, **kwargs)
+        result = run_coffee_command(action, **kwargs)
     except CommandAdapterError as exc:
         st.error(str(exc))
         return None
+    label = ALLOWED_ACTIONS.get(action, action)
+    status_text = f"{label}: {command_status_summary(result)} (exit {result.return_code})"
+    try:
+        st.session_state["last_command_status"] = status_text
+    except (AttributeError, TypeError):
+        pass
+    return result
 
 
 def display_result(
