@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 17 - Coffee Doctor complete.
+Brew 18 - Unified Coffee CLI in progress.
 
 ## What matters right now
 
@@ -48,19 +48,20 @@ Brew 17 - Coffee Doctor complete.
 - Brew 17 / 17A added a standard-library Coffee Doctor MVP for read-only Project Coffee health diagnosis, severity-coded findings, JSON output, section filtering, and strict fail-on-issue behavior.
 - Brew 17 / 17B dogfooded Coffee Doctor against the Project Coffee root and an incomplete scratch target, then recorded honest Roastery and Ledger evidence.
 - Brew 17 / 17C closed Coffee Doctor after completion criteria, tests, compile checks, help output, root Doctor, JSON output, tools-section, and ignored-paths validation passed.
+- Brew 18 / 18A added a standard-library Unified Coffee CLI MVP that delegates dashboard, doctor, Pantry Search, Roastery report, template install, and onboarding check commands to the existing tools.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 18A - Unified Coffee CLI wrapping dashboard, doctor, pantry-search, roastery-report, and template install/check.
+1. Brew 18B - Dogfood the Unified Coffee CLI and record honest evidence.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 18 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 18B dogfood. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 17 / 17C Coffee Doctor closed
+2026-07-08 - Brew 18 / 18A Unified Coffee CLI MVP implemented
