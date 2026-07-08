@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 17 — Coffee Doctor complete |
-| Current milestone | Doctor CLI, guide, focused tests, dogfood evidence, and closeout docs complete |
-| Next step | Brew 18A — Unified Coffee CLI |
-| Recent foundation result | Brew 17A added Coffee Doctor; Brew 17B dogfooded it; Brew 17C closed the health diagnosis workflow |
-| Blockers | None for Brew 18 planning |
+| Current shot | Brew 18 — Unified Coffee CLI complete |
+| Current milestone | Unified CLI, guide, focused tests, dogfood evidence, and closeout docs complete |
+| Next step | Brew 19 — Cost / Token Ledger Summarizer |
+| Recent foundation result | Brew 18A added the Unified Coffee CLI; Brew 18B dogfooded it; Brew 18C closed the wrapper workflow |
+| Blockers | None for Brew 19 planning |
 
 ## Phase 1 goal
 
@@ -169,3 +169,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 15 / 15A-15C | Roastery report generator | Complete | 2026-07-06 |
 | Brew 16 / 16A-16C | Project Coffee Dashboard CLI | Complete | 2026-07-06 |
 | Brew 17 / 17A-17C | Coffee Doctor MVP | Complete | 2026-07-08 |
+| Brew 18 / 18A-18C | Unified Coffee CLI | Complete | 2026-07-08 |

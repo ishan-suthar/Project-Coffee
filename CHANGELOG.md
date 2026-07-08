@@ -117,3 +117,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Dogfooded root diagnosis, JSON output, section filtering, strict fail-on-issue behavior, and incomplete scratch-root failure behavior without model or API calls.
 - Recorded the existing root Doctor warning for `docs/adr/0005-local-openrouter-coffee-core.md` as honest evidence without changing the ADR in this closeout.
 - Marked Coffee Doctor complete and set next recommended work to Brew 18A, Unified Coffee CLI.
+
+### Added (Brew 18 / Unified Coffee CLI)
+
+- Added `tools/coffee.py`, a standard-library wrapper CLI for dashboard, doctor, Pantry Search, Roastery report, template install, and onboarding check commands.
+- Added focused delegation tests and the Unified Coffee CLI Guide, linked from the docs index.
+- Dogfooded help, version, dashboard, doctor, Pantry Search, onboarding check, template dry-run, Roastery report, JSON forwarding, section forwarding, and fail-flag forwarding without model or API calls.
+- Marked Unified Coffee CLI complete and set next recommended work to Brew 19, Cost / Token Ledger Summarizer.
