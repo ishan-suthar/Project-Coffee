@@ -1321,3 +1321,46 @@ Needs improvement:
   base tag or whether the ADR warning should be fixed first.
 - Before any commit, stage only intended files and run the staged
   secret-pattern check from Project Coffee policy.
+
+### 2026-07-08 - Brew 26 / Shot 26B: Coffee Counter UI Design Dogfood
+
+Workflow review:
+
+| # | Workflow | Result |
+| --- | --- | --- |
+| 1 | Open Coffee Counter for current project status | Supported by Home / Overview with Dashboard, Doctor, Release Check, Brew status, and next Shot |
+| 2 | Ask "What should I do next?" | Supported by local Evidence Bundle plus Brew Log and Roadmap grounding |
+| 3 | Ask for next prompt set | Supported as local-only prompt/checklist drafting with command blocks and no auto-commit |
+| 4 | Ask "Why is this project warning?" | Supported by Doctor summary, finding details, and safe next action |
+| 5 | Ask "Which projects need attention?" | Supported by Fleet summary without secret inspection |
+| 6 | Ask "Can Coffee send this to a model?" | Supported for future UI by routing panel, context preview, and approval gate; remote disabled in MVP |
+| 7 | Ask "Run validation." | Supported by allowlisted local commands with preview and stdout/stderr/exit code display |
+| 8 | Ask "Commit this." | Supported as checklist/command drafting only; no automatic commit in MVP |
+| 9 | Doctor/Release Check warning | Supported by visible warning state, release readiness, and next safe action |
+| 10 | Evidence Bundle no matches | Supported by honest no-evidence state and query refinement suggestions |
+
+Gaps found:
+
+- Brew 27 needs a small allowlisted command-wrapper helper.
+- Ask Coffee should be local evidence plus deterministic prompt/checklist
+  drafting, not a remote model.
+- Warning details should preserve severity, path, finding code, and suggested
+  safe next action.
+- No-evidence handling should be explicit.
+- Remote routing and Git write actions should be disabled in MVP.
+
+Streamlit MVP implications:
+
+- Implement Home / Overview, Ask Coffee local-only, Evidence Bundle, Doctor
+  summary, and Fleet summary first.
+- Keep Release Check, Ledger, Roastery, routing details, and settings as links,
+  placeholders, or read-only summaries if needed.
+- Do not implement remote model calls, file editing, raw output inspection,
+  Git staging/commit/tag, or background agent behavior.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this design review; not metered.
+- Cost: none / local-only; no external API cost.

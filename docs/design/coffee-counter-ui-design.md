@@ -261,11 +261,75 @@ Brew 27 MVP is acceptable when:
 - no commits or tags are created;
 - setup and run instructions are documented.
 
-## Open Questions For Brew 26B
+## Brew 26B Workflow Review
+
+Date: 2026-07-08
+
+The design was reviewed against ten realistic Coffee Counter workflows before
+Streamlit implementation.
+
+| # | Workflow | Design support | Brew 27 implication |
+| --- | --- | --- | --- |
+| 1 | User opens Coffee Counter for current project status | Supported by Home / Overview, Dashboard, Doctor, Release Check, current Brew, and next Shot panels | Implement status cards from existing CLI output first |
+| 2 | User asks "What should I do next?" | Supported by Ask Coffee local-only plus Evidence Bundle, Brew Log, and Roadmap grounding | Use local evidence and deterministic templates; no remote Bean |
+| 3 | User asks for next prompt set | Mostly supported by Ask Coffee prompt previews and command blocks | Draft prompt/checklist text only; do not edit files or commit |
+| 4 | User asks "Why is this project warning?" | Supported by Doctor summary, finding details, and safe next action display | Preserve severity, finding code, path, and suggested action |
+| 5 | User asks "Which projects need attention?" | Supported by Fleet screen and project/fleet selector | Handle missing `fleet/projects.json` as an informational state |
+| 6 | User asks "Can Coffee send this to a model?" | Supported for future UI by routing panel, context preview, and approval gate | MVP should show remote disabled and explain approval requirements |
+| 7 | User asks "Run validation." | Supported by allowlisted subprocess command model | Implement command preview, stdout, stderr, exit code, and failure state |
+| 8 | User asks "Commit this." | Supported by safety copy and Git approval gate | MVP should show a commit checklist only; no Git write operation |
+| 9 | Doctor or Release Check returns warning | Supported by warning state, right panel, and next safe action | Make warning status visible on Home and details screen |
+| 10 | Evidence Bundle returns no matches | Supported by no evidence found UI state | Show honest no-evidence message and query refinement suggestions |
+
+Review result: the design supports the target workflows well enough for a
+Streamlit MVP, as long as Brew 27 keeps Ask Coffee local-only and implements
+command execution through a small allowlisted wrapper.
+
+## Gaps Found
+
+- The design needs a concrete command-wrapper helper in Brew 27 so Streamlit can
+  call existing CLI tools without shell strings.
+- Ask Coffee needs a local-only response strategy: evidence bundle plus
+  deterministic prompt/checklist templates, not an LLM.
+- Warning details should preserve source path, severity, finding code, and safe
+  next action.
+- Evidence no-match handling should be explicit and should suggest narrower
+  queries or source filters.
+- Remote routing should be visible but disabled in the MVP.
+- Commit requests should produce a checklist only; no staging, commit, tag, or
+  push path should exist in Brew 27.
+- Fleet Status needs a friendly missing-registry state because that is normal
+  for a fresh Project Coffee root.
+
+## Brew 27 Implementation Notes
+
+Brew 27 should implement:
+
+- Streamlit app shell with Home / Overview;
+- local command-wrapper helper using argument lists;
+- Dashboard summary card;
+- Doctor warning summary and details;
+- Fleet summary with missing-registry handling;
+- Evidence Bundle query form and result display;
+- Ask Coffee local-only text area that drafts next-step guidance from local
+  evidence;
+- command preview and result display with stdout, stderr, and exit code;
+- explicit disabled state for remote model calls and Git write actions.
+
+Brew 27 should keep out of MVP:
+
+- remote model calls;
+- OpenRouter calls;
+- sending local evidence to remote Beans;
+- file editing from the UI;
+- raw Roastery output inspection;
+- Git staging, commit, push, or tag operations;
+- background agent behavior;
+- React + Tauri migration work.
+
+## Open Questions After Brew 26B
 
 - Should Brew 27 add Streamlit as a root dependency or keep it app-local?
-- Should Ask Coffee use existing CLI output only, or a small local planner
-  wrapper that assembles evidence and suggested commands?
 - Which status cards are essential for the first screen?
-- Should Fleet Status default to the example registry, the real local registry,
-  or both?
+- Should Ask Coffee be implemented as simple deterministic templates first, or
+  as a small local planner wrapper around Evidence Bundle output?

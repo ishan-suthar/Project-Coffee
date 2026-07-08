@@ -171,3 +171,32 @@ A migration should preserve the same safety model and approval gates.
   local real registry intentionally.
 - If Streamlit is missing in Brew 27, follow the documented setup step instead
   of installing packages from inside the UI.
+
+## Brew 26B Review Notes
+
+The UI design was reviewed against ten target workflows: project status, next
+action, prompt drafting, warning explanation, fleet attention, remote model
+approval, validation commands, commit requests, warning states, and no-evidence
+results.
+
+The design supports the workflows if Brew 27 keeps the MVP local-only and
+implements:
+
+- Home status cards for Dashboard, Doctor, Release Check, current Brew, and
+  next Shot;
+- Evidence Bundle query and citation display;
+- Doctor details with severity, path, finding code, and safe next action;
+- Fleet summary with missing-registry handling;
+- Ask Coffee as local evidence plus deterministic prompt/checklist drafting;
+- allowlisted command execution with argument lists, command preview, stdout,
+  stderr, exit code, and failure status.
+
+Brew 27 should keep these out of MVP:
+
+- remote model calls;
+- OpenRouter calls;
+- sending context to a remote Bean;
+- file editing;
+- raw Roastery output inspection;
+- Git staging, commits, pushes, or tags;
+- background autonomous behavior.
