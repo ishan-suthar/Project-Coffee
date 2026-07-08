@@ -1424,3 +1424,56 @@ Needs improvement:
 - Brew 27C should close the MVP if the completion criteria remain satisfied.
 - A future UI polish pass can improve visual layout and warning display depth after the local-only command surface is accepted.
 - Remote Bean routing, file edits, Git operations, raw Roastery output inspection, and background automation remain intentionally out of scope.
+
+### 2026-07-08 - Brew 28 / Shot 28B: UI Evidence Bundle Integration Dogfood
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile ui\coffee_counter_app.py
+python tools\coffee.py evidence-bundle --root . --query "Coffee Counter UI evidence bundle" --max-results 8 --json
+python tools\coffee.py evidence-bundle --root . --query "zzzz_unique_no_match_query_280000" --max-results 5 --json
+python tools\coffee.py doctor --root .
+python tools\coffee.py release-check --root .
+python tools\coffee.py ledger-summary --root . --max-entries 5
+python tools\coffee.py fleet-status --root .
+python -m streamlit run --server.headless=true --server.port=8765 --browser.gatherUsageStats=false ui\coffee_counter_app.py
+```
+
+Observed behavior:
+
+- Focused Coffee Counter UI tests passed: 17 tests.
+- `ui/coffee_counter_app.py` compiled successfully.
+- Evidence Bundle JSON query returned structured local evidence with source paths, headings, snippets, scores, freshness, and safety labels.
+- Zero-match JSON query exited 0 with `total_matches: 0`, an empty bundle, and no warnings.
+- Doctor returned `WARN` with the known non-blocking warning state.
+- Release Check returned `OK`.
+- Ledger Summary returned recent local-only evidence entries.
+- Fleet Status safely reported missing default `fleet/projects.json` as `INFO`.
+- Streamlit was already installed locally; no package install was performed.
+- Streamlit server smoke passed when launched as a background job: root returned HTTP 200 and health returned OK.
+- Streamlit UI harness verified Ask Coffee local-only showed the evidence command, evidence table, local evidence draft, not-model-generated label, source/snippet evidence, and "No model call was made."
+- Streamlit UI harness verified the zero-match query showed an honest no-evidence / insufficient-evidence state.
+- Streamlit UI harness verified the Evidence Bundle tab showed Markdown output, JSON output, and structured evidence rows.
+- Dashboard, Doctor, Release Check, Ledger Summary, Evidence Bundle, and Fleet Status buttons remain present in the UI.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The Coffee Counter UI can turn local Evidence Bundle JSON into inspectable evidence rows and a deterministic local-only draft.
+- Zero-match behavior is honest and non-failing.
+- The exact safe CLI command remains visible.
+- The UI path preserves the no-model/no-OpenRouter/no-external-API boundary.
+
+Needs improvement:
+
+- Brew 28C should close the integration if completion criteria remain satisfied.
+- Future UI work can make evidence tables easier to scan and add clearer citation affordances.
+- Brew 29 should add routing approval gates before any remote Bean can receive local context.

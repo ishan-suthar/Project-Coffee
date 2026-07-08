@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 28 - UI + Evidence Bundle Integration in progress.
+Brew 28 - UI + Evidence Bundle Integration dogfood complete.
 
 ## What matters right now
 
@@ -79,20 +79,21 @@ Brew 28 - UI + Evidence Bundle Integration in progress.
 - Brew 27 / 27A implemented the local-only Streamlit Coffee Counter MVP with a safe allowlisted command adapter.
 - Brew 27 / 27B dogfooded the Streamlit Coffee Counter MVP command adapter and local UI smoke path with tests, compile checks, wrapped Coffee CLI commands, Streamlit server health, and Streamlit tab/button checks.
 - Brew 27 / 27C closed the Streamlit Coffee Counter MVP after completion criteria, focused validation, local smoke evidence, and safety boundaries were confirmed.
-- Brew 28 / 28A is integrating structured Evidence Bundle display and local-only answer drafting into the Coffee Counter UI.
+- Brew 28 / 28A integrated structured Evidence Bundle display and local-only answer drafting into the Coffee Counter UI.
+- Brew 28 / 28B dogfooded the Evidence Bundle UI path with focused tests, compile checks, JSON and zero-match CLI queries, supporting Coffee CLI tools, Streamlit server health, and Streamlit UI harness checks.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 28B - dogfood the Coffee Counter Evidence Bundle UI integration.
+1. Brew 28C - close UI + Evidence Bundle Integration if completion criteria pass.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 28B planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 28A made no model/API call, OpenRouter call, external API call, release tag, staging action, or commit.
+No active blocker for Brew 28C planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 28B made no model/API call, OpenRouter call, external API call, release tag, staging action, or commit.
 
 ## Last updated
 
-2026-07-08 - Brew 28 / 28A Evidence Bundle UI integration implemented
+2026-07-08 - Brew 28 / 28B Evidence Bundle UI integration dogfooded
