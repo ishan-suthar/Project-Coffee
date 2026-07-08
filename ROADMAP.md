@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 19 — Ledger Summarizer complete |
-| Current milestone | Ledger Summarizer, guide, focused tests, dogfood evidence, bullet parsing fix, and closeout docs complete |
-| Next step | Brew 20 — Release Packaging |
-| Recent foundation result | Brew 19A added the Ledger Summarizer; Brew 19B dogfooded it; Brew 19B-fix improved bullet parsing; Brew 19C closed the Ledger workflow |
-| Blockers | None for Brew 20 planning |
+| Current shot | Brew 20 — Release Packaging complete |
+| Current milestone | Release checker, guide, focused tests, dogfood evidence, Unified CLI integration, tag reporting, and closeout docs complete |
+| Next step | Brew 21 — Local RAG Design Only |
+| Recent foundation result | Brew 20A added the Release Packaging Check; Brew 20B dogfooded it; Brew 20C closed the release packaging workflow |
+| Blockers | None for Brew 21 design |
 
 ## Phase 1 goal
 
@@ -171,3 +171,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 17 / 17A-17C | Coffee Doctor MVP | Complete | 2026-07-08 |
 | Brew 18 / 18A-18C | Unified Coffee CLI | Complete | 2026-07-08 |
 | Brew 19 / 19A-19C | Ledger Summarizer | Complete | 2026-07-08 |
+| Brew 20 / 20A-20C | Release Packaging | Complete | 2026-07-08 |

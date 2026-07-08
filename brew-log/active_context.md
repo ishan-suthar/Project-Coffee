@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 20 - Release Packaging in progress.
+Brew 20 - Release Packaging complete.
 
 ## What matters right now
 
@@ -57,19 +57,20 @@ Brew 20 - Release Packaging in progress.
 - Brew 19 / 19C closed the Ledger Summarizer after completion criteria, tests, compile checks, help, root summary, JSON, max entries, date filtering, output report mode, missing-ledger failure, invalid-date failure, bullet scratch parsing, and Unified Coffee CLI validation passed.
 - Brew 20 / 20A added a standard-library Release Packaging Check for repo, docs, tools, templates, safety, evidence, and tag readiness, plus Unified Coffee CLI delegation.
 - Brew 20 / 20B dogfooded the Release Packaging Check against Project Coffee and `tmp/release-check-smoke`, validating help, JSON, section filtering, strict blocker behavior, focused tests, syntax compilation, Unified Coffee CLI delegation, and scratch tracking checks.
+- Brew 20 / 20C closed Release Packaging after completion criteria passed for the checker, guide, tests, CLI integration, dogfood evidence, tag reporting, safety checks, and docs readiness.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 20 / 20C - Close Release Packaging.
+1. Brew 21 - Local RAG Design Only.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 20C. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 21 design. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 20 / 20B Release Packaging Check dogfooded
+2026-07-08 - Brew 20 / 20C Release Packaging closed

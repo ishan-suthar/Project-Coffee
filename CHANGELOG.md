@@ -133,3 +133,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Dogfooded root summaries, JSON mode, max entries, date filtering, output report mode, missing-ledger failure, invalid-date failure, scratch Ledger parsing, and Unified CLI delegation without model or API calls.
 - Fixed bullet-style Ledger parsing for `Cost:`, `Tokens:`, `Model/API calls:`, `Evidence:`, and `Notes:` fields after dogfood evidence exposed a scratch parsing gap.
 - Marked Ledger Summarizer complete and set next recommended work to Brew 20, Release Packaging.
+
+### Added (Brew 20 / Release Packaging)
+
+- Added `tools/release_check.py`, a standard-library read-only release readiness checker for repo, docs, tools, templates, safety, evidence, and tag reporting.
+- Added focused tests and the Release Packaging Guide, linked from the docs index.
+- Integrated `release-check` into the Unified Coffee CLI.
+- Dogfooded help, root checks, JSON mode, docs/tools/safety/tags section filtering, strict fail-on-blocker behavior, incomplete scratch-root blockers, focused tests, syntax compilation, and Unified CLI delegation without model or API calls.
+- Confirmed existing release tags are reported but not changed by the checker.
+- Marked Release Packaging complete and set next recommended work to Brew 21, Local RAG Design Only.
