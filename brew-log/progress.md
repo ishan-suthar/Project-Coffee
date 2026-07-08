@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 19 / 19B-fix - Ledger Summarizer scratch parsing fixed. Next active work: Brew 19C - close Ledger Summarizer.
+Current status: Brew 19 - Ledger Summarizer complete. Next active work: Brew 20 - Release Packaging.
 
 ## Completed
 
@@ -119,6 +119,7 @@ Current status: Brew 19 / 19B-fix - Ledger Summarizer scratch parsing fixed. Nex
 | 2026-07-08 | Brew 19 / Shot 19A — Ledger Summarizer MVP | `tools/ledger_summary.py`, focused tests, guide, docs link, and Unified Coffee CLI delegation added for local Ledger cost/token/workflow summaries |
 | 2026-07-08 | Brew 19 / Shot 19B — Dogfood Ledger Summarizer | Project Coffee Ledger summary, JSON, max entries, date filtering, output report, scratch Ledger parsing, invalid-date failure, focused tests, compile, and Unified Coffee CLI delegation passed; evidence recorded in Roastery and Ledger |
 | 2026-07-08 | Brew 19 / Shot 19B-fix — Fix Ledger Summarizer scratch parsing | Bullet-style Ledger fields for cost, tokens, model/API calls, evidence, and notes now parse correctly; focused tests, compile, scratch acceptance, root summary, JSON, and invalid-date checks passed |
+| 2026-07-08 | Brew 19 / Shot 19C — Close Ledger Summarizer | Completion criteria passed; tests, compile, help, root summary, JSON, max entries, date filtering, output report, failure handling, bullet scratch parsing, guide link, dogfood evidence, and Unified CLI integration confirmed |
 
 ## Attempted (blocked)
 
@@ -132,10 +133,10 @@ None.
 
 ## Up next
 
-1. Brew 19C - Close Ledger Summarizer if completion criteria are satisfied.
+1. Brew 20 - Release Packaging.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 19C closeout. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 20 planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.

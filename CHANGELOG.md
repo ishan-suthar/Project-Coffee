@@ -124,3 +124,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Added focused delegation tests and the Unified Coffee CLI Guide, linked from the docs index.
 - Dogfooded help, version, dashboard, doctor, Pantry Search, onboarding check, template dry-run, Roastery report, JSON forwarding, section forwarding, and fail-flag forwarding without model or API calls.
 - Marked Unified Coffee CLI complete and set next recommended work to Brew 19, Cost / Token Ledger Summarizer.
+
+### Added (Brew 19 / Ledger Summarizer)
+
+- Added `tools/ledger_summary.py`, a standard-library local Ledger summarizer for cost, token, local-only, model/API, unknown, and recent-entry evidence.
+- Added focused tests and the Ledger Summary Guide, linked from the docs index.
+- Integrated `ledger-summary` into the Unified Coffee CLI.
+- Dogfooded root summaries, JSON mode, max entries, date filtering, output report mode, missing-ledger failure, invalid-date failure, scratch Ledger parsing, and Unified CLI delegation without model or API calls.
+- Fixed bullet-style Ledger parsing for `Cost:`, `Tokens:`, `Model/API calls:`, `Evidence:`, and `Notes:` fields after dogfood evidence exposed a scratch parsing gap.
+- Marked Ledger Summarizer complete and set next recommended work to Brew 20, Release Packaging.

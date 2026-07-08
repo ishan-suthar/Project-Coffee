@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 19 - Ledger Summarizer in progress.
+Brew 19 - Ledger Summarizer complete.
 
 ## What matters right now
 
@@ -54,19 +54,20 @@ Brew 19 - Ledger Summarizer in progress.
 - Brew 19 / 19A added a standard-library Ledger Summarizer MVP for local cost/token/workflow evidence summaries and wired it into the Unified Coffee CLI.
 - Brew 19 / 19B dogfooded the Ledger Summarizer against the Project Coffee Ledger and a scratch Ledger fixture, including JSON, date filtering, output report mode, invalid-date failure, tests, compile checks, and Unified Coffee CLI delegation.
 - Brew 19 / 19B-fix added bullet-style Ledger entry parsing for `Cost:`, `Tokens:`, `Model/API calls:`, `Evidence:`, and `Notes:` fields after dogfood found scratch parsing gaps.
+- Brew 19 / 19C closed the Ledger Summarizer after completion criteria, tests, compile checks, help, root summary, JSON, max entries, date filtering, output report mode, missing-ledger failure, invalid-date failure, bullet scratch parsing, and Unified Coffee CLI validation passed.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 19C - Close the Ledger Summarizer if completion criteria are satisfied.
+1. Brew 20 - Release Packaging.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 19C closeout. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 20 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 19 / 19B-fix Ledger Summarizer scratch parsing fixed
+2026-07-08 - Brew 19 / 19C Ledger Summarizer closed
