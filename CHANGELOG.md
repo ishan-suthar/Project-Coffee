@@ -189,3 +189,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Defined the UI purpose, layout, screens, Brew 27 MVP scope, non-MVP boundaries, safe tool integration model, approval gates, UI states, future routing display, safety copy, proposed Brew 27 file structure, and Streamlit dependency policy.
 - Reviewed ten realistic Coffee Counter workflows before implementation and recorded gaps for command wrappers, local-only Ask Coffee, warning details, no-evidence handling, and disabled remote/Git write actions.
 - Marked Coffee Counter UI Design complete and set next recommended work to Brew 27, Streamlit Coffee Counter MVP.
+
+### Added (Brew 27 / Streamlit Coffee Counter MVP)
+
+- Added `ui/coffee_counter_app.py`, `ui/README.md`, and focused Coffee Counter UI adapter tests.
+- Built the first local-only Streamlit Coffee Counter MVP with Home / Overview, Ask Coffee, Evidence Bundle, Ledger, Fleet, and Safety / Commands areas.
+- Kept the command adapter allowlisted, testable without importing Streamlit, and limited to local Coffee CLI tools.
+- Dogfooded tests, syntax compilation, wrapped Coffee CLI commands, adapter safety checks, Streamlit server health, and Streamlit tab/button behavior without model/API calls, OpenRouter calls, package installs, raw-output inspection, staging, or commits.
+- Marked the Streamlit Coffee Counter MVP complete and set next recommended work to Brew 28, UI + Evidence Bundle Integration.

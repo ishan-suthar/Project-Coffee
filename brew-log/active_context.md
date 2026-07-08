@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 27 - Streamlit Coffee Counter MVP dogfood complete.
+Brew 27 - Streamlit Coffee Counter MVP complete.
 
 ## What matters right now
 
@@ -76,21 +76,22 @@ Brew 27 - Streamlit Coffee Counter MVP dogfood complete.
 - Brew 26 / 26A is designing the Coffee Counter UI with a Streamlit-first direction and no UI implementation yet.
 - Brew 26 / 26B reviewed the Coffee Counter UI design against ten realistic workflows and kept the Brew 27 MVP local-only.
 - Brew 26 / 26C closed Coffee Counter UI Design and set next work to Brew 27 Streamlit Coffee Counter MVP.
-- Brew 27 / 27A is implementing the local-only Streamlit Coffee Counter MVP with a safe allowlisted command adapter.
+- Brew 27 / 27A implemented the local-only Streamlit Coffee Counter MVP with a safe allowlisted command adapter.
 - Brew 27 / 27B dogfooded the Streamlit Coffee Counter MVP command adapter and local UI smoke path with tests, compile checks, wrapped Coffee CLI commands, Streamlit server health, and Streamlit tab/button checks.
+- Brew 27 / 27C closed the Streamlit Coffee Counter MVP after completion criteria, focused validation, local smoke evidence, and safety boundaries were confirmed.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 27C - close the Streamlit Coffee Counter MVP if completion criteria pass.
+1. Brew 28 - UI + Evidence Bundle Integration.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
-3. Keep the first UI MVP local-only: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection.
+3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 27C planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 27B made no model/API call, release tag, staging action, or commit.
+No active blocker for Brew 28 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 27C made no model/API call, release tag, staging action, or commit.
 
 ## Last updated
 
-2026-07-08 - Brew 27 / 27B Streamlit Coffee Counter MVP dogfooded
+2026-07-08 - Brew 27 / 27C Streamlit Coffee Counter MVP closed
