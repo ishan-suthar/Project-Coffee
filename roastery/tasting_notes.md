@@ -1042,3 +1042,89 @@ Needs improvement:
 - Brew 21C should close the design if the review notes are sufficient.
 - Brew 22 should stay model-free and implement evidence bundles before any
   chat UI, embeddings, or vector database.
+
+### 2026-07-08 - Brew 22 / Shot 22B: Local Evidence Bundle Dogfood
+
+Commands run:
+
+```powershell
+python tools\evidence_bundle.py --help
+python tools\evidence_bundle.py --root . --list-sources
+python tools\evidence_bundle.py --root . --query "current Brew next Shot" --max-results 5
+python tools\evidence_bundle.py --root . --query "House Blend default Bean" --max-results 5
+python tools\evidence_bundle.py --root . --query "Brew 19 Ledger Summarizer" --max-results 5
+python tools\evidence_bundle.py --root . --query "Local RAG evidence bundle" --max-results 5
+python tools\evidence_bundle.py --root . --query "release packaging" --max-results 5
+python tools\evidence_bundle.py --root . --query "Coffee Doctor" --max-results 5 --json
+python tools\evidence_bundle.py --root . --query "Brew 21" --source brew-log/progress.md --max-results 3
+python tools\evidence_bundle.py --root . --query "onboarding" --max-results 3 --output tmp\evidence-bundle-smoke\dogfood-bundle.md
+python tools\evidence_bundle.py --root . --query "Coffee Doctor" --max-results 3 --json --output tmp\evidence-bundle-smoke\dogfood-bundle.json
+python tools\evidence_bundle.py --root . --query "skipenvdogfoodunique" --max-results 5
+python tools\evidence_bundle.py --root . --query "scratchknowledgeunique" --max-results 5
+python tools\evidence_bundle.py --root . --query "rawlocaloutputunique" --max-results 5
+python tools\evidence_bundle.py --root . --query "zzdogfoodnomatch20260708unique" --max-results 5
+python -m unittest tests.test_evidence_bundle
+python -m py_compile tools\evidence_bundle.py
+python tools\coffee.py evidence-bundle --root . --query "House Blend" --max-results 5
+python tools\coffee.py evidence-bundle --root . --query "Coffee Doctor" --max-results 5 --json
+git status --short --untracked-files=all -- tmp\evidence-bundle-smoke
+git ls-files -- tmp\evidence-bundle-smoke
+```
+
+Observed behavior:
+
+- Help worked and listed query, max-results, JSON, source narrowing, source
+  listing, and output flags.
+- `--list-sources` listed the expected allowlisted Project Coffee sources:
+  policy files, Roadmap, Changelog, Brew Log, docs, design docs, knowledge,
+  Roastery notes, Ledger, and House Blend.
+- Realistic Project Coffee queries returned useful local evidence:
+  - `current Brew next Shot` surfaced Local RAG design coverage and the current
+    `brew-log/progress.md` status.
+  - `House Blend default Bean` surfaced House Blend, model-routing docs,
+    progress entries, and Roastery evidence.
+  - `Brew 19 Ledger Summarizer` surfaced Roastery dogfood notes, Changelog, and
+    Ledger evidence.
+  - `Local RAG evidence bundle` surfaced Brew 22 progress, Brew 21 Ledger
+    evidence, and Local RAG design sections.
+  - `release packaging` surfaced the Release Packaging Guide, Changelog,
+    Roastery evidence, and Ledger evidence.
+- JSON mode worked for `Coffee Doctor`; output parsed with 800 total matches and
+  5 bundle items.
+- Source narrowing worked for `--source brew-log/progress.md`; all returned
+  items came from that file.
+- Output mode wrote Markdown and JSON bundles under `tmp\evidence-bundle-smoke`.
+- Scratch safety fixtures under `tmp\evidence-bundle-smoke`, including a
+  synthetic `.env`, scratch Markdown, and scratch raw-output path, did not
+  surface when queried by unique marker.
+- Zero-match behavior returned exit `0` and printed `No evidence matches found`.
+- Focused tests passed: 17 tests.
+- Syntax compilation passed for `tools\evidence_bundle.py`.
+- Unified Coffee CLI delegation worked in human-readable and JSON modes.
+- Scratch files were not tracked; `git ls-files -- tmp\evidence-bundle-smoke`
+  returned no tracked files.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Evidence bundles can ground Project Coffee answers in local paths, headings,
+  snippets, freshness signals, safety classifications, and reasons selected.
+- The allowlist/exclusion model kept synthetic `.env`, scratch `tmp`, and raw
+  output fixture content out of results.
+- JSON and output modes are ready for future UI/tool consumption.
+- Unified Coffee CLI integration gives the MVP a consistent command surface.
+
+Needs improvement:
+
+- Ranking is useful but still keyword-heavy. The `House Blend default Bean`
+  query surfaced relevant guide and evidence entries, but the exact current
+  House Blend table row did not always rank first without source narrowing.
+- Brew 22C should close the MVP if this dogfood evidence is sufficient.
+- Future polish should add query-class source profiles and conflict/freshness
+  handling before any chat UI work.

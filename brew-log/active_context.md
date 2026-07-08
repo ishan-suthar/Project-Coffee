@@ -62,19 +62,20 @@ Brew 22 - Local RAG MVP in progress.
 - Brew 21 / 21B reviewed the Local RAG design against ten realistic Project Coffee questions, confirming coverage and recording Brew 22 gaps around explicit source profiles, release-proof evidence, stale evidence, and conflicting docs.
 - Brew 21 / 21C closed Local RAG Design after confirming the design, guide, review evidence, safety boundaries, future UI dependency, approval model, and Brew 22 MVP scope were complete.
 - Brew 22 / 22A added the standard-library Local Evidence Bundle MVP for safe allowlisted keyword retrieval, Markdown/JSON bundle output, source narrowing, and Unified Coffee CLI delegation without embeddings, vector databases, model calls, or external APIs.
+- Brew 22 / 22B dogfooded Local Evidence Bundles against realistic Project Coffee questions and scratch safety fixtures, validating source listing, JSON, source narrowing, output mode, excluded-path skips, zero-match behavior, tests, compile checks, Unified Coffee CLI delegation, and scratch tracking checks.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 22 / 22B - Dogfood Local Evidence Bundle MVP and record evidence.
+1. Brew 22 / 22C - Close Local RAG MVP.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 22B. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 22C. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 22 / 22A Local Evidence Bundle MVP implemented
+2026-07-08 - Brew 22 / 22B Local Evidence Bundle MVP dogfooded
