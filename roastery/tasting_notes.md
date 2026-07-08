@@ -1128,3 +1128,55 @@ Needs improvement:
 - Brew 22C should close the MVP if this dogfood evidence is sufficient.
 - Future polish should add query-class source profiles and conflict/freshness
   handling before any chat UI work.
+
+### 2026-07-08 - Brew 23 / Shot 23B: Model Routing Policy Dogfood
+
+Review method:
+
+- Docs and evidence-only scenario review.
+- No routing code was implemented.
+- No model runner logic was edited.
+- No models, OpenRouter calls, external APIs, package installs, raw Roastery
+  local outputs, or secrets were used.
+
+Scenarios reviewed:
+
+| Scenario | Routing decision | Approval required? | Context allowed |
+| --- | --- | --- | --- |
+| Current Brew and next Shot | Local evidence only | No | Brew Log, Roadmap, Changelog, local status docs |
+| Summarize House Blend decision | Local evidence bundle first; remote rewrite only if approved | Only for remote rewrite | House Blend, Roastery, Ledger, routing guide |
+| Fix a tiny Python bug | Local inspection/tests; default Bean only after context approval | Yes before remote code context | Small approved snippet and test output |
+| Search Pantry for onboarding instructions | Local Pantry Search / evidence bundle | No | Pantry, onboarding docs, template docs |
+| Run a model benchmark | Roastery workflow | Yes | Approved Order, selected Beans, summarized evidence |
+| Send repo context to a model | Approval gate and context preview | Yes | Preview only; no secrets, `.env`, raw outputs, or excluded paths |
+| Why did Poolside fail? | Local Roastery/Ledger evidence | No | Recorded failure notes and House Blend evidence |
+| Which files are unsafe to retrieve? | Local policy/evidence answer | No | Local RAG design, evidence rules, routing policy |
+| Future UI: do the next Shot for me | Decaf plan plus safe local tools | Yes before edits, remote calls, staging, or commits | Current Brew Log and allowlisted docs |
+| Default Bean fails or is rate-limited | Fallback only if safe and approved | Maybe; fallback approval must be explicit | Same approved context plus failure metadata |
+
+What worked:
+
+- The policy covers the expected routing decisions for status, House Blend,
+  Pantry, failure explanation, unsafe retrieval, benchmark, coding, and UI
+  scenarios.
+- Local-only answers remain the default for status, evidence, Pantry, cost,
+  release, and safety-sensitive questions.
+- Approval gates are clear before remote context, cost-bearing calls, House
+  Blend changes, and risky workflow actions.
+
+Gaps found:
+
+- Future UI needs a visible context preview before any remote Bean receives
+  local evidence.
+- Fallback consent should be explicit in route records instead of assumed after
+  a default Bean failure.
+- Brew 24 fleet support needs project-local routing state: source allowlists,
+  approval state, route decisions, and evidence records per project or assistant
+  surface.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this review; not metered.
+- Cost: none / local-only; no external API cost.

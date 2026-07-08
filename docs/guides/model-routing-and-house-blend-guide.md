@@ -16,6 +16,11 @@ The implementation-ready routing rules live in [`../design/model-routing-policy.
 
 Use that policy when deciding between Decaf / no model, local evidence only, the default House Blend Bean, fallback Beans, comparison Beans, and human approval gates. This guide remains the practical explanation of current Bean roles and evidence.
 
+Brew 23 / 23B reviewed that policy against realistic Project Coffee scenarios.
+The review confirmed the local-first routing shape and added two future
+implementation notes: remote routes need a context preview, and fallback consent
+should be explicit.
+
 ## Coffee Core Concept
 
 Coffee Core is the local routing layer that lets Project Coffee compare and use replaceable model providers without making any one provider the identity of the project.

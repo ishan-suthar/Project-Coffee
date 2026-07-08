@@ -64,20 +64,21 @@ Brew 23 - Model Routing Policy Refinement in progress.
 - Brew 22 / 22A added the standard-library Local Evidence Bundle MVP for safe allowlisted keyword retrieval, Markdown/JSON bundle output, source narrowing, and Unified Coffee CLI delegation without embeddings, vector databases, model calls, or external APIs.
 - Brew 22 / 22B dogfooded Local Evidence Bundles against realistic Project Coffee questions and scratch safety fixtures, validating source listing, JSON, source narrowing, output mode, excluded-path skips, zero-match behavior, tests, compile checks, Unified Coffee CLI delegation, and scratch tracking checks.
 - Brew 22 / 22C closed Local RAG MVP after confirming the evidence bundle tool, tests, guide/design alignment, dogfood evidence, safety exclusions, output modes, Unified Coffee CLI integration, and no-model/no-embedding boundary were complete.
-- Brew 23 / 23A is designing the Model Routing Policy Refinement so future tools and UI can choose Decaf, local evidence only, default Bean, fallback Bean, comparison Bean, or human approval required before remote context is sent.
+- Brew 23 / 23A drafted the Model Routing Policy Refinement so future tools and UI can choose Decaf, local evidence only, default Bean, fallback Bean, comparison Bean, or human approval required before remote context is sent.
+- Brew 23 / 23B reviewed the policy against ten realistic routing scenarios and recorded gaps around context previews, explicit fallback consent, and Brew 24 fleet support.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 23 / 23B - Review and dogfood the Model Routing Policy against realistic routing scenarios.
+1. Brew 23 / 23C - Close Model Routing Policy Refinement if completion criteria are satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 23B planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 23C planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 23 / 23A Model Routing Policy Refinement drafted
+2026-07-08 - Brew 23 / 23B Model Routing Policy dogfood review recorded

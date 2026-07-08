@@ -1,6 +1,6 @@
 # Model Routing Policy
 
-Status: Brew 23 / 23A design draft
+Status: Brew 23 / 23B scenario-reviewed draft
 Date: 2026-07-08
 
 ## Purpose
@@ -70,6 +70,7 @@ Each future routing decision should produce:
 - selected mode;
 - selected Bean, if applicable;
 - context allowed;
+- context preview for any remote route;
 - approval needed;
 - reason;
 - fallback plan.
@@ -134,16 +135,48 @@ A future Project Coffee UI or chat surface should show:
 - selected routing mode;
 - selected Bean, if any;
 - whether approval is required;
-- what context would be sent remotely;
+- what context would be sent remotely, with a preview before approval;
 - why the Bean was selected;
 - fallback plan if the route fails;
 - a clear stop point before remote context is sent.
 
 The UI should make local-only answers feel normal, not like a degraded mode.
 
+## Brew 23B Scenario Review
+
+The policy was reviewed against ten realistic Project Coffee scenarios before
+any routing implementation or UI work.
+
+| Scenario | Routing decision | Approval required? | Allowed context | Review result |
+| --- | --- | --- | --- | --- |
+| Current Brew and next Shot | Local evidence only. | No. | Brew Log, Roadmap, Changelog, and local status docs. | Covered. This should be answered from local evidence, not memory or a remote Bean. |
+| Summarize the House Blend decision | Local evidence bundle first; default Bean only if a rewrite is needed. | No for local summary; yes before sending the evidence bundle remotely. | House Blend config, Roastery notes, Ledger, model-routing guide. | Covered. Future UI should show the evidence bundle preview before remote rewrite approval. |
+| Fix a tiny Python bug | Local inspection and tests first; default Bean or coding-capable fallback only after context approval. | Yes before code context is sent remotely. | Small approved snippet, relevant test output, no secrets or production configs. | Covered. Local tests remain required before closeout. |
+| Search Pantry for onboarding instructions | Local Pantry Search or evidence bundle. | No. | `knowledge/`, onboarding docs, template docs, Brew Log if relevant. | Covered. No remote Bean is needed. |
+| Run a model benchmark | Roastery workflow with comparison Beans. | Yes before model calls, costs, or House Blend changes. | The approved Order, selected Beans, runner metadata, and summarized outputs after review. | Covered. Ledger and Roastery recording are required. |
+| Send this repo context to a model | Human approval gate before any remote context. | Yes. | Context preview only; no secrets, `.env`, raw local outputs, or excluded paths. | Covered with clarification: future UI/tooling should show exactly what would be sent. |
+| Why did Poolside fail? | Local Roastery/Ledger evidence only. | No. | Roastery notes, Ledger entries, House Blend config. | Covered. No model is needed to explain recorded failure evidence. |
+| Which files are unsafe to retrieve? | Local policy/evidence answer. | No. | Local RAG design, evidence bundle rules, Doctor/release safety docs, this policy. | Covered. The answer should cite excluded source rules. |
+| Future UI: do the next Shot for me | Decaf plan plus safe local tools. | Yes before edits, remote Bean use, staging, commits, or risky actions. | Current Brew Log, relevant docs, allowlisted local evidence. | Covered. UI must preserve human approval and manual commit gates. |
+| Default Bean fails or is rate-limited | Use fallback only when task remains safe and approval covers the fallback path. | Possibly. Approval is needed if fallback was not included in the original approved route. | Same approved context; failure metadata for Roastery/Ledger. | Covered with gap: fallback consent should be explicit in future route records. |
+
+## Gaps And Implementation Implications
+
+- Future UI needs a visible route card: selected mode, selected Bean, context
+  preview, approval state, reason, and fallback plan.
+- Fallback consent should be explicit. A remote approval should say whether it
+  authorizes only the default Bean or also authorizes named fallback Beans.
+- Brew 24 fleet support should treat routing as project-local state: each
+  project or assistant surface needs its own source allowlist, approval state,
+  route decision, and evidence record.
+- Fleet support should not assume one global context package is safe for every
+  project. Evidence bundles need project identity and safety classification.
+- Future implementation should keep local-only paths fast and normal so the UI
+  does not pressure the human into unnecessary remote calls.
+
 ## Non-goals
 
-- No model runner changes in Brew 23A.
+- No model runner changes in Brew 23A or 23B.
 - No automatic OpenRouter calls.
 - No embeddings or vector database changes.
 - No automatic context upload.
