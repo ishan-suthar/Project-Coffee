@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 25 - v1.0 Release Closeout in progress.
+Brew 26 - Coffee Counter UI Design in progress.
 
 ## What matters right now
 
@@ -73,19 +73,20 @@ Brew 25 - v1.0 Release Closeout in progress.
 - Brew 25 / 25A is preparing the v1.0 stronger-base release closeout checklist and handoff framework before UI work begins.
 - Brew 25 / 25B dogfooded the v1.0 stronger-base validation stack and recorded readiness as READY WITH WARNINGS.
 - Brew 25 / 25C closed the stronger-base phase as READY WITH WARNINGS and kept release tagging manual.
+- Brew 26 / 26A is designing the Coffee Counter UI with a Streamlit-first direction and no UI implementation yet.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 26 - Coffee Counter UI Design.
+1. Brew 26B - review the Coffee Counter UI design before Streamlit implementation.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
-3. Preserve full model outputs in future Cup Tests before scoring quality.
+3. Brew 27 - Streamlit Coffee Counter MVP, only after design review and dependency approval.
 
 ## Blockers
 
-No active blocker for Brew 26 planning. No release tag has been created. Optional v1.0 or v1.0-stronger-base tagging requires human review, staged secret-pattern check from Project Coffee policy, manual commit, and explicit tag approval.
+No active blocker for Brew 26B planning. No UI code, Streamlit dependency, model/API call, release tag, staging, or commit has been added by Brew 26A.
 
 ## Last updated
 
-2026-07-08 - Brew 25 / 25C v1.0 stronger-base phase closed
+2026-07-08 - Brew 26 / 26A Coffee Counter UI design drafted

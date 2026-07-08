@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 25 - v1.0 Release Closeout complete. Next active work: Brew 26 - Coffee Counter UI Design.
+Current status: Brew 26A - Coffee Counter UI Design drafted. Next active work: Brew 26B - review Coffee Counter UI design before implementation.
 
 ## Completed
 
@@ -138,6 +138,7 @@ Current status: Brew 25 - v1.0 Release Closeout complete. Next active work: Brew
 | 2026-07-08 | Brew 25 / Shot 25A - v1.0 Release Closeout Checklist | v1.0 stronger-base closeout checklist and handoff framework drafted; docs index, operating manual, roadmap, changelog, and Brew Log updated for Brew 25B review |
 | 2026-07-08 | Brew 25 / Shot 25B - Dogfood v1.0 Release Closeout | Stronger-base validation stack passed with readiness READY WITH WARNINGS; Release Check OK, focused tests and compile checks passed, no model/API calls, no tag created |
 | 2026-07-08 | Brew 25 / Shot 25C - Close v1.0 Stronger Base | Brew 25 closed as READY WITH WARNINGS; optional manual tag policy documented; next recommended work set to Brew 26 Coffee Counter UI Design |
+| 2026-07-08 | Brew 26 / Shot 26A - Coffee Counter UI Design | Streamlit-first Coffee Counter UI design and guide drafted; MVP scope, layout, safe tool integration, approval gates, dependency policy, and Brew 27 acceptance criteria documented |
 
 ## Attempted (blocked)
 
@@ -151,10 +152,10 @@ None.
 
 ## Up next
 
-1. Brew 26 - Coffee Counter UI Design.
+1. Brew 26B - review the Coffee Counter UI design before Streamlit implementation.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
-3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
+3. Brew 27 - Streamlit Coffee Counter MVP, only after design review and dependency approval.
 
 ## Blockers
 
-No active blocker for Brew 26 planning. No release tag has been created. Optional v1.0 or v1.0-stronger-base tagging requires human review, staged secret-pattern check from Project Coffee policy, manual commit, and explicit tag approval. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 26B planning. No UI code, Streamlit dependency, model/API call, release tag, staging, or commit has been added by Brew 26A. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
