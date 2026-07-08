@@ -142,3 +142,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Dogfooded help, root checks, JSON mode, docs/tools/safety/tags section filtering, strict fail-on-blocker behavior, incomplete scratch-root blockers, focused tests, syntax compilation, and Unified CLI delegation without model or API calls.
 - Confirmed existing release tags are reported but not changed by the checker.
 - Marked Release Packaging complete and set next recommended work to Brew 21, Local RAG Design Only.
+
+### Added (Brew 21 / Local RAG Design)
+
+- Added `docs/design/local-rag-design.md` for a local-first evidence bundle layer before embeddings, vector search, model calls, or chat UI implementation.
+- Added the Local RAG Guide and linked it from the docs index.
+- Defined retrieval sources, excluded sources, retrieval levels, evidence bundle format, grounding rules, query classes, safety rules, remote Bean approval model, integration plan, future UI dependency, and Brew 22 MVP scope.
+- Reviewed the design against ten realistic Project Coffee questions and recorded gaps around source profiles, release-proof evidence, freshness scoring, and conflict handling.
+- Marked Local RAG Design complete and set next recommended work to Brew 22, Local RAG MVP.

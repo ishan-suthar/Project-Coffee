@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 21 / Shot 21B - Local RAG Design reviewed. Next active work: Brew 21 / Shot 21C - Close Local RAG Design.
+Current status: Brew 21 - Local RAG Design complete. Next active work: Brew 22 - Local RAG MVP.
 
 ## Completed
 
@@ -125,6 +125,7 @@ Current status: Brew 21 / Shot 21B - Local RAG Design reviewed. Next active work
 | 2026-07-08 | Brew 20 / Shot 20C — Close Release Packaging | Completion criteria passed; release checker, tests, guide link, dogfood evidence, tag reporting, safety/evidence checks, Brew Log, Roadmap, and Changelog closeout confirmed |
 | 2026-07-08 | Brew 21 / Shot 21A — Local RAG Design | `docs/design/local-rag-design.md` and `docs/guides/local-rag-guide.md` drafted for a safe local evidence bundle layer before any embeddings, vector DB, model calls, or chat UI |
 | 2026-07-08 | Brew 21 / Shot 21B — Review Local RAG Design | Ten realistic Project Coffee questions reviewed; design coverage confirmed and Brew 22 gaps recorded for source profiles, release-proof evidence, freshness, and conflict handling |
+| 2026-07-08 | Brew 21 / Shot 21C — Close Local RAG Design | Completion criteria passed; design doc, guide link, retrieval sources/exclusions/levels, evidence bundle format, grounding rules, query classes, safety rules, approval model, integration plan, future UI dependency, Brew 22 MVP scope, and review evidence confirmed |
 
 ## Attempted (blocked)
 
@@ -138,10 +139,10 @@ None.
 
 ## Up next
 
-1. Brew 21 / Shot 21C - Close Local RAG Design.
+1. Brew 22 - Local RAG MVP.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 21C. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.
+No active blocker for Brew 22 planning. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context. Pantry Search dogfood noted a future polish opportunity around noisy token scoring for negative searches.

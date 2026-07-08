@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 21 - Local RAG Design in progress.
+Brew 21 - Local RAG Design complete.
 
 ## What matters right now
 
@@ -60,19 +60,20 @@ Brew 21 - Local RAG Design in progress.
 - Brew 20 / 20C closed Release Packaging after completion criteria passed for the checker, guide, tests, CLI integration, dogfood evidence, tag reporting, safety checks, and docs readiness.
 - Brew 21 / 21A designed the Local RAG layer as a local-first evidence bundle workflow, with retrieval sources, exclusions, levels, grounding rules, query classes, safety boundaries, integration points, Brew 22 MVP criteria, and non-goals.
 - Brew 21 / 21B reviewed the Local RAG design against ten realistic Project Coffee questions, confirming coverage and recording Brew 22 gaps around explicit source profiles, release-proof evidence, stale evidence, and conflicting docs.
+- Brew 21 / 21C closed Local RAG Design after confirming the design, guide, review evidence, safety boundaries, future UI dependency, approval model, and Brew 22 MVP scope were complete.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 21 / 21C - Close Local RAG Design.
+1. Brew 22 - Local RAG MVP.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 21C. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 22 planning. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 21 / 21B Local RAG design reviewed
+2026-07-08 - Brew 21 / 21C Local RAG Design closed
