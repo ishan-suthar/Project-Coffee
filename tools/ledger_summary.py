@@ -22,6 +22,10 @@ from typing import Any, Sequence, TextIO
 DATE_PATTERN = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 NUMBER_PATTERN = re.compile(r"(?<![\w.-])~?(\d[\d,]*)(?![\w.-])")
 MONEY_PATTERN = re.compile(r"\$\s*([0-9][0-9,]*(?:\.[0-9]+)?)")
+FIELD_PATTERN = re.compile(
+    r"^\s*(?:[-*]\s*)?(cost|tokens|model/api calls|model|api calls|evidence|notes)\s*:\s*(.*)$",
+    re.IGNORECASE,
+)
 
 SENSITIVE_PARTS = {
     ".env",
@@ -214,6 +218,7 @@ def parse_ledger(path: Path) -> list[LedgerEntry]:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
     entries = parse_markdown_tables(lines)
+    entries.extend(parse_bullet_entries(lines))
     if entries:
         return entries
     return parse_dated_fallback(lines)
@@ -295,6 +300,87 @@ def entry_from_cells(cells: Sequence[str], header_map: dict[str, int], line_numb
         notes=cell("value_notes", "notes", "evidence_notes"),
         source_line=line_number,
     )
+
+
+def parse_bullet_entries(lines: Sequence[str]) -> list[LedgerEntry]:
+    entries: list[LedgerEntry] = []
+    current: dict[str, Any] | None = None
+
+    for line_number, line in enumerate(lines, start=1):
+        if parse_table_cells(line) is not None:
+            continue
+
+        date_match = DATE_PATTERN.search(line)
+        field_match = FIELD_PATTERN.match(line)
+        if date_match and not field_match:
+            if current is not None:
+                entries.append(entry_from_bullet_fields(current))
+            current = {
+                "date_text": date_match.group(1),
+                "entry_date": parse_entry_date(date_match.group(1)),
+                "task": clean_entry_title(line),
+                "model_or_bean": "",
+                "task_type": "",
+                "tokens_text": "",
+                "cost_text": "",
+                "notes": [],
+                "source_line": line_number,
+            }
+            continue
+
+        if current is None:
+            continue
+
+        if field_match:
+            field_name = normalize_field_name(field_match.group(1))
+            value = field_match.group(2).strip()
+            if field_name == "cost":
+                current["cost_text"] = value
+            elif field_name == "tokens":
+                current["tokens_text"] = value
+            elif field_name == "model_api_calls":
+                current["model_or_bean"] = value
+            elif field_name in {"evidence", "notes"}:
+                append_note(current, value)
+            continue
+
+        stripped = line.strip()
+        if stripped.startswith(("-", "*")):
+            append_note(current, stripped.lstrip("-* ").strip())
+
+    if current is not None:
+        entries.append(entry_from_bullet_fields(current))
+    return entries
+
+
+def entry_from_bullet_fields(fields: dict[str, Any]) -> LedgerEntry:
+    return LedgerEntry(
+        date_text=str(fields["date_text"]),
+        entry_date=fields["entry_date"],
+        task=str(fields["task"]),
+        model_or_bean=str(fields["model_or_bean"]),
+        task_type=str(fields["task_type"]),
+        tokens_text=str(fields["tokens_text"]),
+        cost_text=str(fields["cost_text"]),
+        notes=" ".join(fields["notes"]).strip(),
+        source_line=int(fields["source_line"]),
+    )
+
+
+def clean_entry_title(line: str) -> str:
+    return line.strip().lstrip("#-* ").strip()
+
+
+def normalize_field_name(value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized in {"model/api calls", "api calls", "model"}:
+        return "model_api_calls"
+    return normalized.replace(" ", "_")
+
+
+def append_note(fields: dict[str, Any], value: str) -> None:
+    if value:
+        fields["notes"].append(value)
 
 
 def parse_dated_fallback(lines: Sequence[str]) -> list[LedgerEntry]:
@@ -389,6 +475,8 @@ def parse_cost(value: str) -> Decimal | None:
 def is_local_only(entry: LedgerEntry) -> bool:
     if has_model_or_api_call(entry):
         return False
+    if is_no_model_api_value(entry.model_or_bean):
+        return True
     primary_text = " ".join(
         part
         for part in (
@@ -415,6 +503,10 @@ def is_local_only(entry: LedgerEntry) -> bool:
 
 
 def has_model_or_api_call(entry: LedgerEntry) -> bool:
+    if is_no_model_api_value(entry.model_or_bean):
+        return False
+    if entry.model_or_bean.strip():
+        return True
     text = entry.combined_text.lower()
     if "no remote bean" in text or "no models" in text:
         return False
@@ -431,6 +523,33 @@ def has_model_or_api_call(entry: LedgerEntry) -> bool:
         "deepseek/",
     )
     return any(marker in text for marker in markers)
+
+
+def is_no_model_api_value(value: str) -> bool:
+    normalized = re.sub(r"\s+", " ", value.strip().lower())
+    if not normalized:
+        return False
+    exact_values = {
+        "none/local",
+        "none / local",
+        "none",
+        "no",
+        "local-only",
+        "local only",
+    }
+    if normalized in exact_values:
+        return True
+    markers = (
+        "no external api",
+        "no model",
+        "no models",
+        "no remote bean",
+        "local-only",
+        "local only",
+        "none/local",
+        "none / local",
+    )
+    return any(marker in normalized for marker in markers)
 
 
 def summarize_totals(entries: Sequence[EntrySummary], *, parsed_count: int) -> dict[str, Any]:

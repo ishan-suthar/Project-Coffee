@@ -52,19 +52,21 @@ Brew 19 - Ledger Summarizer in progress.
 - Brew 18 / 18B dogfooded the Unified Coffee CLI against the Project Coffee root, scratch template target, Pantry Search queries, onboarding check, and local Roastery report manifests; no models or external APIs were called.
 - Brew 18 / 18C closed the Unified Coffee CLI after completion criteria, focused tests, compile checks, help/version, dashboard, doctor, Pantry Search, onboarding check, template dry-run, Roastery report, JSON, section, and fail-flag validation passed.
 - Brew 19 / 19A added a standard-library Ledger Summarizer MVP for local cost/token/workflow evidence summaries and wired it into the Unified Coffee CLI.
+- Brew 19 / 19B dogfooded the Ledger Summarizer against the Project Coffee Ledger and a scratch Ledger fixture, including JSON, date filtering, output report mode, invalid-date failure, tests, compile checks, and Unified Coffee CLI delegation.
+- Brew 19 / 19B-fix added bullet-style Ledger entry parsing for `Cost:`, `Tokens:`, `Model/API calls:`, `Evidence:`, and `Notes:` fields after dogfood found scratch parsing gaps.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 19B - Dogfood the Ledger Summarizer and record honest evidence.
+1. Brew 19C - Close the Ledger Summarizer if completion criteria are satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 19B dogfood. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 19C closeout. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
 
 ## Last updated
 
-2026-07-08 - Brew 19 / 19A Ledger Summarizer MVP implemented
+2026-07-08 - Brew 19 / 19B-fix Ledger Summarizer scratch parsing fixed

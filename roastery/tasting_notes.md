@@ -781,3 +781,131 @@ Needs improvement:
   decide whether to update those health checks as a small closeout polish item.
 - The pre-existing ADR policy warning remains visible in Doctor output and
   should stay tracked separately from Unified CLI behavior.
+
+### 2026-07-08 - Brew 19 / Shot 19B: Ledger Summarizer Dogfood
+
+Scratch target:
+
+```text
+tmp/ledger-summary-smoke
+```
+
+Commands run:
+
+```powershell
+python tools\ledger_summary.py --help
+python tools\ledger_summary.py --root .
+python tools\ledger_summary.py --root . --json
+python tools\ledger_summary.py --root . --max-entries 5
+python tools\ledger_summary.py --root . --from 2026-07-01 --max-entries 5
+python tools\ledger_summary.py --root . --output tmp\ledger-summary-smoke\ledger-summary.md --max-entries 3
+python tools\ledger_summary.py --root . --ledger tmp\ledger-summary-smoke\scratch-ledger.md --max-entries 10
+python tools\ledger_summary.py --root . --ledger tmp\ledger-summary-smoke\scratch-ledger.md --json
+python tools\ledger_summary.py --root . --from 2026-99-99
+python -m unittest tests.test_ledger_summary
+python -m py_compile tools\ledger_summary.py
+python tools\coffee.py ledger-summary --root . --max-entries 3
+python tools\coffee.py ledger-summary --root . --json --max-entries 2
+git status --short --untracked-files=all -- tmp/ledger-summary-smoke
+git ls-files -- tmp/ledger-summary-smoke
+```
+
+Observed behavior:
+
+- Help worked and listed `--root`, `--ledger`, `--json`, `--from`, `--to`,
+  `--max-entries`, and `--output`.
+- Project Coffee Ledger summary worked against `ledger/cost_log.md`.
+- Root summary parsed 17 Ledger entries, found 11 model/API evidence entries,
+  counted 6 local-only entries, summed 25,917 known tokens, and kept known cost
+  at `$0.00` while preserving 11 unknown/unparseable cost entries.
+- JSON mode parsed successfully and returned the same totals.
+- `--max-entries 5` limited the recent-entry table to 5 rows.
+- Date filtering from `2026-07-01` worked and preserved the expected 17-entry
+  range for the current Ledger.
+- Output report mode wrote `tmp/ledger-summary-smoke/ledger-summary.md`.
+- Scratch Ledger parsing worked with 4 entries: one local-only row, one
+  model/API fixture row, parseable cost of `$1.25`, 198 known tokens, and one
+  uneven legacy-style row that did not crash parsing.
+- Invalid date input failed with exit code `1` and the expected
+  `--from must use YYYY-MM-DD` error.
+- Focused Ledger Summarizer tests passed: 14 tests.
+- Syntax compilation passed for `tools\ledger_summary.py`.
+- Unified Coffee CLI delegation worked in human-readable and JSON modes.
+- Scratch files were untracked and `git ls-files -- tmp/ledger-summary-smoke`
+  returned no tracked files.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- The summarizer made the Ledger's known tokens, known cost, unknowns, local
+  work, and model/API evidence easier to scan.
+- JSON output is usable for future local reporting.
+- Scratch fixtures confirmed parseable costs/tokens and uneven Markdown rows
+  behave safely.
+- Unified CLI integration gives the summarizer the same command surface as
+  dashboard, doctor, Pantry Search, and Roastery report.
+
+Needs improvement:
+
+- The summarizer is intentionally conservative. It can summarize known table
+  evidence, but it cannot infer exact cost or token data where the Ledger says
+  unknown.
+- Future polish could add richer grouping by Brew or task type after Brew 19
+  closeout.
+
+### 2026-07-08 - Brew 19 / Shot 19B-fix: Ledger Summarizer Scratch Parsing Fix
+
+Issue found:
+
+- Brew 19B scratch dogfood exposed incomplete parsing for simple bullet-style
+  Ledger entries using fields like `Cost:`, `Tokens:`, and `Model/API calls:`.
+
+Commands run:
+
+```powershell
+python -m unittest tests.test_ledger_summary
+python -m py_compile tools\ledger_summary.py
+python tools\ledger_summary.py --root . --ledger <temp scratch bullet ledger> --max-entries 5
+python tools\ledger_summary.py --root . --ledger <temp scratch bullet ledger> --json
+python tools\ledger_summary.py --root . --json --max-entries 2
+python tools\ledger_summary.py --root . --from 2026-99-99
+```
+
+Observed behavior:
+
+- Focused Ledger Summarizer tests passed: 20 tests.
+- Syntax compilation passed.
+- Scratch bullet ledger acceptance passed exactly:
+  - Total entries found: 2.
+  - Entries with model/API calls: 1.
+  - Entries marked local-only: 1.
+  - Total known cost: `$0.12`.
+  - Total known tokens: 1234.
+- Project Coffee root summary still worked after the parser fix.
+- JSON mode still worked.
+- Invalid date handling still exited `1` with the expected `--from must use
+  YYYY-MM-DD` error.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean used.
+- API calls: none.
+- Tokens: none / local-only for this fix validation; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Bullet-style Ledger fields now preserve cost, token, model/API, local-only,
+  evidence, and notes data without breaking table parsing.
+- Unknown and unparseable values remain honest unknowns.
+
+Needs improvement:
+
+- Brew 19C should close the Ledger Summarizer with the 19B-fix evidence included
+  in the completion review.

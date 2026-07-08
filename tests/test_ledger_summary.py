@@ -34,6 +34,26 @@ class LedgerSummaryTests(unittest.TestCase):
             "| 2026-07-03 | Brew C | ChatGPT planning | Documentation | Unknown exact tokens | Unknown exact cost | Legacy estimate. |\n"
         )
 
+    def sample_bullet_ledger(self) -> str:
+        return (
+            "# Cost Log\n\n"
+            "## 2026-07-01 - Local validation\n\n"
+            "- Model/API calls: none/local\n"
+            "- Tokens: 0\n"
+            "- Cost: 0\n"
+            "- Evidence: Local checks only.\n\n"
+            "## 2026-07-02 - OpenRouter fixture\n\n"
+            "- Model/API calls: OpenRouter test call\n"
+            "- Tokens: 1,234\n"
+            "- Cost: $0.12\n"
+            "- Notes: Fixture only; no live call.\n\n"
+            "## 2026-07-03 - Unknown legacy fixture\n\n"
+            "- Model/API calls: no\n"
+            "- Tokens: unknown\n"
+            "- Cost: unknown\n"
+            "- Notes: Unknown values stay unknown.\n"
+        )
+
     def test_missing_ledger_exits_nonzero_with_helpful_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             code, stdout, stderr = self.run_tool("--root", temp)
@@ -182,6 +202,68 @@ class LedgerSummaryTests(unittest.TestCase):
 
             self.assertNotEqual(code, 0)
             self.assertIn("Output parent does not exist", stderr)
+
+    def test_bullet_style_local_only_entry_counts_as_local_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_ledger(root, self.sample_bullet_ledger())
+
+            summary = ledger_summary.build_summary(root)
+
+            self.assertEqual(summary["totals"]["local_only_entries"], 2)
+
+    def test_bullet_style_model_api_entry_counts_as_model_api_call(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_ledger(root, self.sample_bullet_ledger())
+
+            summary = ledger_summary.build_summary(root)
+
+            self.assertEqual(summary["totals"]["model_api_call_entries"], 1)
+
+    def test_bullet_style_cost_parses_correctly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_ledger(root, self.sample_bullet_ledger())
+
+            summary = ledger_summary.build_summary(root)
+
+            self.assertEqual(summary["totals"]["total_known_cost"], "0.12")
+
+    def test_bullet_style_tokens_parse_correctly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_ledger(
+                root,
+                "# Cost Log\n\n"
+                "## 2026-07-01 - Token fixture\n\n"
+                "- Model/API calls: none/local\n"
+                "- Tokens: 1234\n"
+                "- Cost: 0\n",
+            )
+
+            summary = ledger_summary.build_summary(root)
+
+            self.assertEqual(summary["totals"]["total_known_tokens"], 1234)
+
+    def test_bullet_style_comma_token_values_parse_correctly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_ledger(root, self.sample_bullet_ledger())
+
+            summary = ledger_summary.build_summary(root)
+
+            self.assertEqual(summary["totals"]["total_known_tokens"], 1234)
+
+    def test_bullet_style_unknown_cost_and_tokens_remain_unknown(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.write_ledger(root, self.sample_bullet_ledger())
+
+            summary = ledger_summary.build_summary(root)
+
+            self.assertEqual(summary["totals"]["unknown_or_unparseable_cost_entries"], 1)
+            self.assertEqual(summary["totals"]["unknown_or_unparseable_token_entries"], 1)
 
 
 if __name__ == "__main__":
