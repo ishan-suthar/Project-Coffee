@@ -200,8 +200,23 @@ Warnings:
 No model calls, OpenRouter calls, external APIs, tags, staging, or commits were
 performed during Brew 25B.
 
+## Brew 25C Closeout
+
+Date: 2026-07-08
+
+Project Coffee v1.0 stronger base is closed as READY WITH WARNINGS. The next
+recommended work is Brew 26 Coffee Counter UI Design.
+
+The warnings accepted for closeout are the known Doctor ADR warning, the missing
+default real fleet registry while the example registry is committed, and
+Evidence Bundle ranking noise on the `v1.0` query. These remain visible in the
+closeout checklist and local validation tools.
+
+Optional release tagging remains manual and requires human review, manual
+staging, the staged secret-pattern check from Project Coffee policy, manual
+commit, and explicit tag approval.
+
 ## Handoff Notes
 
-Project Coffee is ready to close the stronger-base phase when Brew 25 evidence
-confirms docs, safety, tools, release readiness, and handoff quality. Tags and
-commits remain manual human-controlled actions.
+Project Coffee has closed the stronger-base phase. Tags and commits remain
+manual human-controlled actions.

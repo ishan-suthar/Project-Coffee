@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 25 - v1.0 Release Closeout in progress |
-| Current milestone | Stronger-base closeout checklist and handoff docs are being prepared before UI planning |
-| Next step | Brew 25B - dogfood and review v1.0 closeout evidence |
-| Recent foundation result | Brew 25A added the v1.0 closeout checklist and handoff framework |
-| Blockers | None for Brew 25B planning; no release tag has been created |
+| Current shot | Brew 25 - v1.0 Release Closeout complete |
+| Current milestone | Project Coffee stronger-base phase closed as READY WITH WARNINGS |
+| Next step | Brew 26 - Coffee Counter UI Design |
+| Recent foundation result | Brew 25C closed the v1.0 stronger-base phase and kept release tagging manual |
+| Blockers | No blocker for Brew 26 planning; optional release tag requires human approval |
 
 ## Phase 1 goal
 
@@ -176,7 +176,7 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 22 / 22A-22C | Local RAG MVP | Complete | 2026-07-08 |
 | Brew 23 / 23A-23C | Model Routing Policy Refinement | Complete | 2026-07-08 |
 | Brew 24 / 24A-24C | Multi-project Fleet Support | Complete | 2026-07-08 |
-| Brew 25 / 25A-25C | v1.0 Release Closeout | In progress | 2026-07-08 |
+| Brew 25 / 25A-25C | v1.0 Release Closeout | Complete | 2026-07-08 |
 | Brew 26 | Coffee Counter UI Design | Planned after stronger-base closeout | TBD |
 | Brew 27 | Chat UI MVP | Planned after UI design | TBD |
 | Brew 28 | UI + Evidence Bundle | Planned | TBD |

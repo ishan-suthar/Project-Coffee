@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 25B - v1.0 Release Closeout validation dogfooded. Next active work: Brew 25C - close v1.0 Release Closeout.
+Current status: Brew 25 - v1.0 Release Closeout complete. Next active work: Brew 26 - Coffee Counter UI Design.
 
 ## Completed
 
@@ -137,6 +137,7 @@ Current status: Brew 25B - v1.0 Release Closeout validation dogfooded. Next acti
 | 2026-07-08 | Brew 24 / Shot 24C — Close Multi-project Fleet Support | Completion criteria passed; Fleet Status tool, tests, example registry, guide link, dogfood evidence, Unified Coffee CLI integration, Doctor, Release Check, Evidence Bundle, and Ledger Summary validation confirmed |
 | 2026-07-08 | Brew 25 / Shot 25A - v1.0 Release Closeout Checklist | v1.0 stronger-base closeout checklist and handoff framework drafted; docs index, operating manual, roadmap, changelog, and Brew Log updated for Brew 25B review |
 | 2026-07-08 | Brew 25 / Shot 25B - Dogfood v1.0 Release Closeout | Stronger-base validation stack passed with readiness READY WITH WARNINGS; Release Check OK, focused tests and compile checks passed, no model/API calls, no tag created |
+| 2026-07-08 | Brew 25 / Shot 25C - Close v1.0 Stronger Base | Brew 25 closed as READY WITH WARNINGS; optional manual tag policy documented; next recommended work set to Brew 26 Coffee Counter UI Design |
 
 ## Attempted (blocked)
 
@@ -150,10 +151,10 @@ None.
 
 ## Up next
 
-1. Brew 25C - close v1.0 Release Closeout, decide whether warnings are accepted for tag readiness, and keep tag creation manual.
+1. Brew 26 - Coffee Counter UI Design.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Consider OmniRoute later as a possible Coffee Core replacement or wrapper.
 
 ## Blockers
 
-No active blocker for Brew 25C planning. No release tag has been created. Brew 25B readiness is READY WITH WARNINGS due the known Doctor ADR warning, missing default fleet registry info, and Evidence Bundle ranking noise. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 26 planning. No release tag has been created. Optional v1.0 or v1.0-stronger-base tagging requires human review, staged secret-pattern check from Project Coffee policy, manual commit, and explicit tag approval. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
