@@ -76,19 +76,20 @@ Brew 26 - Coffee Counter UI Design complete.
 - Brew 26 / 26A is designing the Coffee Counter UI with a Streamlit-first direction and no UI implementation yet.
 - Brew 26 / 26B reviewed the Coffee Counter UI design against ten realistic workflows and kept the Brew 27 MVP local-only.
 - Brew 26 / 26C closed Coffee Counter UI Design and set next work to Brew 27 Streamlit Coffee Counter MVP.
+- Brew 27 / 27A is implementing the local-only Streamlit Coffee Counter MVP with a safe allowlisted command adapter.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 27 - Streamlit Coffee Counter MVP, only after dependency approval.
+1. Brew 27B - dogfood the Streamlit Coffee Counter MVP after human-approved Streamlit setup.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep the first UI MVP local-only: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection.
 
 ## Blockers
 
-No active blocker for Brew 27 planning. Streamlit dependency approval is required before implementation. No UI code, Streamlit dependency, model/API call, release tag, staging, or commit was added by Brew 26.
+No active blocker for Brew 27B planning. Streamlit dependency setup remains human-approved and was not installed by the assistant. No model/API call, release tag, staging, or commit has been added by Brew 27A.
 
 ## Last updated
 
-2026-07-08 - Brew 26 / 26C Coffee Counter UI Design closed
+2026-07-08 - Brew 27 / 27A Streamlit Coffee Counter MVP implemented

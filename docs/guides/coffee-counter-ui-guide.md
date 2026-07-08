@@ -209,3 +209,58 @@ Coffee Counter MVP planning.
 
 Brew 27 may add Streamlit only after explicit approval and should keep the MVP
 local-only.
+
+## Brew 27A Streamlit MVP Status
+
+Brew 27A adds the first local Streamlit Coffee Counter MVP under `ui/`. The app
+wraps existing Project Coffee CLI tools through an allowlisted command adapter.
+The adapter is testable without importing Streamlit.
+
+## Setup
+
+Install Streamlit only after approving the dependency:
+
+```powershell
+python -m pip install streamlit
+```
+
+## Run Command
+
+From the Project Coffee root:
+
+```powershell
+python -m streamlit run ui/coffee_counter_app.py
+```
+
+## MVP Tabs
+
+- Home / Overview: local Dashboard, Doctor, Release Check, and Fleet Status
+  buttons.
+- Ask Coffee: local-only evidence retrieval for a question or Order.
+- Evidence Bundle: direct Evidence Bundle query form with optional JSON output.
+- Ledger: Ledger Summary with configurable recent entry count.
+- Fleet: Fleet Status with optional registry path.
+- Safety / Commands: allowlisted commands, non-goals, and approval reminders.
+
+## Local-only Ask Coffee Behavior
+
+Ask Coffee in the MVP does not call a model. It sends the human's question to
+the local Evidence Bundle tool and displays local evidence. Any future remote
+Bean use requires a separate approval gate.
+
+## Known Limitations
+
+- Streamlit is not installed by this shot.
+- The UI does not edit files.
+- The UI does not stage, commit, push, or tag.
+- The UI does not inspect raw Roastery outputs.
+- The UI does not send evidence anywhere.
+- The command adapter currently exposes only Dashboard, Doctor, Release Check,
+  Ledger Summary, Evidence Bundle, and Fleet Status.
+
+## Future Brew 28 / 29 Direction
+
+- Brew 28 should improve Evidence Bundle display, citations, no-evidence
+  handling, and local answer drafting.
+- Brew 29 should add visible routing approval gates before any remote Bean can
+  receive local context.
