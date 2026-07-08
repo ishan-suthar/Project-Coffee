@@ -68,12 +68,13 @@ Brew 24 - Multi-project Fleet Support in progress.
 - Brew 23 / 23B reviewed the policy against ten realistic routing scenarios and recorded gaps around context previews, explicit fallback consent, and Brew 24 fleet support.
 - Brew 23 / 23C closed Model Routing Policy Refinement after validating the policy, House Blend links, scenario evidence, local-only Ledger/Roastery evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary.
 - Brew 24 / 24A is implementing the Multi-project Fleet Registry MVP with a local registry, safe status checks, docs, tests, and optional Unified Coffee CLI delegation.
+- Brew 24 / 24B dogfooded Fleet Status against missing/default registry behavior, the example registry, scratch complete/incomplete project checks, project filtering, JSON, strict failure behavior, tests, compile checks, and Unified Coffee CLI delegation.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 24 / 24B - Dogfood the Fleet Status tool against Project Coffee and scratch registry scenarios.
+1. Brew 24 / 24C - Close Multi-project Fleet Support if completion criteria are satisfied.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
@@ -83,4 +84,4 @@ No active blocker for Brew 24 planning. Future live benchmark execution still re
 
 ## Last updated
 
-2026-07-08 - Brew 24 / 24A Multi-project Fleet Registry MVP implemented
+2026-07-08 - Brew 24 / 24B Fleet Status dogfood evidence recorded

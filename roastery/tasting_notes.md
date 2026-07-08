@@ -1180,3 +1180,73 @@ Cost and token evidence:
 - API calls: none.
 - Tokens: none / local-only for this review; not metered.
 - Cost: none / local-only; no external API cost.
+
+### 2026-07-08 - Brew 24 / Shot 24B: Fleet Status Dogfood
+
+Commands run:
+
+```powershell
+python tools/fleet_status.py --help
+python tools/fleet_status.py --root .
+python tools/fleet_status.py --root . --json
+python tools/fleet_status.py --root . --registry fleet/projects.example.json --list
+python tools/fleet_status.py --root . --registry fleet/projects.example.json --json
+python tools/fleet_status.py --root tmp/fleet-status-smoke --registry projects.json --list
+python tools/fleet_status.py --root tmp/fleet-status-smoke --registry projects.json --check
+python tools/fleet_status.py --root tmp/fleet-status-smoke --registry projects.json --project complete --check
+python tools/fleet_status.py --root tmp/fleet-status-smoke --registry projects.json --project incomplete --check
+python tools/fleet_status.py --root tmp/fleet-status-smoke --registry projects.json --check --json
+python tools/fleet_status.py --root tmp/fleet-status-smoke --registry projects.json --project incomplete --check --fail-on-issue
+python -m unittest tests.test_fleet_status
+python -m py_compile tools/fleet_status.py
+python tools/coffee.py fleet-status --root .
+python tools/coffee.py fleet-status --root . --registry fleet/projects.example.json --list
+```
+
+Observed behavior:
+
+- Help output worked and listed root, registry, JSON, list, project, check, and
+  fail-on-issue flags.
+- Default registry behavior was safe: missing `fleet/projects.json` reported
+  `INFO`, suggested copying `fleet/projects.example.json`, and exited `0`.
+- Default missing-registry JSON output was valid and reported the same `INFO`
+  finding.
+- Example registry parsed and listed one placeholder project with no checks run.
+- Example registry JSON output was valid.
+- Scratch registry under `tmp/fleet-status-smoke` listed two projects:
+  `complete` and `incomplete`.
+- Scratch `--check` reported `complete` as `OK` and `incomplete` as `FAIL`.
+- Project filtering worked for both `complete` and `incomplete`.
+- The incomplete filtered check identified the missing `AGENTS.md` marker.
+- `--fail-on-issue` for the incomplete project returned nonzero as expected.
+- Focused tests passed: 15 tests.
+- Syntax compilation passed for `tools/fleet_status.py`.
+- Unified Coffee CLI delegation worked for default registry behavior and example
+  registry listing.
+- Scratch files under `tmp/fleet-status-smoke` were not intended for commit.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Fleet Status gives a safe, local-first way to reason across registered
+  projects without reading project contents.
+- Missing real registry behavior is non-blocking and points to the example
+  registry.
+- Scratch checks showed the MVP can distinguish complete Project Coffee
+  onboarding markers from an incomplete project.
+- JSON output and Unified Coffee CLI delegation are ready for future UI use.
+
+Needs improvement:
+
+- Brew 24C should close the Fleet Status MVP if the dogfood evidence is
+  sufficient.
+- Future fleet work should decide whether `fleet/projects.json` stays
+  user-local/ignored or becomes an intentional committed project registry.
+- Future versions may add safe per-project Doctor/Dashboard delegation, but
+  Brew 24A/24B intentionally avoided running tools inside external projects.
