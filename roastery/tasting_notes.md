@@ -1250,3 +1250,74 @@ Needs improvement:
   user-local/ignored or becomes an intentional committed project registry.
 - Future versions may add safe per-project Doctor/Dashboard delegation, but
   Brew 24A/24B intentionally avoided running tools inside external projects.
+
+### 2026-07-08 - Brew 25 / Shot 25B: v1.0 Release Closeout Dogfood
+
+Commands run:
+
+```powershell
+git status --short
+git log --oneline --decorate -15
+git tag -l
+python tools/coffee.py --help
+python tools/coffee.py --version
+python tools/coffee.py dashboard --root .
+python tools/coffee.py doctor --root .
+python tools/coffee.py release-check --root .
+python tools/coffee.py release-check --root . --json
+python tools/coffee.py ledger-summary --root . --max-entries 8
+python tools/coffee.py evidence-bundle --root . --query "Project Coffee v1.0 stronger base" --max-results 8
+python tools/coffee.py fleet-status --root .
+python tools/coffee.py fleet-status --root . --registry fleet/projects.example.json --list
+python -m unittest tests.test_coffee_cli
+python -m unittest tests.test_coffee_doctor
+python -m unittest tests.test_release_check
+python -m unittest tests.test_ledger_summary
+python -m unittest tests.test_evidence_bundle
+python -m unittest tests.test_fleet_status
+python -m py_compile tools/coffee.py tools/coffee_dashboard.py tools/coffee_doctor.py tools/release_check.py tools/ledger_summary.py tools/evidence_bundle.py tools/fleet_status.py
+```
+
+Observed behavior:
+
+- Git status started clean and no v1.0 tag existed.
+- Existing tags remained `v0.1`, `v0.1-certified`, and `v0.1-proven`.
+- Unified Coffee CLI help and version worked.
+- Dashboard ran successfully and exposed stale Brew Log summary fields; those
+  status fields were corrected as part of Brew 25B evidence updates.
+- Doctor returned `WARN` with 38 OK, 1 WARN, and 0 FAIL.
+- The Doctor warning is the known ADR literal staged secret-check command
+  warning in `docs/adr/0005-local-openrouter-coffee-core.md`.
+- Release Check returned `OK` with 14 OK, 0 WARN, and 0 BLOCKER.
+- Release Check JSON worked.
+- Ledger Summary worked and showed recent local-only validation entries.
+- Evidence Bundle found the new v1.0 closeout and handoff docs, while also
+  surfacing noisy Ledger matches for the `v1.0` query.
+- Default Fleet Status safely reported missing `fleet/projects.json` as `INFO`.
+- Example Fleet registry listing worked.
+- Focused tests passed for Coffee CLI, Doctor, Release Check, Ledger Summary,
+  Evidence Bundle, and Fleet Status.
+- Key tool syntax compilation passed.
+
+Readiness:
+
+- Status: READY WITH WARNINGS.
+- Blocking failures: none.
+- Warning 1: known Doctor ADR warning remains visible.
+- Warning 2: default real fleet registry is intentionally absent.
+- Warning 3: Evidence Bundle ranking has noise on the `v1.0` query.
+- Tag status: no tag was created.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only for this dogfood run; not metered.
+- Cost: none / local-only; no external API cost.
+
+Needs improvement:
+
+- Brew 25C should decide whether the warnings are accepted for a v1.0 stronger
+  base tag or whether the ADR warning should be fixed first.
+- Before any commit, stage only intended files and run the staged
+  secret-pattern check from Project Coffee policy.

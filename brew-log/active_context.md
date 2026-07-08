@@ -6,7 +6,7 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 24 - Multi-project Fleet Support in progress.
+Brew 25 - v1.0 Release Closeout in progress.
 
 ## What matters right now
 
@@ -71,19 +71,20 @@ Brew 24 - Multi-project Fleet Support in progress.
 - Brew 24 / 24B dogfooded Fleet Status against missing/default registry behavior, the example registry, scratch complete/incomplete project checks, project filtering, JSON, strict failure behavior, tests, compile checks, and Unified Coffee CLI delegation.
 - Brew 24 / 24C closed Multi-project Fleet Support after validating the tool, example registry, tests, CLI integration, Fleet Support Guide, dogfood evidence, Doctor, Release Check, Evidence Bundle, and Ledger Summary.
 - Brew 25 / 25A is preparing the v1.0 stronger-base release closeout checklist and handoff framework before UI work begins.
+- Brew 25 / 25B dogfooded the v1.0 stronger-base validation stack and recorded readiness as READY WITH WARNINGS.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 25B - dogfood and review the v1.0 closeout checklist and handoff evidence before any release tag.
+1. Brew 25C - close v1.0 Release Closeout, decide whether warnings are accepted for tag readiness, and keep tag creation manual.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Preserve full model outputs in future Cup Tests before scoring quality.
 
 ## Blockers
 
-No active blocker for Brew 25B planning. No release tag has been created. Future live benchmark execution still requires human approval and a locally configured OpenRouter key outside the repository.
+No active blocker for Brew 25C planning. No release tag has been created. Brew 25B readiness is READY WITH WARNINGS due the known Doctor ADR warning, missing default fleet registry info, and Evidence Bundle ranking noise.
 
 ## Last updated
 
-2026-07-08 - Brew 25 / 25A v1.0 release closeout checklist and handoff drafted
+2026-07-08 - Brew 25 / 25B v1.0 release closeout validation dogfooded

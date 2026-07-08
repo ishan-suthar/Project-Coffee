@@ -176,6 +176,30 @@ makes model calls easy. It should show:
 | Brew 29 | UI + Routing Approval Gates |
 | Brew 30 | UI packaging/polish |
 
+## Brew 25B Validation Snapshot
+
+Date: 2026-07-08
+
+The v1.0 stronger-base validation stack was dogfooded locally. Git status,
+recent history, existing tags, Unified CLI help/version, Dashboard, Doctor,
+Release Check, Ledger Summary, Evidence Bundle, Fleet Status, focused unit
+tests, syntax compilation, and release doc existence checks were run.
+
+Result: READY WITH WARNINGS.
+
+Blocking failures: none.
+
+Warnings:
+
+- Doctor reports the known ADR literal staged secret-check command warning.
+- The default real fleet registry is not present; this is acceptable while the
+  example registry remains the committed template.
+- Evidence Bundle found useful closeout evidence but showed ranking noise on
+  the `v1.0` query.
+
+No model calls, OpenRouter calls, external APIs, tags, staging, or commits were
+performed during Brew 25B.
+
 ## Handoff Notes
 
 Project Coffee is ready to close the stronger-base phase when Brew 25 evidence
