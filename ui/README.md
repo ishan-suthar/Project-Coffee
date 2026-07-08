@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 30C packaging decision complete
+Status: Brew 31A Streamlit polish pass
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -14,6 +14,8 @@ The MVP helps you:
 - run Dashboard, Doctor, Release Check, Ledger Summary, Evidence Bundle, and
   Fleet Status from a local UI;
 - ask Coffee for local evidence only;
+- ask "What is the current Brew?" and see a Current State Quick View from
+  Brew Log, Roadmap, and Changelog files;
 - inspect structured Evidence Bundle items and local snippets;
 - draft a simple grounded local answer without model generation;
 - preview local-only routing decisions and future approval gates;
@@ -60,6 +62,25 @@ Future packaging options may include:
 
 Current decision: keep Streamlit for now and polish the existing UI before
 adding packaging helpers or considering React/Tauri migration.
+
+## Brew 31 Polish
+
+Brew 31A improves day-to-day usability while keeping the UI local-only:
+
+- Current State Quick View appears for current Brew / next Shot / blocker
+  questions.
+- Current-state evidence is prioritized toward `brew-log/active_context.md`,
+  `brew-log/progress.md`, `ROADMAP.md`, and `CHANGELOG.md`.
+- Route badges make Local evidence only, Approval required, Roastery required,
+  Manual-only Git, and Decaf / no model decisions easier to scan.
+- Command output is grouped into command, return code, status summary, stdout,
+  and stderr sections.
+- Evidence rows show source/path, heading, line, snippet, match/rank, freshness,
+  and safety labels when available.
+- No-evidence states now show concrete suggestions.
+
+No model call is made. No OpenRouter call is made. No API key input, file edit,
+Git write, package install, or remote execution path is added.
 
 ## Brew 28 Evidence Integration
 

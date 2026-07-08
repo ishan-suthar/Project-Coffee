@@ -221,3 +221,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Documented the manual Streamlit run command, future helper script option, future `requirements-ui.txt` option, polish backlog, safety constraints, migration criteria, and non-goals.
 - Reviewed ten packaging/polish scenarios and found no blocking gaps.
 - Marked UI Packaging / Polish Decision complete and set next recommended work to Brew 31, Streamlit Polish Pass.
+
+### Added (Brew 31 / Streamlit Polish Pass)
+
+- Improved Ask Coffee current-state handling with Current State Quick View for current Brew, next Shot, blocker, and "where are we" questions.
+- Prioritized current-state evidence toward Brew Log, Roadmap, and Changelog files without bypassing the local Evidence Bundle flow.
+- Added clearer route badge text, grouped command output sections, improved evidence item display, no-evidence suggestions, and project-root visibility.
+- Added focused tests for current-state detection, priority ordering, quick-view safety, route badges, suggestions, command summaries, malformed JSON handling, adapter safety, no `shell=True`, and no OpenRouter key requirement.

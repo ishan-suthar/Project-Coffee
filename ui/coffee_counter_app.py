@@ -18,6 +18,26 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 COFFEE_CLI = REPO_ROOT / "tools" / "coffee.py"
 DEFAULT_TIMEOUT_SECONDS = 45
 
+CURRENT_STATE_FILES = [
+    "brew-log/active_context.md",
+    "brew-log/progress.md",
+    "ROADMAP.md",
+    "CHANGELOG.md",
+]
+
+CURRENT_STATE_TERMS = [
+    "current brew",
+    "current shot",
+    "next shot",
+    "what should i do next",
+    "what do i do next",
+    "what is next",
+    "blockers",
+    "where are we",
+    "current status",
+    "project status",
+]
+
 ALLOWED_ACTIONS = {
     "dashboard": "Dashboard",
     "doctor": "Doctor",
@@ -95,6 +115,33 @@ class RoutingDecision:
     allowed_context: str
     blocked_context: str
     next_safe_action: str
+
+
+@dataclass(frozen=True)
+class CurrentStateItem:
+    source_path: str
+    status: str
+    excerpt: str
+    missing: bool = False
+
+    @property
+    def label(self) -> str:
+        return f"{self.source_path} - {self.status}"
+
+
+@dataclass(frozen=True)
+class ProjectRootStatus:
+    path: Path
+    exists: bool
+    is_dir: bool
+
+    @property
+    def message(self) -> str:
+        if self.exists and self.is_dir:
+            return f"Using project root: {self.path}"
+        if self.exists:
+            return f"Path exists but is not a directory: {self.path}"
+        return f"Project root does not exist: {self.path}"
 
 
 def default_project_root() -> Path:
@@ -224,6 +271,175 @@ def format_display_command(args: Sequence[str]) -> str:
 
 def format_command(args: Sequence[str]) -> str:
     return format_display_command(args)
+
+
+def describe_project_root(root: str | Path) -> ProjectRootStatus:
+    root_path = Path(root).expanduser()
+    if not root_path.is_absolute():
+        root_path = (Path.cwd() / root_path).resolve()
+    else:
+        root_path = root_path.resolve()
+    return ProjectRootStatus(
+        path=root_path,
+        exists=root_path.exists(),
+        is_dir=root_path.is_dir(),
+    )
+
+
+def is_current_state_question(text: str) -> bool:
+    lowered = " ".join(text.lower().strip().split())
+    if not lowered:
+        return False
+    return any(term in lowered for term in CURRENT_STATE_TERMS)
+
+
+def current_state_priority_files() -> list[str]:
+    return list(CURRENT_STATE_FILES)
+
+
+def _clean_excerpt_line(line: str) -> str:
+    return line.strip().strip("|").strip()
+
+
+def _first_nonempty_line(lines: Sequence[str]) -> str:
+    for line in lines:
+        cleaned = line.strip()
+        if cleaned:
+            return cleaned
+    return ""
+
+
+def _section_excerpt(lines: Sequence[str], heading: str, *, max_lines: int = 2) -> str:
+    try:
+        start = next(index for index, line in enumerate(lines) if line.strip().lower() == heading.lower())
+    except StopIteration:
+        return ""
+
+    excerpt: list[str] = []
+    for line in lines[start + 1 :]:
+        stripped = line.strip()
+        if stripped.startswith("## ") and excerpt:
+            break
+        if stripped and not stripped.startswith("#"):
+            excerpt.append(stripped)
+        if len(excerpt) >= max_lines:
+            break
+    return " ".join(excerpt)
+
+
+def summarize_current_state_file(relative_path: str, text: str) -> str:
+    lines = text.splitlines()
+    if relative_path == "brew-log/progress.md":
+        for line in lines:
+            if line.strip().lower().startswith("current status:"):
+                return line.strip()
+    if relative_path == "brew-log/active_context.md":
+        milestone = _section_excerpt(lines, "## Current milestone", max_lines=1)
+        next_action = _section_excerpt(lines, "## Next actions", max_lines=1)
+        blockers = _section_excerpt(lines, "## Blockers", max_lines=1)
+        return " ".join(part for part in [milestone, next_action, blockers] if part)
+    if relative_path == "ROADMAP.md":
+        status_lines = [
+            _clean_excerpt_line(line)
+            for line in lines
+            if any(term in line for term in ["| Current shot |", "| Next step |", "| Blockers |"])
+        ]
+        return " ".join(status_lines[:3])
+    if relative_path == "CHANGELOG.md":
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("### "):
+                return stripped
+    return _first_nonempty_line(lines)
+
+
+def build_current_state_quick_view(root: str | Path) -> list[CurrentStateItem]:
+    root_path = validate_root(root)
+    items: list[CurrentStateItem] = []
+    for relative_path in CURRENT_STATE_FILES:
+        path = root_path / relative_path
+        if not path.exists():
+            items.append(
+                CurrentStateItem(
+                    source_path=relative_path,
+                    status="missing",
+                    excerpt="Status file is missing; fall back to normal Evidence Bundle output.",
+                    missing=True,
+                )
+            )
+            continue
+        if not path.is_file():
+            items.append(
+                CurrentStateItem(
+                    source_path=relative_path,
+                    status="unreadable",
+                    excerpt="Expected a file but found a non-file path.",
+                    missing=True,
+                )
+            )
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        excerpt = summarize_current_state_file(relative_path, text)
+        items.append(
+            CurrentStateItem(
+                source_path=relative_path,
+                status="found",
+                excerpt=excerpt or "File found, but no concise status excerpt was detected.",
+            )
+        )
+    return items
+
+
+def prioritize_evidence_items_for_question(
+    question: str,
+    items: Sequence[EvidenceItem],
+) -> list[EvidenceItem]:
+    if not is_current_state_question(question):
+        return list(items)
+    priority = {path: index for index, path in enumerate(CURRENT_STATE_FILES)}
+
+    def sort_key(item: EvidenceItem) -> tuple[int, int]:
+        priority_rank = priority.get(item.source_path, len(priority))
+        return (priority_rank, -item.score)
+
+    return sorted(items, key=sort_key)
+
+
+def route_badge_text(decision: RoutingDecision) -> list[str]:
+    badges: list[str] = []
+    if decision.request_class == "commit_or_push":
+        badges.append("Manual-only Git")
+    if decision.selected_mode == ROUTE_DECAF:
+        badges.append("Decaf / no model")
+    if decision.selected_mode == ROUTE_LOCAL_EVIDENCE:
+        badges.append("Local evidence only")
+    if decision.selected_mode == ROUTE_ROASTERY_REQUIRED:
+        badges.append("Roastery required")
+    if decision.approval_required:
+        badges.append("Approval required")
+    return badges
+
+
+def no_evidence_suggestions(query: str = "") -> list[str]:
+    suggestions = [
+        "Try fewer words.",
+        "Search a specific file or source.",
+        "Check Brew Log status files.",
+        "Run Doctor for repository health.",
+        "Ask for current state.",
+        "Verify the file exists.",
+    ]
+    if is_current_state_question(query):
+        suggestions.insert(0, "Use Current State Quick View.")
+    return suggestions
+
+
+def command_status_summary(result: CommandResult) -> str:
+    if result.timed_out:
+        return "Timed out"
+    if result.return_code == 0:
+        return "Completed successfully"
+    return "Returned a nonzero exit code"
 
 
 def _as_int(value: Any, default: int = 0) -> int:
@@ -367,12 +583,12 @@ def evidence_table_rows(bundle: EvidenceBundle) -> list[dict[str, object]]:
     for item in bundle.items:
         rows.append(
             {
-                "Source": item.reference,
-                "Heading": item.heading,
-                "Score": item.score,
-                "Freshness": item.freshness_signal,
-                "Safety": item.safety_classification,
-                "Snippet": item.snippet,
+                "Source / line": item.reference or "(unknown source)",
+                "Heading": item.heading or "(no heading)",
+                "Match / rank": item.score,
+                "Freshness": item.freshness_signal or "unknown",
+                "Safety": item.safety_classification or "unknown",
+                "Snippet": item.snippet or "(no snippet)",
             }
         )
     return rows
@@ -392,7 +608,7 @@ def classify_request_for_routing(text: str) -> str:
         return "cost_token"
     if any(term in lowered for term in ["how to", "setup", "guide", "docs", "documentation", "onboard"]):
         return "docs_how_to"
-    if any(term in lowered for term in ["current brew", "next shot", "status", "what is current"]):
+    if is_current_state_question(text):
         return "current_status"
     return "local_evidence_question"
 
@@ -544,7 +760,16 @@ def render_app() -> None:
 
     with st.sidebar:
         st.header("Counter")
-        root_input = st.text_input("Project root", value=str(default_project_root()))
+        root_input = st.text_input(
+            "Project root",
+            value=str(default_project_root()),
+            help="Local Project Coffee root to inspect. This is not persisted to disk.",
+        )
+        root_status = describe_project_root(root_input)
+        if root_status.exists and root_status.is_dir:
+            st.success(root_status.message)
+        else:
+            st.warning(root_status.message)
         selected_action = st.selectbox(
             "Selected tool/action",
             options=list(ALLOWED_ACTIONS.keys()),
@@ -616,6 +841,8 @@ def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
     if question.strip():
         st.write("Routing decision")
         render_routing_decision(st, build_routing_decision(question, []))
+        if is_current_state_question(question):
+            render_current_state_quick_view(st, root)
     if st.button("Build local evidence bundle"):
         if not question.strip():
             st.warning("Enter a question or Order first.")
@@ -631,6 +858,13 @@ def render_ask_tab(st: object, root: str, default_max_results: int) -> None:
             display_result(st, result, "Local Evidence Bundle", expand_stdout=False)
             if result is not None:
                 bundle = parse_evidence_bundle_json(result.stdout)
+                if not bundle.parse_error:
+                    bundle = EvidenceBundle(
+                        query=bundle.query,
+                        total_matches=bundle.total_matches,
+                        items=prioritize_evidence_items_for_question(question, bundle.items),
+                        warnings=bundle.warnings,
+                    )
                 st.write("Routing decision with evidence preview")
                 render_routing_decision(st, build_routing_decision(question, bundle.items))
                 render_context_preview(st, bundle.items, max_items=3)
@@ -719,6 +953,13 @@ def render_routing_tab(st: object, root: str, default_max_results: int) -> None:
         display_result(st, result, "Context Preview Evidence", expand_stdout=False)
         if result is not None:
             bundle = parse_evidence_bundle_json(result.stdout)
+            if not bundle.parse_error:
+                bundle = EvidenceBundle(
+                    query=bundle.query,
+                    total_matches=bundle.total_matches,
+                    items=prioritize_evidence_items_for_question(request_text, bundle.items),
+                    warnings=bundle.warnings,
+                )
             render_routing_decision(st, build_routing_decision(request_text, bundle.items))
             render_context_preview(st, bundle.items, max_items=int(max_results))
             render_evidence_bundle_summary(st, bundle, result.return_code)
@@ -799,21 +1040,45 @@ def render_safety_tab(st: object, selected_action: str) -> None:
 def render_evidence_safety_notice(st: object) -> None:
     st.info(
         "Local evidence only. Evidence is retrieved from allowlisted local Project Coffee "
-        "sources; excluded paths are not searched. Remote Bean calls remain disabled in Brew 29."
+        "sources; excluded paths are not searched. Remote Bean calls remain disabled."
     )
 
 
+def render_current_state_quick_view(st: object, root: str) -> None:
+    st.subheader("Current State Quick View")
+    st.caption(
+        "Local current-state quick view from allowlisted status files only. "
+        "Normal Evidence Bundle output remains available below."
+    )
+    try:
+        items = build_current_state_quick_view(root)
+    except CommandAdapterError as exc:
+        st.warning(f"Current State Quick View unavailable: {exc}")
+        return
+
+    missing = [item for item in items if item.missing]
+    if missing:
+        st.warning("One or more current-state files are missing; falling back to normal Evidence Bundle output is recommended.")
+
+    for item in items:
+        title = f"{item.source_path} ({item.status})"
+        with st.expander(title, expanded=not item.missing):
+            st.write(item.excerpt or "(no status excerpt found)")
+
+
 def render_routing_decision(st: object, decision: RoutingDecision) -> None:
-    st.write(
-        {
-            "request_class": decision.request_class,
-            "selected_mode": decision.selected_mode,
-            "approval_required": "yes" if decision.approval_required else "no",
-            "reason": decision.reason,
-            "allowed_context": decision.allowed_context,
-            "blocked_context": decision.blocked_context,
-            "next_safe_action": decision.next_safe_action,
-        }
+    badges = route_badge_text(decision)
+    st.markdown(" ".join(f"`{badge}`" for badge in badges))
+    st.markdown(
+        f"""
+- Request class: `{decision.request_class}`
+- Selected mode: `{decision.selected_mode}`
+- Approval required: `{"yes" if decision.approval_required else "no"}`
+- Reason: {decision.reason}
+- Allowed context: {decision.allowed_context}
+- Blocked context: {decision.blocked_context}
+- Next safe action: {decision.next_safe_action}
+"""
     )
     if decision.approval_required:
         st.warning("Approval required before this route can use remote context.")
@@ -841,8 +1106,14 @@ def render_evidence_bundle_summary(
         st.success(f"Evidence found: {bundle.total_matches} local match(es). No model call was made.")
     elif state == "no-evidence":
         st.warning("No local evidence matched this query. No model call was made.")
+        st.write("Try next:")
+        for suggestion in no_evidence_suggestions(bundle.query):
+            st.markdown(f"- {suggestion}")
     elif state == "json-parse-error":
-        st.error(f"Evidence JSON could not be parsed: {bundle.parse_error}")
+        st.error(
+            "Evidence JSON could not be parsed. The raw command output is still visible above; "
+            f"retry JSON mode or inspect stdout. Parser note: {bundle.parse_error}"
+        )
     else:
         st.error("Evidence command returned a nonzero exit code.")
 
@@ -853,11 +1124,19 @@ def render_evidence_bundle_summary(
         st.write("Top evidence items")
         st.dataframe(evidence_table_rows(bundle), width="stretch")
         for index, item in enumerate(bundle.items[:5], start=1):
-            with st.expander(f"{index}. {item.reference} - {item.heading or '(no heading)'}"):
-                st.write(f"Score: `{item.score}`")
-                st.write(f"Freshness: `{item.freshness_signal or 'unknown'}`")
-                st.write(f"Safety: `{item.safety_classification or 'unknown'}`")
-                st.write(f"Reason: {item.reason_selected or '(none recorded)'}")
+            source = item.reference or "(unknown source)"
+            heading = item.heading or "(no heading)"
+            with st.expander(f"{index}. {source} - {heading}"):
+                st.markdown(
+                    f"""
+- Source/path: `{source}`
+- Heading: `{heading}`
+- Match/rank: `{item.score}`
+- Freshness: `{item.freshness_signal or "unknown"}`
+- Safety: `{item.safety_classification or "unknown"}`
+- Reason: {item.reason_selected or "(none recorded)"}
+"""
+                )
                 st.code(item.snippet or "(no snippet)", language="markdown")
 
 
@@ -879,14 +1158,19 @@ def display_result(
     if result is None:
         return
     st.write(f"**{title}**")
-    st.code(format_display_command(result.args), language="text")
-    st.write(f"Exit code: `{result.return_code}`")
+    st.caption(command_status_summary(result))
     if result.timed_out:
         st.warning("Command timed out.")
     if result.return_code == 0 and not result.timed_out:
         st.success("Command completed.")
     else:
         st.error("Command did not complete cleanly.")
+    with st.expander("command run", expanded=False):
+        st.code(format_display_command(result.args), language="text")
+    with st.expander("return code", expanded=False):
+        st.write(f"`{result.return_code}`")
+    with st.expander("status summary", expanded=True):
+        st.write(command_status_summary(result))
     with st.expander("stdout", expanded=expand_stdout):
         st.code(result.stdout or "(empty)", language="text")
     with st.expander("stderr", expanded=bool(result.stderr)):

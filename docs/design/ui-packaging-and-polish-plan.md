@@ -96,15 +96,17 @@ allowlisted commands, approval gates, and no hidden remote calls.
 
 Recommended polish items:
 
-- better current Brew retrieval ranking;
-- clearer cards for Dashboard, Doctor, and Release Check outputs;
-- improved evidence item display;
-- route decision badges;
+- better current Brew retrieval ranking; partially implemented in Brew 31A
+  with Current State Quick View and current-state evidence prioritization;
+- clearer cards for Dashboard, Doctor, and Release Check outputs; partially
+  implemented in Brew 31A with grouped command output sections;
+- improved evidence item display; partially implemented in Brew 31A;
+- route decision badges; partially implemented in Brew 31A;
 - UI state colors and icons;
 - recent command history;
-- project root persistence;
+- project root persistence; Brew 31A shows root status but does not persist it;
 - fleet project switching;
-- no-evidence suggestions;
+- no-evidence suggestions; partially implemented in Brew 31A;
 - tests for routing and evidence helpers;
 - documentation screenshots later.
 

@@ -159,6 +159,136 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
 
         self.assertEqual(coffee_counter_app.evidence_state(bundle), "no-evidence")
 
+    def test_detects_current_state_questions(self) -> None:
+        questions = [
+            "What is the current Brew?",
+            "What should I do next?",
+            "What is the next Shot?",
+            "What are the blockers?",
+            "Where are we?",
+        ]
+
+        for question in questions:
+            with self.subTest(question=question):
+                self.assertTrue(coffee_counter_app.is_current_state_question(question))
+
+    def test_non_current_questions_do_not_trigger_quick_view(self) -> None:
+        self.assertFalse(coffee_counter_app.is_current_state_question("How do I onboard a project?"))
+        self.assertFalse(coffee_counter_app.is_current_state_question("Summarize the House Blend guide."))
+
+    def test_current_state_priority_list_starts_with_brew_log_files(self) -> None:
+        priority = coffee_counter_app.current_state_priority_files()
+
+        self.assertEqual(priority[0], "brew-log/active_context.md")
+        self.assertEqual(priority[1], "brew-log/progress.md")
+        self.assertIn("ROADMAP.md", priority)
+        self.assertIn("CHANGELOG.md", priority)
+
+    def test_current_state_quick_view_handles_missing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "brew-log").mkdir()
+            (root / "brew-log" / "progress.md").write_text(
+                "## Current shot\n\nCurrent status: Brew 31A\n",
+                encoding="utf-8",
+            )
+
+            items = coffee_counter_app.build_current_state_quick_view(root)
+
+        missing = [item for item in items if item.missing]
+        self.assertTrue(missing)
+        self.assertEqual(len(items), len(coffee_counter_app.CURRENT_STATE_FILES))
+
+    def test_current_state_quick_view_reads_only_allowlisted_status_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "brew-log").mkdir()
+            (root / "brew-log" / "active_context.md").write_text(
+                "## Current milestone\n\nBrew 31\n",
+                encoding="utf-8",
+            )
+            (root / "brew-log" / "progress.md").write_text(
+                "Current status: Brew 31A\n",
+                encoding="utf-8",
+            )
+            (root / "ROADMAP.md").write_text(
+                "| Current shot | Brew 31A |\n| Next step | Brew 31B |\n",
+                encoding="utf-8",
+            )
+            (root / "CHANGELOG.md").write_text(
+                "### Added (Brew 31)\n",
+                encoding="utf-8",
+            )
+            (root / ".env").write_text("SECRET_SHOULD_NOT_APPEAR=1\n", encoding="utf-8")
+            (root / "roastery").mkdir()
+            (root / "roastery" / "local_cup_outputs").mkdir()
+            (root / "roastery" / "local_cup_outputs" / "raw.md").write_text(
+                "RAW_OUTPUT_SHOULD_NOT_APPEAR\n",
+                encoding="utf-8",
+            )
+
+            items = coffee_counter_app.build_current_state_quick_view(root)
+
+        combined = "\n".join(item.source_path + "\n" + item.excerpt for item in items)
+        self.assertIn("brew-log/active_context.md", combined)
+        self.assertIn("brew-log/progress.md", combined)
+        self.assertNotIn("SECRET_SHOULD_NOT_APPEAR", combined)
+        self.assertNotIn("RAW_OUTPUT_SHOULD_NOT_APPEAR", combined)
+
+    def test_current_state_evidence_priority_puts_brew_log_first(self) -> None:
+        roadmap = coffee_counter_app.EvidenceItem(
+            source_path="ROADMAP.md",
+            heading="Status",
+            snippet="Roadmap",
+            reason_selected="matched",
+            score=100,
+            freshness_signal="",
+            safety_classification="",
+        )
+        progress = coffee_counter_app.EvidenceItem(
+            source_path="brew-log/progress.md",
+            heading="Current shot",
+            snippet="Current status",
+            reason_selected="matched",
+            score=10,
+            freshness_signal="",
+            safety_classification="",
+        )
+
+        prioritized = coffee_counter_app.prioritize_evidence_items_for_question(
+            "What is the current Brew?",
+            [roadmap, progress],
+        )
+
+        self.assertEqual(prioritized[0].source_path, "brew-log/progress.md")
+
+    def test_non_current_evidence_priority_preserves_order(self) -> None:
+        first = coffee_counter_app.EvidenceItem(
+            source_path="docs/a.md",
+            heading="A",
+            snippet="A",
+            reason_selected="matched",
+            score=1,
+            freshness_signal="",
+            safety_classification="",
+        )
+        second = coffee_counter_app.EvidenceItem(
+            source_path="brew-log/progress.md",
+            heading="Progress",
+            snippet="Progress",
+            reason_selected="matched",
+            score=100,
+            freshness_signal="",
+            safety_classification="",
+        )
+
+        prioritized = coffee_counter_app.prioritize_evidence_items_for_question(
+            "How do I onboard a project?",
+            [first, second],
+        )
+
+        self.assertEqual(prioritized, [first, second])
+
     def test_current_brew_request_routes_to_local_evidence_only(self) -> None:
         decision = coffee_counter_app.build_routing_decision(
             "What is the current Brew and next Shot?",
@@ -167,6 +297,29 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
 
         self.assertEqual(decision.selected_mode, coffee_counter_app.ROUTE_LOCAL_EVIDENCE)
         self.assertFalse(decision.approval_required)
+
+    def test_route_badge_text_for_local_evidence_only(self) -> None:
+        decision = coffee_counter_app.build_routing_decision("What is the current Brew?", [])
+
+        badges = coffee_counter_app.route_badge_text(decision)
+
+        self.assertIn("Local evidence only", badges)
+        self.assertNotIn("Approval required", badges)
+
+    def test_route_badge_text_for_approval_required(self) -> None:
+        decision = coffee_counter_app.build_routing_decision("Send repo context to a model", [])
+
+        badges = coffee_counter_app.route_badge_text(decision)
+
+        self.assertIn("Approval required", badges)
+
+    def test_route_badge_text_for_manual_only_git(self) -> None:
+        decision = coffee_counter_app.build_routing_decision("Commit this change", [])
+
+        badges = coffee_counter_app.route_badge_text(decision)
+
+        self.assertIn("Manual-only Git", badges)
+        self.assertIn("Decaf / no model", badges)
 
     def test_docs_how_to_request_routes_to_local_evidence_only(self) -> None:
         decision = coffee_counter_app.build_routing_decision(
@@ -259,6 +412,22 @@ class CoffeeCounterAdapterTests(unittest.TestCase):
 
         self.assertIn("No eligible evidence snippets", preview)
         self.assertIn("Excluded:", preview)
+
+    def test_no_evidence_suggestions_are_produced(self) -> None:
+        suggestions = coffee_counter_app.no_evidence_suggestions("What is the current Brew?")
+
+        self.assertIn("Use Current State Quick View.", suggestions)
+        self.assertIn("Try fewer words.", suggestions)
+        self.assertIn("Run Doctor for repository health.", suggestions)
+
+    def test_command_status_summary_reports_success_and_failure(self) -> None:
+        success = coffee_counter_app.CommandResult(["python"], "", "", 0)
+        failure = coffee_counter_app.CommandResult(["python"], "", "err", 2)
+        timeout = coffee_counter_app.CommandResult(["python"], "", "", 124, timed_out=True)
+
+        self.assertEqual(coffee_counter_app.command_status_summary(success), "Completed successfully")
+        self.assertEqual(coffee_counter_app.command_status_summary(failure), "Returned a nonzero exit code")
+        self.assertEqual(coffee_counter_app.command_status_summary(timeout), "Timed out")
 
     def test_remote_model_execution_is_not_exposed(self) -> None:
         exposed_actions = " ".join(coffee_counter_app.ALLOWED_ACTIONS)

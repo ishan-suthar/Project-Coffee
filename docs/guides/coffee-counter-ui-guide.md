@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 30C packaging decision complete
+Status: Brew 31A Streamlit polish pass
 Date: 2026-07-08
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -403,3 +403,74 @@ is Brew 31: Streamlit Polish Pass.
 Brew 31 should improve usability without changing the architecture: route
 badges, status cards, better evidence ranking UX, cleaner output sections,
 project root persistence, and clearer no-evidence suggestions.
+
+## Brew 31A Streamlit Polish Pass
+
+Brew 31A improves the working Streamlit UI without changing architecture or
+adding packaging scripts.
+
+### Asking for Current State
+
+Use Ask Coffee with questions such as:
+
+```text
+What is the current Brew?
+What should I do next?
+What is the next Shot?
+What are the blockers?
+Where are we?
+```
+
+For those questions, Ask Coffee shows a Current State Quick View before normal
+Evidence Bundle output. The quick view reads only these allowlisted status
+files:
+
+- `brew-log/active_context.md`
+- `brew-log/progress.md`
+- `ROADMAP.md`
+- `CHANGELOG.md`
+
+If one of those files is missing, the UI warns and still lets the normal local
+Evidence Bundle flow run.
+
+### Route Badges
+
+Route badges summarize what kind of work the request implies:
+
+- Local evidence only;
+- Approval required;
+- Roastery required;
+- Manual-only Git;
+- Decaf / no model.
+
+Badges are labels only. They do not enable remote execution.
+
+### Cleaner Output Sections
+
+Command output is grouped into:
+
+- command run;
+- return code;
+- status summary;
+- stdout;
+- stderr.
+
+Errors remain visible. The command remains copy-friendly.
+
+### Evidence and No-Evidence States
+
+Evidence items show source/path, heading, line when available, snippet,
+match/rank, freshness, and safety labels. If no evidence is found, the UI
+suggests trying fewer words, searching specific files, checking Brew Log,
+running Doctor, asking for current state, or verifying the file exists.
+
+### Known Limitations
+
+- Current State Quick View is a local convenience layer, not a replacement for
+  Evidence Bundle.
+- Project root selection is visible but not persisted to disk.
+- Streamlit remains the UI shell.
+- Remote model calls, OpenRouter calls, API key inputs, auto-commit, file
+  editing, React/Tauri migration, and package installation remain out of scope.
+
+Next likely work is Brew 31B: dogfood the Streamlit polish pass.
