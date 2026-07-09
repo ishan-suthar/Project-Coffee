@@ -30,6 +30,7 @@ TEST_ROOTS = [
     REPO_ROOT / "roastery" / "tests",
     REPO_ROOT / "apps" / "coffee-status" / "tests",
     REPO_ROOT / "apps" / "coffee-certification" / "tests",
+    REPO_ROOT / "router" / "tests",
 ]
 
 RAN_PATTERN = re.compile(r"Ran (\d+) tests?")

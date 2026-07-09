@@ -1,0 +1,30 @@
+# Coffee Core Router - runtime settings
+#
+# Thresholds, defaults, and the escalation cost cap. Safe to hand-edit.
+
+# Escalation cap: if the estimated premium-Bean cost for a re-run is at or
+# above this value, escalation pauses and emits escalation_pending instead
+# of running automatically. See router/app/escalation.py.
+escalation_cost_cap_usd: 0.50
+
+# generating SSE tick cadence: emit a tick after this many output tokens OR
+# this many seconds, whichever comes first.
+generating_tick_tokens: 20
+generating_tick_seconds: 2.0
+
+# Outbound OpenRouter request timeout.
+request_timeout_seconds: 60
+
+# Optional cheap-model classification fallback (Requirement 3). Off by
+# default: the heuristic table in router/app/classifier.py runs first and
+# is used unless this is enabled and the heuristic result is low-confidence.
+classifier_model_fallback_enabled: false
+classifier_model_fallback_bean_alias: "House Blend"
+
+# Failure checks (Requirement 5) that trigger an escalation attempt.
+truncation_min_expected_tokens: 32
+refusal_keywords:
+  - "i cannot help with that"
+  - "i can't help with that"
+  - "i'm not able to assist"
+  - "as an ai language model, i cannot"

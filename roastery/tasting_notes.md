@@ -22,6 +22,7 @@ Use model scorecards to record model performance.
 | 2026-07-06 | No remote Bean; local standard-library dashboard | Brew 16 / Shot 16B Coffee Dashboard dogfood | COMPLETE - normal, JSON, section, strict missing-core, incomplete scratch, test, and compile checks passed | Workflow evidence below |
 | 2026-07-08 | No remote Bean; local standard-library doctor | Brew 17 / Shot 17B Coffee Doctor dogfood | COMPLETE - root, JSON, section, strict fail-on-issue, incomplete scratch, test, and compile checks passed | Workflow evidence below |
 | 2026-07-09 | No remote Bean; local standard-library gate repair | Gate repair - executed PLAN-spill-guard-token-log-fix.md and PLAN-root-test-discovery-fix.md | COMPLETE WITH ONE MID-EXECUTION FIX - Spill Guard parity restored; root test-suite gate now collects 252 tests instead of 0; the plan's own prescribed script content had to be corrected during execution | Workflow evidence below |
+| 2026-07-09 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router) | Brew 36B live demo - one real `/v1/order` request, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct classification (explain/espresso_shot), correct alias-only routing, 65 output tokens, 1733ms latency, not escalated, not draft | Full transcript below |
 
 ## Cup Test Notes
 
@@ -2069,3 +2070,108 @@ Needs improvement:
 - `tools/run_all_tests.py` was designed and hardened live, under real
   failures, rather than dry-run reviewed before this session. A future
   Brew could add a focused unit test for the aggregator script itself.
+
+### 2026-07-09 - Brew 36B: Coffee Core Router Live Demo
+
+Scope: one real, human-approved `/v1/order` call through the new Coffee
+Core Router (`router/`) against OpenRouter, the first live remote-Bean call
+this repository's Ledger has ever recorded through a router rather than the
+Cup Test runner (`roastery/run_cup_test.py`).
+
+Preconditions:
+
+- Full repo test suite passed first: `python tools\run_all_tests.py` ->
+  347 tests, 0 failures (214 `tests/`, 22 `roastery/tests/`, 9
+  `apps/coffee-status/tests/`, 7 `apps/coffee-certification/tests/`, 95
+  `router/tests/`).
+- `OPENROUTER_API_KEY` was supplied by the human via their own shell
+  environment only. It was never pasted into chat, never written to a
+  file, and does not appear in this note, any config file, or any test.
+- Router startup's key-scan (`router/app/config.py:assert_no_key_like_strings`,
+  reusing `tools/coffee_context_package.py`'s `SUSPICIOUS_PATTERNS`) passed
+  against all three router config files before the server accepted any
+  connection.
+
+Command sequence:
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765 --host 127.0.0.1
+```
+
+```powershell
+curl -sN -X POST http://127.0.0.1:8765/v1/order `
+  -H "Content-Type: application/json" `
+  -d '{"prompt": "Explain what a Python decorator is in two sentences."}'
+```
+
+Raw SSE transcript (verbatim):
+
+```text
+data: {"request_id":"2975e487-d46d-4ee9-8e48-f42291b90118","ts":"2026-07-09T23:51:09.251927Z","event":"order_received","prompt_chars":52}
+
+data: {"request_id":"2975e487-d46d-4ee9-8e48-f42291b90118","ts":"2026-07-09T23:51:09.253222Z","event":"classifying"}
+
+data: {"request_id":"2975e487-d46d-4ee9-8e48-f42291b90118","ts":"2026-07-09T23:51:09.253222Z","event":"route_selected","bean_alias":"House Blend","task_type":"explain","complexity":"espresso_shot","est_cost_usd":0.0,"policy_entry":"explain/house-blend"}
+
+data: {"request_id":"2975e487-d46d-4ee9-8e48-f42291b90118","ts":"2026-07-09T23:51:10.761608Z","event":"generating","tokens_out":21,"est_cost_usd":0.0}
+
+data: {"request_id":"2975e487-d46d-4ee9-8e48-f42291b90118","ts":"2026-07-09T23:51:10.851918Z","event":"generating","tokens_out":45,"est_cost_usd":0.0}
+
+data: {"request_id":"2975e487-d46d-4ee9-8e48-f42291b90118","ts":"2026-07-09T23:51:10.980202Z","event":"complete","bean_alias":"House Blend","tokens_in":13,"tokens_out":65,"cost_usd":0.0,"latency_ms":1733,"escalated":false,"draft_quality":false}
+```
+
+Observed behavior:
+
+- Event order matched the frozen contract exactly: `order_received` ->
+  `classifying` -> `route_selected` -> `generating` x2 -> `complete`.
+- The classifier correctly identified `task_type: "explain"` and
+  `complexity: "espresso_shot"` from the prompt's own `classify_heuristic()`
+  keyword table - not a hardcoded or mocked result.
+- `route_selected` cited `policy_entry: "explain/house-blend"`, matching
+  the generated `router/config/routing_policy.yaml` entry for `explain`
+  (primary Bean House Blend, evidence from
+  `roastery/cup_tests/004-pantry-assisted-answer.md`).
+- `grep -c "nvidia/nemotron" <transcript>` returned `0` - zero raw model
+  ID occurrences anywhere in the live SSE output, confirming Requirement 2
+  (alias enforcement) held under a real call, not only under
+  `httpx.MockTransport` in tests.
+- `ledger/router_requests.csv` recorded exactly one row, with the raw
+  model ID present (one of the three places it is allowed):
+  `nvidia/nemotron-3-ultra-550b-a55b:free`, `tokens_in=13`,
+  `tokens_out=65`, `cost_usd=0.0`, `latency_ms=1733`, `escalated=False`,
+  `escalation_approved=n/a`.
+- No truncation, empty response, or refusal-shaped output occurred, so no
+  `escalation_pending` branch was exercised in this run (that branch is
+  covered by `router/tests/test_main.py`'s mocked escalation tests, not
+  by this live call).
+- Full repo test suite re-run after the demo: still 347 tests, 0 failures
+  - the live call did not disturb anything.
+
+Cost and token evidence:
+
+- Model / Bean: House Blend (`nvidia/nemotron-3-ultra-550b-a55b:free`),
+  via `router/app/openrouter_client.py`'s async streaming client.
+- Tokens: 13 input, 65 output (from OpenRouter's own usage field).
+- Cost: `$0.00` (free-tier Bean; matches `router/config/beans.yaml`
+  pricing).
+
+What worked:
+
+- The full pipeline (classify -> route -> stream -> failure-check ->
+  Ledger write) worked correctly on the first live call after 347 mocked
+  tests passed, with no code changes needed between the last test run and
+  the demo.
+- The alias boundary held under a real call: the human only ever saw
+  "House Blend" in the stream; the raw model ID only ever appeared in the
+  Ledger.
+
+Needs improvement:
+
+- This single demo call did not exercise the escalation-pending pause,
+  the auto-escalate path, `/v1/retry`, or the no-premium-Bean fallback -
+  all four are covered by mocked tests but not yet by a live call. A
+  future Brew could deliberately craft a prompt likely to truncate or
+  produce a short/refusal-shaped response to observe the real pause/resume
+  flow end to end, though the no-premium-Bean gap (Section 3 of the design
+  doc) means the auto-escalate and pending-approval-then-escalate paths
+  still cannot be demoed live until a premium Bean is selected.

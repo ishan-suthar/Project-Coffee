@@ -1,0 +1,53 @@
+# Coffee Core Router - Bean registry
+#
+# Maps every raw OpenRouter model ID this router may call to a coffee alias,
+# capability flags, and known per-token pricing. Raw model IDs live here,
+# in the Ledger, and in outbound OpenRouter requests only - never in an SSE
+# event or API response field (see router/app/aliases.py enforcement).
+#
+# Seeded from config/house_blend.md's current Bean roles (Brew 14 evidence).
+# Update this file, then rerun tools/generate_policy.py, after any new
+# Roastery evidence changes House Blend roles. Do not hand-edit
+# routing_policy.yaml directly - it is generated from this file plus
+# Roastery/Ledger evidence.
+
+beans:
+  - alias: "House Blend"
+    role: default
+    model_id: "nvidia/nemotron-3-ultra-550b-a55b:free"
+    capabilities:
+      vision: false
+      code: true
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active
+
+  - alias: "Second Pour"
+    role: fallback
+    model_id: "cohere/north-mini-code:free"
+    capabilities:
+      vision: false
+      code: true
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active
+
+  - alias: "Guest Bean"
+    role: comparison
+    model_id: "poolside/laguna-m.1:free"
+    capabilities:
+      vision: false
+      code: true
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active
+
+  - alias: "Reserve Blend"
+    role: premium
+    model_id: null
+    capabilities:
+      vision: false
+      code: true
+    price_per_1k_input_usd: null
+    price_per_1k_output_usd: null
+    status: not_yet_selected

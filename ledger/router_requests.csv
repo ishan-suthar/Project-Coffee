@@ -1,0 +1,2 @@
+timestamp,request_id,task_type,bean_alias,raw_model_id,tokens_in,tokens_out,cost_usd,latency_ms,escalated,escalation_approved,rating
+2026-07-09T23:51:10.980202+00:00,2975e487-d46d-4ee9-8e48-f42291b90118,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,65,0.0,1733,False,n/a,
