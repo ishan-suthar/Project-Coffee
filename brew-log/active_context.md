@@ -101,17 +101,19 @@ chooses to pursue OpenRouter integration behind explicit approval.
 - Brew 35 / 35B dogfooded and closed the dry-run approval UI across approval-needed, local-only, blocked secret, whole-repo, partial-checklist, complete-checklist, cancel/reset, and active-root switching scenarios.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
+- Gate repair: executed `PLAN-spill-guard-token-log-fix.md` and `PLAN-root-test-discovery-fix.md` in order. `.gitignore` now carries the same `!ledger/token_log.md` exception `.cursorignore`/`.cursorindexingignore` already had, and `ledger/token_log.md` is tracked by git. `tools/run_all_tests.py` was added and wired into `docs/releases/v1.0-closeout-checklist.md` and `docs/releases/project-coffee-v1.0-handoff.md` in place of the broken bare `python -m unittest discover`, which silently collected 0 tests from the repo root. The full suite now collects 252 tests (214 `tests/`, 22 `roastery/tests/`, 9 `apps/coffee-status/tests/`, 7 `apps/coffee-certification/tests/`), 0 failures. Both changesets are staged, not committed; human review and approval are still required before commit.
 
 ## Next actions
 
-1. Brew 36 - OpenRouter integration behind explicit approval, if chosen.
-2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
-3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
+1. Human review and approval to commit the staged gate-repair changes (`.gitignore`, `ledger/token_log.md`, `tools/run_all_tests.py`, `docs/releases/v1.0-closeout-checklist.md`, `docs/releases/project-coffee-v1.0-handoff.md`).
+2. Brew 36 - OpenRouter integration behind explicit approval, if chosen. The repo is now cleared on both gates this required: Spill Guard ignore-file parity is fixed, and the release-validation test command actually runs the full suite instead of silently passing 0 tests.
+3. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
+4. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 36 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 35 added no model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, working send-to-model button, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 36 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 35 added no model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, working send-to-model button, release tag, staging action, or commit. This gate-repair session staged but did not commit its changes. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-09 - Brew 35 / 35B Approval Gate Dry Run UI closed
+2026-07-09 - Gate repair: PLAN-spill-guard-token-log-fix.md and PLAN-root-test-discovery-fix.md executed and staged; repo cleared for first network-facing Brew (Brew 36) pending human commit approval

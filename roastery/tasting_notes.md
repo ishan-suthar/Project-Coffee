@@ -21,6 +21,7 @@ Use model scorecards to record model performance.
 | 2026-07-06 | poolside/laguna-m.1:free; cohere/north-mini-code:free; nvidia/nemotron-3-ultra-550b-a55b:free | Brew 12 / Shot 12B captured full-output Cup Test | SCORED - all three Beans produced useful full outputs; Nemotron kept default confidence due quality parity plus lower latency/token use | Evidence below; raw outputs local-only |
 | 2026-07-06 | No remote Bean; local standard-library dashboard | Brew 16 / Shot 16B Coffee Dashboard dogfood | COMPLETE - normal, JSON, section, strict missing-core, incomplete scratch, test, and compile checks passed | Workflow evidence below |
 | 2026-07-08 | No remote Bean; local standard-library doctor | Brew 17 / Shot 17B Coffee Doctor dogfood | COMPLETE - root, JSON, section, strict fail-on-issue, incomplete scratch, test, and compile checks passed | Workflow evidence below |
+| 2026-07-09 | No remote Bean; local standard-library gate repair | Gate repair - executed PLAN-spill-guard-token-log-fix.md and PLAN-root-test-discovery-fix.md | COMPLETE WITH ONE MID-EXECUTION FIX - Spill Guard parity restored; root test-suite gate now collects 252 tests instead of 0; the plan's own prescribed script content had to be corrected during execution | Workflow evidence below |
 
 ## Cup Test Notes
 
@@ -1970,3 +1971,101 @@ Closeout:
   selector, or real send action exists in Brew 35.
 - Remaining work moves to Brew 36: OpenRouter integration behind explicit
   approval, if chosen.
+
+### 2026-07-09 - Gate Repair: PLAN-spill-guard-token-log-fix.md and PLAN-root-test-discovery-fix.md
+
+Scope: execute two previously written, previously reviewed plans in order,
+verify every precondition and acceptance criterion, stage but do not commit.
+
+Commands run (representative; full sequence in `brew-log/progress.md`):
+
+```powershell
+git check-ignore -v ledger/token_log.md
+Select-String -Path .cursorignore -Pattern "!ledger/token_log.md"
+Select-String -Path .gitignore -Pattern "!ledger/token_log.md"
+# .gitignore edited: !ledger/token_log.md added after **/*token*
+git status --short
+python -m unittest discover
+python -m unittest discover -s tests
+python tools\run_all_tests.py
+python -m py_compile tools\run_all_tests.py
+git add .gitignore ledger/token_log.md tools/run_all_tests.py docs/releases/v1.0-closeout-checklist.md docs/releases/project-coffee-v1.0-handoff.md
+git diff --staged
+```
+
+Observed behavior:
+
+- Plan 1 (Spill Guard) executed exactly as written. All 4 preconditions
+  matched expected output. `.gitignore` gained `!ledger/token_log.md`, a
+  one-line diff. `ledger/token_log.md` is now visible to `git status` as
+  untracked instead of silently hidden, and is tracked once staged.
+- One acceptance-criterion nuance: `git check-ignore -v ledger/token_log.md`
+  (with `-v`) prints the matched negation pattern and exits `0`, not "no
+  output, exit 1" as the plan's AC2 text expected. The substantive check
+  (`git check-ignore` without `-v`) confirms no output and exit `1` - the
+  file is genuinely un-ignored. This is a documented quirk of git's
+  `check-ignore -v` flag reporting negation matches, not a defect in the fix.
+- Plan 2 (root test discovery) found a real bug in its own prescribed script
+  during execution, not before: the script's `(tests, REPO_ROOT)` pairing
+  raised `ImportError: Start directory is not importable` because `tests/`
+  has no `__init__.py`. Pairing `(tests, tests)` instead fixed that but
+  surfaced a second, deeper bug: running all four test roots in one Python
+  process caused `apps/coffee-status/src` and `apps/coffee-certification/src`
+  - both top-level packages literally named `src` - to collide in
+  `sys.modules`, breaking `from src.certifier import ...` once
+  `apps/coffee-status`'s `src` had already been imported.
+- Stopped and asked for direction rather than silently patching, per this
+  session's explicit instructions. Given approval, rewrote
+  `tools/run_all_tests.py` to run each of the four test roots as an isolated
+  subprocess (`python -m unittest discover -s <dir>`), matching the
+  per-directory commands already documented elsewhere in the repo, instead
+  of one shared in-process `TestLoader`. This avoids the collision entirely.
+- Final result: `python tools\run_all_tests.py` collects and passes 252
+  tests (214 `tests/`, 22 `roastery/tests/`, 9 `apps/coffee-status/tests/`,
+  7 `apps/coffee-certification/tests/`), exit code `0`.
+- The bare `python -m unittest discover` (no `-s`) from the repo root still
+  collects 0 tests, unchanged. This is expected: the plan's fix was to stop
+  relying on that literal command (both release-facing docs now reference
+  `tools\run_all_tests.py` instead), not to make the un-fixable bare
+  invocation itself succeed. Renaming the hyphenated `apps/coffee-status`
+  and `apps/coffee-certification` directories was explicitly out of scope.
+- A second acceptance-criterion nuance: the rewritten script's summary block
+  prints `Total tests run:` but no longer prints the literal `Total
+  failures:` / `Total errors:` lines the plan's AC1 text expected, since
+  those counts are no longer tracked separately once each root runs as its
+  own subprocess. Exit code `0` and the absence of any `FAIL:` line carry
+  the same substance.
+- All five changed files (`.gitignore`, `ledger/token_log.md`,
+  `tools/run_all_tests.py`, `docs/releases/v1.0-closeout-checklist.md`,
+  `docs/releases/project-coffee-v1.0-handoff.md`) were staged and reviewed
+  via `git diff --staged`. Nothing was committed.
+
+Cost and token evidence:
+
+- Model / Bean: none; no remote Bean, OpenRouter call, or external API used.
+- Tokens: none / local-only; not metered.
+- Cost: none / local-only; no external API cost.
+
+What worked:
+
+- Writing preconditions as exact, literal commands with exact expected
+  output made the "STOP and report" instinct concrete instead of vague -
+  the moment the script's real behavior diverged from its own prescribed
+  content, that was immediately visible rather than papered over.
+- Stopping to ask before patching the plan's own script, instead of quietly
+  fixing and moving on, surfaced a second bug (the `src` module collision)
+  that a silent fix likely would have shipped without ever being tested
+  against all four roots running together.
+
+Needs improvement:
+
+- Both fixed plan files (`PLAN-spill-guard-token-log-fix.md`,
+  `PLAN-root-test-discovery-fix.md`) now contain acceptance-criteria text
+  that does not exactly match the live tool's real output in two places
+  (the `check-ignore -v` exit-code nuance, and the removed `Total failures:`
+  / `Total errors:` lines). Plan files were explicitly off-limits to edit
+  this session; a future small Brew should reconcile the plan text with the
+  script that actually shipped.
+- `tools/run_all_tests.py` was designed and hardened live, under real
+  failures, rather than dry-run reviewed before this session. A future
+  Brew could add a focused unit test for the aggregator script itself.

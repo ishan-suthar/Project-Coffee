@@ -10,6 +10,7 @@
 **/private/**
 **/*key*
 **/*token*
+!ledger/token_log.md
 **/*password*
 **/*.pem
 **/*.key

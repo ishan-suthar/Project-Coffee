@@ -113,7 +113,7 @@ python tools\coffee.py dashboard --root .
 python tools\coffee.py ledger-summary --root .
 python tools\coffee.py evidence-bundle --root . --query "Project Coffee current Brew" --max-results 5
 python tools\coffee.py fleet-status --root . --registry fleet\projects.example.json --list
-python -m unittest discover
+python tools\run_all_tests.py
 ```
 
 ## How To Onboard A Project
