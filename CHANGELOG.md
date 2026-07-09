@@ -260,3 +260,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Fixed request-level Safety Gate blocking for broad repository context and blocked path patterns such as `.env`.
 - Fixed routing classification for explicit model-help and secret-context requests.
 - Marked Remote Context Package Builder complete and set next recommended work to Brew 35, Dry-run Approval UI.
+
+### Added (Brew 35 / Approval Gate Dry Run UI)
+
+- Added `tools/coffee_approval_dry_run.py` for local-only dry-run approval state, checklist gating, approval requirement summaries, and dry-run Ledger preview creation.
+- Updated the Coffee Counter Routing / Approval tab with request summary, context package preview, Safety Gate checklist, included/excluded evidence summary, required dry-run approval checklist, dry-run Ledger preview, and disabled future send state.
+- Kept provider/model placeholders unselected, estimated cost unknown, and Ledger writes preview-only.
+- Confirmed Brew 35A adds no OpenRouter integration, API key input, provider/model selector, pricing logic, network code, model/API call, remote execution, working send-to-model button, auto-commit, or auto-push.
+- Set next work to Brew 35B, dogfood, fix, and close the dry-run approval UI.

@@ -1,12 +1,12 @@
 # Coffee Counter UI Guide
 
-Status: Brew 34 complete
-Date: 2026-07-08
+Status: Brew 35A dry-run approval UI implemented
+Date: 2026-07-09
 
 This guide explains how the Project Coffee Counter UI works today and how it
 should evolve. It began as a Streamlit-first planning guide and now tracks the
-implemented MVP, Evidence Bundle integration, Routing Approval Gates, and
-packaging/polish direction.
+implemented MVP, Evidence Bundle integration, Routing Approval Gates, context
+package preview, dry-run approval UI, and packaging/polish direction.
 
 ## Purpose
 
@@ -750,3 +750,40 @@ Remaining Brew 35 work:
 Still absent in Brew 34: OpenRouter integration, API key input, model/API calls,
 network code, send-to-model button, remote execution, file writes, Git writes,
 auto-commit, and auto-push.
+
+## Brew 35A Dry-Run Approval UI
+
+Brew 35A adds a dry-run approval panel around the local context package.
+
+The Routing / Approval tab now shows:
+
+- request summary;
+- route decision;
+- context package preview;
+- Safety Gate checklist;
+- included and excluded evidence summary;
+- required dry-run checklist;
+- dry-run Ledger preview;
+- disabled future send state.
+
+The dry-run checklist asks the user to confirm that they reviewed request text,
+included evidence, excluded paths, safety warnings, and the fact that Brew 35
+does not make a model call. Dry-run approval is available only when a context
+package exists, the Safety Gate is not blocked, and every checklist item is
+checked.
+
+If the Safety Gate blocks the package, approval controls are disabled and the
+UI shows the block reasons. The disabled future send control remains a label
+only: it does not send context anywhere.
+
+The Ledger preview is not written automatically. It records planned fields such
+as Brew/Shot, request summary, route, approval state, placeholder provider and
+model values, estimated tokens, unknown estimated cost, safety status, evidence
+counts, `outcome: dry_run_only`, and
+`ledger_write_status: preview_only_not_written`.
+
+Brew 35 still has no OpenRouter integration, API key input, provider/model
+selector, pricing logic, network code, model/API call, remote execution, working
+send-to-model button, auto-commit, or auto-push. Brew 36 is the earliest
+possible real OpenRouter integration, if that path is chosen and explicitly
+approved later.

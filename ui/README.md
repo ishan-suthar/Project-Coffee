@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 34 complete
+Status: Brew 35A dry-run approval UI implemented
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -18,6 +18,8 @@ The MVP helps you:
   Brew Log, Roadmap, and Changelog files;
 - inspect structured Evidence Bundle items and local snippets;
 - draft a simple grounded local answer without model generation;
+- preview a local context package and dry-run approval checklist without
+  sending data anywhere;
 - preview local-only routing decisions and future approval gates;
 - preview eligible local evidence context without sending it anywhere;
 - see command arguments, stdout, stderr, and exit codes;
@@ -200,6 +202,38 @@ Fixes made during dogfood:
 
 Next work is Brew 35: dry-run approval UI around the local context package,
 still without remote calls.
+
+## Brew 35 Dry-Run Approval UI
+
+Brew 35A adds a dry-run approval panel to the Routing / Approval tab.
+
+The UI now shows:
+
+- request summary;
+- route decision;
+- context package preview;
+- Safety Gate checklist;
+- included and excluded evidence summary;
+- required dry-run checklist;
+- dry-run Ledger preview;
+- disabled future send state.
+
+Dry-run approval is simulation only. It requires an existing context package, a
+Safety Gate status that is not blocked, and every required checklist item to be
+checked. If the Safety Gate blocks the package, approval controls are disabled
+and the UI shows the block reasons.
+
+The Ledger preview is not written automatically. Provider and model remain
+placeholders with no provider and no model selected. Estimated cost remains
+unknown / not applicable; no pricing logic is present.
+
+No remote call exists yet. Brew 35 has no OpenRouter integration, no API key
+input, no provider/model selector, no model/API call, no network code, no
+working send-to-model button, no remote execution, no auto-commit, and no
+auto-push.
+
+Brew 36 is the earliest possible real OpenRouter integration, if that path is
+chosen and explicitly approved later.
 
 ## Brew 28 Evidence Integration
 

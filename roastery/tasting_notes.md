@@ -1848,3 +1848,60 @@ Closeout:
 - The Safety Gate excludes blocked paths such as `.env` and labels suspicious secret-like patterns without printing secret values.
 - No OpenRouter, API key input, model call, network call, or send-to-model action exists in Brew 34.
 - Remaining work moves to Brew 35: dry-run approval UI.
+
+### 2026-07-09 - Brew 35 / Shot 35A: Approval Gate Dry Run UI Implementation
+
+Commands run during implementation:
+
+```powershell
+python -m unittest tests.test_approval_dry_run
+python -m unittest tests.test_context_package
+python -m unittest tests.test_coffee_counter_ui
+python -m py_compile tools/coffee_approval_dry_run.py tools/coffee_context_package.py ui/coffee_counter_app.py
+```
+
+Implementation summary:
+
+- Added `tools/coffee_approval_dry_run.py` as a local-only helper for dry-run
+  approval state, checklist gating, approval requirement summaries, and
+  dry-run Ledger previews.
+- Updated Coffee Counter Routing / Approval with request summary, route
+  decision, context package preview, Safety Gate checklist, included/excluded
+  evidence summary, required dry-run checklist, dry-run Ledger preview, and a
+  disabled future send state.
+- Added focused tests for local-only approval behavior, approval-needed safe
+  packages, blocked packages, missing packages, provider/model placeholders,
+  preview-only Ledger status, unknown estimated cost, and disabled future send
+  state.
+
+Safety observations:
+
+- Dry-run approval is simulation only.
+- No remote context is sent anywhere.
+- Provider and model remain placeholders with no provider or model selected.
+- The dry-run Ledger preview is not written automatically.
+- Safety-blocked packages disable approval controls and keep the future send
+  state unavailable.
+- No OpenRouter integration, API key input, provider/model selector, pricing
+  logic, network code, model/API call, remote execution, working send-to-model
+  button, auto-commit, or auto-push was added.
+
+Evidence quality:
+
+- Focused helper, context-package, and Coffee Counter UI tests passed before
+  final validation.
+- Syntax compilation passed for the approval helper, context package builder,
+  and Coffee Counter UI app.
+
+Cost and token evidence:
+
+- Model / Bean: none.
+- API calls: none.
+- Tokens: none / local-only implementation; package estimates remain local
+  character-count estimates only.
+- Cost: none / local-only; no external API cost.
+
+Needs improvement:
+
+- Brew 35B should dogfood the approval UX in the Streamlit UI, verify blocked
+  and no-evidence states, refine copy if needed, and close Brew 35.

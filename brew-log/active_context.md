@@ -6,7 +6,8 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 34 - Remote Context Package Builder complete. Brew 35 is next.
+Brew 35 - Approval Gate Dry Run UI is in progress. Shot 35A implemented the
+local-only dry-run approval UI around the Brew 34 context package builder.
 
 ## What matters right now
 
@@ -96,19 +97,20 @@ Brew 34 - Remote Context Package Builder complete. Brew 35 is next.
 - Brew 33 / 33B dogfooded and closed the remote-call approval design against twelve future UI/API scenarios, then refined blocked whole-repo context, secret-risk, missing-key, failure, cancellation, active-root-change, Ledger-failure, and generated-code behavior.
 - Brew 34 / 34A implemented a local-only context package builder and Safety Gate, added focused tests, and wired a preview-only package display into the Coffee Counter Routing / Approval tab without adding remote calls, API key input, network code, provider selection, or a send path.
 - Brew 34 / 34B dogfooded and closed the context package builder; fixes added request-level blocking for broad repository context and `.env` requests, plus routing for explicit model-help and secret-context requests.
+- Brew 35 / 35A added `tools/coffee_approval_dry_run.py` and wired a dry-run approval panel into the Coffee Counter Routing / Approval tab with checklist gating, Safety Gate blocking, dry-run Ledger preview, and disabled future send state.
 - The productized guides are practical daily references and intentionally avoid embedding the literal staged secret-pattern check text.
 - Future Roastery work should still preserve full model outputs before scoring quality or changing House Blend.
 
 ## Next actions
 
-1. Brew 35 - Dry-run Approval UI around the local context package.
+1. Brew 35B - dogfood, fix, and close the dry-run approval UI.
 2. Before any future commit, stage only intended files and run the staged secret-pattern check from Project Coffee policy.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 35 planning. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 34 made no model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, send-to-model button, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
+No active blocker for Brew 35B dogfood. Streamlit was already installed locally; no dependency was installed by the assistant. Brew 35A added no model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, working send-to-model button, release tag, staging action, or commit. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational.
 
 ## Last updated
 
-2026-07-08 - Brew 34 / 34B Remote Context Package Builder closed
+2026-07-09 - Brew 35 / 35A Approval Gate Dry Run UI implemented

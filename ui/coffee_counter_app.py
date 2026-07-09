@@ -13,6 +13,7 @@ import subprocess
 import sys
 from typing import Any, Callable, Sequence
 
+from tools import coffee_approval_dry_run
 from tools import coffee_context_package
 
 
@@ -914,10 +915,10 @@ def build_routing_decision(
             request_class=request_class,
             selected_mode=ROUTE_REMOTE_APPROVAL,
             approval_required=True,
-            reason="The request explicitly asks for model help. Brew 34 can only build a local context package preview.",
+            reason="The request explicitly asks for model help. Brew 35 can only build a local context package preview and dry-run approval.",
             allowed_context=f"Previewed, allowlisted local evidence snippets only. {evidence_note}",
             blocked_context=blocked_context,
-            next_safe_action="Build the local context package preview; no send action exists in Brew 34.",
+            next_safe_action="Build the local context package preview and dry-run approval; no send action exists in Brew 35.",
         )
     if request_class == "sensitive_context":
         return RoutingDecision(
@@ -934,7 +935,7 @@ def build_routing_decision(
             request_class=request_class,
             selected_mode=ROUTE_REMOTE_APPROVAL,
             approval_required=True,
-            reason="Code changes may require sending local context to a remote Bean later, but Brew 29 keeps remote execution disabled.",
+            reason="Code changes may require sending local context to a remote Bean later, but Brew 35 keeps remote execution disabled.",
             allowed_context=f"Local evidence snippets and human-approved file excerpts only. {evidence_note}",
             blocked_context=blocked_context,
             next_safe_action="Stay local-first: plan, review evidence, and ask before any remote context is sent.",
@@ -1041,6 +1042,32 @@ def format_context_package_json(package: dict[str, Any]) -> str:
 
 def context_package_summary(package: dict[str, Any]) -> dict[str, Any]:
     return coffee_context_package.summarize_context_package(package)
+
+
+def build_dry_run_checklist_state(checked_items: Sequence[str] | dict[str, bool] | None = None) -> dict[str, bool]:
+    return coffee_approval_dry_run.build_approval_checklist_state(checked_items)
+
+
+def determine_dry_run_approval_state(
+    package: dict[str, Any] | None,
+    checklist_state: dict[str, bool] | None,
+    *,
+    dry_run_approved: bool = False,
+    dry_run_cancelled: bool = False,
+) -> str:
+    return coffee_approval_dry_run.determine_approval_state(
+        package,
+        checklist_state,
+        dry_run_approved=dry_run_approved,
+        dry_run_cancelled=dry_run_cancelled,
+    )
+
+
+def build_dry_run_ledger_preview(
+    package: dict[str, Any] | None,
+    approval_state: str,
+) -> dict[str, Any]:
+    return coffee_approval_dry_run.build_dry_run_ledger_preview(package, approval_state)
 
 
 def render_app() -> None:
@@ -1341,6 +1368,7 @@ def render_routing_tab(st: object, root: str, default_max_results: int) -> None:
                 max_context_items=int(max_results),
             )
             render_context_package_preview(st, package)
+            render_dry_run_approval_panel(st, package)
             render_evidence_bundle_summary(st, bundle, result.return_code)
 
     st.write("Approval gate copy")
@@ -1544,6 +1572,7 @@ def render_context_package_preview(st: object, package: dict[str, Any]) -> None:
 
     st.markdown(
         f"""
+- Request summary: `{str(package.get("request_text", ""))[:160]}`
 - Active root: `{summary["active_root"]}`
 - Route decision: `{summary["route_decision"]}`
 - User approval: `{summary["approval_status"]}`
@@ -1566,10 +1595,85 @@ def render_context_package_preview(st: object, package: dict[str, Any]) -> None:
         if isinstance(note, dict):
             st.warning(f"Redaction note: {note.get('label', 'suspicious content')} at {note.get('location', 'unknown location')}.")
 
+    st.write("Safety checklist")
+    st.markdown(
+        f"""
+- Safety status: `{summary["safety_status"]}`
+- Blocked reasons: `{len(blocked_reasons)}`
+- Warnings: `{len(warnings)}`
+- Redaction notes: `{len(redaction_notes)}`
+- Provider/model execution: `disabled`
+- Data sent anywhere: `no`
+"""
+    )
+
+    st.write("Included / excluded evidence summary")
+    st.markdown(
+        f"""
+- Included evidence items: `{summary["included_item_count"]}`
+- Excluded evidence or paths: `{summary["excluded_item_count"]}`
+- Selected file count: `{summary["selected_file_count"]}`
+"""
+    )
+
     with st.expander("context package preview JSON", expanded=False):
         st.code(format_context_package_json(package), language="json")
 
     st.button("Send disabled until future Brew", disabled=True)
+
+
+def render_dry_run_approval_panel(st: object, package: dict[str, Any] | None) -> None:
+    st.subheader("Dry-run approval")
+    st.caption(
+        "Dry-run approval only. No model call is available in Brew 35. "
+        "No data is sent anywhere."
+    )
+
+    safety = package.get("safety_checks", {}) if package else {}
+    safety_blocked = isinstance(safety, dict) and safety.get("status") == "blocked"
+    if safety_blocked:
+        st.error("Approval controls are disabled because the Safety Gate blocked this package.")
+        for reason in safety.get("blocked_reasons", []):
+            st.markdown(f"- {reason}")
+
+    checklist_values: dict[str, bool] = {}
+    for item in coffee_approval_dry_run.REQUIRED_CHECKLIST_ITEMS:
+        checklist_values[item] = st.checkbox(
+            item,
+            value=False,
+            disabled=not package or safety_blocked,
+            key=f"dry-run-{item}",
+        )
+
+    checklist_state = build_dry_run_checklist_state(checklist_values)
+    requirements = coffee_approval_dry_run.summarize_approval_requirements(package, checklist_state)
+    can_approve = bool(requirements["can_dry_run_approve"])
+    approve_clicked = st.button(
+        "Record dry-run approval in UI session",
+        disabled=not can_approve,
+    )
+    cancel_clicked = st.button(
+        "Cancel dry-run approval",
+        disabled=not package,
+    )
+    approval_state = determine_dry_run_approval_state(
+        package,
+        checklist_state,
+        dry_run_approved=approve_clicked,
+        dry_run_cancelled=cancel_clicked,
+    )
+
+    st.write("Approval state")
+    st.code(approval_state, language="text")
+    st.write("Approval requirements")
+    st.json(requirements)
+
+    ledger_preview = build_dry_run_ledger_preview(package, approval_state)
+    st.subheader("Dry-run Ledger preview")
+    st.caption("Preview only. This is not written to `ledger/cost_log.md`.")
+    st.json(ledger_preview)
+
+    st.button("Send disabled until future Brew", disabled=True, key="dry-run-send-disabled")
 
 
 def render_evidence_bundle_summary(

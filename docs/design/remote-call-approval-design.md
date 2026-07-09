@@ -1,6 +1,6 @@
 # Remote Call Approval Design
 
-Status: Brew 34 complete
+Status: Brew 35A dry-run approval UI implemented
 Date: 2026-07-08
 
 ## 1. Purpose
@@ -495,18 +495,61 @@ suspicious secret-like patterns without printing secret values. No OpenRouter,
 API key input, model call, network call, or send-to-model action exists in Brew
 34. Remaining work moves to Brew 35: dry-run approval UI.
 
-## 16. Implementation Roadmap
+## 16. Brew 35A Dry-Run Approval UI
+
+Brew 35A adds `tools/coffee_approval_dry_run.py` and wires dry-run approval
+display into the Coffee Counter Routing / Approval tab.
+
+The dry-run approval UI shows:
+
+- request summary;
+- route decision;
+- context package preview;
+- Safety Gate checklist;
+- included and excluded evidence summary;
+- required dry-run approval checklist;
+- dry-run Ledger preview;
+- disabled future send state.
+
+Dry-run approval states are explicit:
+
+- `local_only_no_approval`;
+- `approval_needed`;
+- `context_preview_ready`;
+- `blocked_by_safety_gate`;
+- `dry_run_approved`;
+- `dry_run_cancelled`;
+- `send_disabled_future_brew`.
+
+Dry-run approval is allowed only when a context package exists, the Safety Gate
+is not blocked, and every checklist item is checked. If the Safety Gate blocks,
+approval controls are disabled and the UI shows the block reasons.
+
+The dry-run Ledger preview includes the Brew/Shot, request summary, route,
+approval state, provider/model placeholders, estimated tokens, unknown
+estimated cost, safety status, included evidence count, excluded path count,
+`outcome: dry_run_only`, and
+`ledger_write_status: preview_only_not_written`.
+
+Brew 35A does not write to the Ledger automatically. It does not add provider
+or model selectors, pricing logic, API key input, OpenRouter integration,
+network code, model/API calls, remote execution, or a working send-to-model
+button.
+
+## 17. Implementation Roadmap
 
 Recommended future sequence:
 
 1. Brew 34: local context package builder and Safety Gate - implemented in
    Brew 34A and dogfooded/closed in Brew 34B.
-2. Brew 35: add dry-run approval UI around the local package only.
-3. Future Brew: add Ledger planned-call preview.
+2. Brew 35: dry-run approval UI around the local package - implemented in
+   Brew 35A.
+3. Brew 36 or later: earliest possible real OpenRouter integration, if chosen
+   and explicitly approved.
 4. Future Brew: consider remote call implementation only after explicit human
    approval and fresh Roastery/routing review.
 
-## 17. Open Questions
+## 18. Open Questions
 
 - Should approval IDs be generated in memory or written only when a remote call
   actually occurs?

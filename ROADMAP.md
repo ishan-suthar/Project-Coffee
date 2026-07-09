@@ -11,11 +11,11 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 34 - Remote Context Package Builder complete |
-| Current milestone | Coffee Counter can preview a local context package and Safety Gate result; no remote call exists |
-| Next step | Brew 35 - Dry-run Approval UI |
-| Recent foundation result | Brew 34B dogfooded and closed the local context package builder, including broad-repo, `.env`, fake token-like, active-root, and empty-evidence scenarios |
-| Blockers | No blocker for Brew 35 planning; remote model routing remains disabled until a future explicitly approved implementation |
+| Current shot | Brew 35 / 35A - Approval Gate Dry Run UI implemented |
+| Current milestone | Coffee Counter can preview a local context package and simulate approval with checklist gating; no remote call exists |
+| Next step | Brew 35B - Dogfood, fix, and close dry-run approval UI |
+| Recent foundation result | Brew 35A added dry-run approval states, Safety Gate blocking, dry-run Ledger preview, and disabled future send state |
+| Blockers | No blocker for Brew 35B dogfood; remote model routing remains disabled until a future explicitly approved implementation |
 
 ## Phase 1 goal
 
@@ -186,4 +186,4 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 32 | Coffee Counter Project/Fleet Switching | Complete | 2026-07-08 |
 | Brew 33 | Remote Call Approval Design | Complete | 2026-07-08 |
 | Brew 34 | Remote Context Package Builder | Complete | 2026-07-08 |
-| Brew 35 | Dry-run Approval UI | Planned | TBD |
+| Brew 35 | Dry-run Approval UI | In progress | 2026-07-09 |
