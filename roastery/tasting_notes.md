@@ -1905,3 +1905,68 @@ Needs improvement:
 
 - Brew 35B should dogfood the approval UX in the Streamlit UI, verify blocked
   and no-evidence states, refine copy if needed, and close Brew 35.
+
+### 2026-07-09 - Brew 35 / Shot 35B: Approval Gate Dry Run UI Dogfood and Closeout
+
+Dogfood scenarios reviewed:
+
+- Approval-needed safe request:
+  `Use a model to explain the project state and suggest next steps.`
+- Local-only request: `What is the current Brew?`
+- Blocked secret request: `Include my .env file in the context package.`
+- Whole-repository request: `Send my whole repo to a model.`
+- Partial dry-run checklist.
+- Completed dry-run checklist.
+- Cancel/reset state.
+- Active root / project switching state.
+
+What worked:
+
+- Approval-needed safe requests route to `Remote Bean requires approval`, build a
+  preview-only context package, pass the Safety Gate, show checklist
+  requirements, and can become `dry_run_approved` only after all checklist items
+  are complete.
+- Local-only requests build local evidence packages, stay
+  `local_only_no_approval`, and cannot be dry-run approved unnecessarily.
+- `.env` requests are blocked without reading or printing secret values.
+- Whole-repository context requests are blocked until narrowed.
+- Partial checklists remain `context_preview_ready` and report incomplete
+  checklist items.
+- Completed checklists produce `dry_run_approved` for safe approval-needed
+  packages.
+- Cancel/reset produces `dry_run_cancelled`.
+- Active root values are copied into newly built packages, so selected-root
+  changes do not reuse stale package state.
+- Dry-run Ledger preview remains `preview_only_not_written`.
+- Provider/model remain `null` / `not_selected`, estimated cost remains
+  unknown, and send remains `send_disabled_future_brew`.
+
+Validation notes:
+
+- Focused approval, context package, and Coffee Counter UI tests passed.
+- The Coffee Counter app compiled successfully.
+- A bounded local Streamlit smoke returned HTTP 200 and was shut down.
+- Doctor returned the known non-blocking ADR warning only.
+- Release Check returned the expected dirty-working-tree warning during this
+  uncommitted closeout.
+- Evidence Bundle found Brew 35A/35B evidence, Ledger Summary recorded the
+  work as local-only, and Fleet Status returned the known missing-registry info.
+
+Issues found and fixed:
+
+- No product code fix was required during Brew 35B dogfood.
+- A scenario-probe harness mistake was corrected locally; it did not affect the
+  product code.
+
+Closeout:
+
+- Brew 35 dogfood confirmed that Coffee Counter can simulate the remote-call
+  approval flow without sending data anywhere.
+- Approval-needed requests show context package preview, Safety Gate checklist,
+  dry-run approval checklist, and Ledger preview.
+- Blocked secret or whole-repository requests cannot be dry-run approved.
+- Ledger preview is not written automatically.
+- No OpenRouter, API key input, model call, network call, provider/model
+  selector, or real send action exists in Brew 35.
+- Remaining work moves to Brew 36: OpenRouter integration behind explicit
+  approval, if chosen.

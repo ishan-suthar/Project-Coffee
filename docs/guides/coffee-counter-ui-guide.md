@@ -1,6 +1,6 @@
 # Coffee Counter UI Guide
 
-Status: Brew 35A dry-run approval UI implemented
+Status: Brew 35 complete
 Date: 2026-07-09
 
 This guide explains how the Project Coffee Counter UI works today and how it
@@ -787,3 +787,30 @@ selector, pricing logic, network code, model/API call, remote execution, working
 send-to-model button, auto-commit, or auto-push. Brew 36 is the earliest
 possible real OpenRouter integration, if that path is chosen and explicitly
 approved later.
+
+### Brew 35B Dogfood and Closeout
+
+Brew 35B reviewed the dry-run approval UI against realistic approval and block
+paths.
+
+Confirmed behavior:
+
+- approval-needed safe requests build preview-only packages and can become
+  `dry_run_approved` only after all checklist items are complete;
+- local-only requests build packages but remain `local_only_no_approval`;
+- partial checklists remain in preview state and list missing checklist items;
+- completed checklists update the dry-run Ledger preview with
+  `approval_state: dry_run_approved`;
+- blocked `.env` and whole-repository requests cannot be dry-run approved;
+- cancel/reset produces `dry_run_cancelled`;
+- active-root changes produce newly built packages with the selected root;
+- Ledger preview stays `preview_only_not_written`;
+- provider/model stay `null` and `not_selected`;
+- estimated cost stays unknown / not applicable;
+- send stays `send_disabled_future_brew`.
+
+Brew 35 dogfood confirmed that Coffee Counter can simulate the remote-call
+approval flow without sending data anywhere. No OpenRouter, API key input, model
+call, network call, provider/model selector, or real send action exists in Brew
+35. Remaining work moves to Brew 36: OpenRouter integration behind explicit
+approval, if chosen.

@@ -1,6 +1,6 @@
 # Remote Call Approval Design
 
-Status: Brew 35A dry-run approval UI implemented
+Status: Brew 35 complete
 Date: 2026-07-08
 
 ## 1. Purpose
@@ -536,20 +536,55 @@ or model selectors, pricing logic, API key input, OpenRouter integration,
 network code, model/API calls, remote execution, or a working send-to-model
 button.
 
-## 17. Implementation Roadmap
+## 17. Brew 35B Dogfood and Closeout
+
+Brew 35B dogfooded the dry-run approval UI against the core future remote-call
+approval paths:
+
+- approval-needed safe request;
+- local-only request;
+- blocked `.env` request;
+- whole-repository request;
+- partial checklist;
+- completed checklist;
+- cancel/reset;
+- active root / project switching.
+
+Confirmed behavior:
+
+- Approval-needed safe requests show context package preview, Safety Gate
+  checklist, dry-run approval checklist, and Ledger preview.
+- Partial checklists cannot become `dry_run_approved`.
+- Completed checklists produce `dry_run_approved` for safe approval-needed
+  packages.
+- Local-only requests remain `local_only_no_approval`.
+- Blocked secret or whole-repository requests cannot be dry-run approved.
+- Cancel/reset produces `dry_run_cancelled`.
+- Newly built packages use the selected active root.
+- Ledger preview is not written automatically.
+- Provider/model remain `null` / `not_selected`.
+- Estimated cost remains unknown / not applicable.
+- Send remains `send_disabled_future_brew`.
+
+Brew 35 dogfood confirmed that Coffee Counter can simulate the remote-call
+approval flow without sending data anywhere. No OpenRouter, API key input,
+model call, network call, provider/model selector, or real send action exists in
+Brew 35.
+
+## 18. Implementation Roadmap
 
 Recommended future sequence:
 
 1. Brew 34: local context package builder and Safety Gate - implemented in
    Brew 34A and dogfooded/closed in Brew 34B.
 2. Brew 35: dry-run approval UI around the local package - implemented in
-   Brew 35A.
+   Brew 35A and dogfooded/closed in Brew 35B.
 3. Brew 36 or later: earliest possible real OpenRouter integration, if chosen
    and explicitly approved.
 4. Future Brew: consider remote call implementation only after explicit human
    approval and fresh Roastery/routing review.
 
-## 18. Open Questions
+## 19. Open Questions
 
 - Should approval IDs be generated in memory or written only when a remote call
   actually occurs?

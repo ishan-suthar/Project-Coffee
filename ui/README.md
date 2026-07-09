@@ -1,6 +1,6 @@
 # Project Coffee Counter UI
 
-Status: Brew 35A dry-run approval UI implemented
+Status: Brew 35 complete
 
 The Coffee Counter UI is a local Streamlit control panel for Project Coffee. It
 wraps existing safe Project Coffee CLI tools through an allowlisted command
@@ -234,6 +234,32 @@ auto-push.
 
 Brew 36 is the earliest possible real OpenRouter integration, if that path is
 chosen and explicitly approved later.
+
+## Brew 35B Dogfood and Closeout
+
+Brew 35B dogfooded the dry-run approval UI against approval-needed, local-only,
+blocked secret, whole-repository, partial-checklist, complete-checklist,
+cancel/reset, and active-root scenarios.
+
+Confirmed behavior:
+
+- approval-needed requests show context package preview, Safety Gate checklist,
+  dry-run approval checklist, and Ledger preview;
+- partial checklists cannot produce `dry_run_approved`;
+- complete checklists can produce `dry_run_approved` for safe
+  approval-needed packages;
+- local-only requests stay `local_only_no_approval` and do not need dry-run
+  approval;
+- `.env` and whole-repository requests are blocked and cannot be dry-run
+  approved;
+- provider/model remain not selected;
+- estimated cost remains unknown / not applicable;
+- Ledger preview remains preview-only and is not written automatically;
+- send remains disabled for a future Brew;
+- active root is copied into each newly built package.
+
+No OpenRouter, API key input, model call, network call, provider/model selector,
+real send action, remote execution, auto-commit, or auto-push exists in Brew 35.
 
 ## Brew 28 Evidence Integration
 

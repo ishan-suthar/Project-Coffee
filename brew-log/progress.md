@@ -6,7 +6,7 @@ Phase 1 — Working daily AI coding environment
 
 ## Current shot
 
-Current status: Brew 35 / 35A - Approval Gate Dry Run UI implemented. Next active work: Brew 35B - dogfood, fix, and close dry-run approval UI.
+Current status: Brew 35 - Approval Gate Dry Run UI complete. Next active work: Brew 36 - OpenRouter integration behind explicit approval, if chosen.
 
 ## Completed
 
@@ -162,6 +162,7 @@ Current status: Brew 35 / 35A - Approval Gate Dry Run UI implemented. Next activ
 | 2026-07-08 | Brew 34 / Shot 34A - Remote Context Package Builder | Local-only context package builder and Safety Gate added, focused tests written, and Coffee Counter Routing / Approval tab updated with preview-only package status, route decision, token estimate, evidence counts, Safety Gate result, and JSON preview; no remote call or send path added |
 | 2026-07-08 | Brew 34 / Shot 34B - Dogfood, Fix, and Close Remote Context Package Builder | Dogfooded current-state, docs, remote-helpful, whole-repo, `.env`, suspicious-token, selected-root, and empty-evidence scenarios; fixed request-level Safety Gate blocking and routing classification; Brew 34 marked complete |
 | 2026-07-09 | Brew 35 / Shot 35A - Approval Gate Dry Run UI | `tools/coffee_approval_dry_run.py` added and Coffee Counter Routing / Approval updated with dry-run approval states, required checklist gating, Safety Gate blocking, dry-run Ledger preview, and disabled future send state; no remote call or send path added |
+| 2026-07-09 | Brew 35 / Shot 35B - Dogfood, Fix, and Close Approval Gate Dry Run UI | Dogfooded approval-needed, local-only, blocked secret, whole-repo, partial-checklist, complete-checklist, cancel/reset, and active-root scenarios; tests, compile checks, Streamlit local smoke, Doctor, Release Check, Evidence Bundle, Ledger Summary, and Fleet Status passed with expected warnings; Brew 35 marked complete |
 
 ## Attempted (blocked)
 
@@ -175,10 +176,10 @@ None.
 
 ## Up next
 
-1. Brew 35B - Dogfood, fix, and close dry-run approval UI.
+1. Brew 36 - OpenRouter integration behind explicit approval, if chosen.
 2. Preserve full model outputs in future Cup Tests before scoring quality.
 3. Keep UI work local-first: no remote model calls, no file editing, no Git writes, and no raw Roastery output inspection without explicit future approval.
 
 ## Blockers
 
-No active blocker for Brew 35B dogfood. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, working send-to-model button, release tag, staging, or commit has been added by Brew 35A. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.
+No active blocker for Brew 36 planning. Streamlit was already installed locally and was not installed by the assistant. No model/API call, OpenRouter call, external API call, package install, persistent config write, network-code addition, API key input, provider/model selection, working send-to-model button, release tag, staging, or commit has been added by Brew 35. Doctor still reports the known non-blocking ADR warning, and Fleet Status still reports the missing default registry as informational. Future confidence still benefits from repeated captured outputs across dates, Beans, and real Order types. Shot 3B OpenRouter shell authentication remains historical context.

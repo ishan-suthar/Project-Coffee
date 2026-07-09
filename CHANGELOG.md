@@ -267,4 +267,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated the Coffee Counter Routing / Approval tab with request summary, context package preview, Safety Gate checklist, included/excluded evidence summary, required dry-run approval checklist, dry-run Ledger preview, and disabled future send state.
 - Kept provider/model placeholders unselected, estimated cost unknown, and Ledger writes preview-only.
 - Confirmed Brew 35A adds no OpenRouter integration, API key input, provider/model selector, pricing logic, network code, model/API call, remote execution, working send-to-model button, auto-commit, or auto-push.
-- Set next work to Brew 35B, dogfood, fix, and close the dry-run approval UI.
+- Dogfooded approval-needed, local-only, blocked secret, whole-repo, partial-checklist, complete-checklist, cancel/reset, and active-root switching scenarios.
+- Confirmed blocked secret and whole-repo requests cannot be dry-run approved, Ledger preview is not written automatically, provider/model remain not selected, estimated cost remains unknown, and send remains disabled for a future Brew.
+- Marked Approval Gate Dry Run UI complete and set next recommended work to Brew 36, OpenRouter integration behind explicit approval, if chosen.
