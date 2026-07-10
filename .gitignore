@@ -11,6 +11,7 @@
 **/*key*
 **/*token*
 !ledger/token_log.md
+!PLAN-spill-guard-token-log-fix.md
 **/*password*
 **/*.pem
 **/*.key
