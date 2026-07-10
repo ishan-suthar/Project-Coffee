@@ -135,6 +135,75 @@ class StreamOrderTests(unittest.IsolatedAsyncioTestCase):
         for body in seen_bodies:
             self.assertNotIn(b"super-secret-key", body)
 
+    async def test_no_images_sends_plain_string_content(self):
+        """Backward compatibility: every non-image request (and every call
+        before Brew 38) must keep sending content as a plain string, not
+        the multimodal array form."""
+
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        async for _ in stream_order("vendor/model:free", "hi", api_key="k", http_client=client):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(payload["messages"][0]["content"], "hi")
+
+    async def test_images_send_multimodal_content_array(self):
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        data_url = "data:image/png;base64,iVBORw0KGgo="
+        async for _ in stream_order(
+            "vendor/vision-model:free",
+            "What is in this image?",
+            api_key="k",
+            http_client=client,
+            image_data_urls=[data_url],
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        content = payload["messages"][0]["content"]
+        self.assertIsInstance(content, list)
+        self.assertEqual(content[0], {"type": "text", "text": "What is in this image?"})
+        self.assertEqual(content[1], {"type": "image_url", "image_url": {"url": data_url}})
+
+    async def test_multiple_images_all_included(self):
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        urls = ["data:image/png;base64,AAA=", "data:image/jpeg;base64,BBB="]
+        async for _ in stream_order(
+            "vendor/vision-model:free", "compare these", api_key="k", http_client=client, image_data_urls=urls
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        content = payload["messages"][0]["content"]
+        self.assertEqual(len(content), 3)  # 1 text part + 2 image parts
+
 
 if __name__ == "__main__":
     unittest.main()

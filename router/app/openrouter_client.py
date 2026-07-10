@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
 
@@ -42,6 +42,7 @@ async def stream_order(
     api_key: Optional[str] = None,
     timeout_seconds: int = 60,
     http_client: Optional[httpx.AsyncClient] = None,
+    image_data_urls: Optional[List[str]] = None,
 ) -> AsyncIterator[StreamChunk]:
     """Stream one prompt to one OpenRouter model.
 
@@ -50,15 +51,29 @@ async def stream_order(
     httpx.MockTransport - no live network call is ever made in tests, and
     the only real caller of this function without an injected client is
     router/app/main.py at actual demo/runtime.
+
+    image_data_urls (Brew 38): base64 `data:image/...;base64,...` URLs,
+    built by the caller from uploaded file bytes at send time - never
+    stored pre-encoded (see docs/design/attachments-design.md Section 5).
+    When present, the OpenRouter message content becomes the multimodal
+    array form; when absent (every non-image request, and every call
+    before Brew 38), content stays the plain string - fully backward
+    compatible.
     """
 
     resolved_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
     if not resolved_key:
         raise OpenRouterClientError("OPENROUTER_API_KEY is not set.")
 
+    content: Any = prompt
+    if image_data_urls:
+        content = [{"type": "text", "text": prompt}] + [
+            {"type": "image_url", "image_url": {"url": url}} for url in image_data_urls
+        ]
+
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{"role": "user", "content": content}],
         "stream": True,
         "usage": {"include": True},
     }

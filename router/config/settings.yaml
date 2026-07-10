@@ -28,3 +28,10 @@ refusal_keywords:
   - "i can't help with that"
   - "i'm not able to assist"
   - "as an ai language model, i cannot"
+
+# File/image attachments (Brew 38). See router/app/uploads.py and
+# docs/design/attachments-design.md.
+max_upload_size_bytes: 20971520  # 20 MB
+pdf_min_extracted_chars: 20  # below this, treat a PDF as scanned/no-text
+max_inline_text_chars: 50000  # cap on extracted text inlined into a prompt
+upload_ttl_seconds: 3600  # abandoned router/uploads/<request_id>/ dirs older than this are swept

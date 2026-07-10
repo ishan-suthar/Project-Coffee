@@ -44,6 +44,12 @@ build/
 roastery/local_cup_outputs/
 roastery/local_reports/
 
+# Local Coffee Core Router runtime data (session/chat history, not source)
+router/data/
+
+# Local Coffee Core Router uploaded attachments (ephemeral, per-request, not source)
+router/uploads/
+
 # Local config overrides (keep templates in repo)
 config/local.*
 **/local_config.*

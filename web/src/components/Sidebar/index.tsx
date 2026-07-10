@@ -1,0 +1,110 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useChatStore } from "@/store/chatStore";
+import { formatRelativeTime } from "@/lib/relativeTime";
+
+/**
+ * Sessions grouped by project, collapsible to an icon rail. Fetched AFTER
+ * interactive (Requirement: first paint never blocked) - this component
+ * renders an empty/skeleton list immediately and populates it via
+ * useEffect, matching docs/design/coffee-counter-chat-ui-design.md
+ * Section 5.1. Collapse state is a UI preference (localStorage), not
+ * session data.
+ */
+export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+  const sessions = useChatStore((s) => s.sessions);
+  const sessionsLoaded = useChatStore((s) => s.sessionsLoaded);
+  const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const project = useChatStore((s) => s.project);
+  const loadSessions = useChatStore((s) => s.loadSessions);
+  const selectSession = useChatStore((s) => s.selectSession);
+  const startNewSession = useChatStore((s) => s.startNewSession);
+
+  useEffect(() => {
+    // One-shot read of a UI preference on mount, not a synchronization
+    // loop - localStorage is unavailable during SSR, so this cannot be a
+    // useState lazy initializer without a hydration mismatch.
+    const stored = window.localStorage.getItem("coffee-counter-sidebar-collapsed");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  useEffect(() => {
+    loadSessions().catch(() => {
+      // Sidebar failing to load must never block the shell or the order
+      // box - it just stays empty and the user can still start a chat.
+    });
+  }, [loadSessions]);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("coffee-counter-sidebar-collapsed", String(next));
+      return next;
+    });
+  }
+
+  if (collapsed) {
+    return (
+      <div className="flex w-12 flex-col items-center border-r border-caramel bg-latte py-2">
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label="Expand sidebar"
+          className="rounded px-2 py-1 text-espresso transition hover:bg-cream"
+        >
+          &rarr;
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <aside className="flex w-64 flex-col border-r border-caramel bg-latte">
+      <div className="flex items-center justify-between border-b border-caramel px-3 py-2">
+        <span className="text-sm font-medium text-espresso">{project}</span>
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label="Collapse sidebar"
+          className="rounded px-2 py-1 text-espresso transition hover:bg-cream"
+        >
+          &larr;
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={startNewSession}
+        className="m-2 rounded border border-caramel px-3 py-2 text-left text-sm text-espresso transition hover:bg-cream"
+      >
+        + New session
+      </button>
+
+      <div className="flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-sessions">
+        {!sessionsLoaded && <p className="px-2 text-xs text-medium-roast">Loading sessions...</p>}
+        {sessionsLoaded && sessions.length === 0 && (
+          <p className="px-2 text-xs text-medium-roast">No sessions yet.</p>
+        )}
+        {sessions.map((session) => (
+          <button
+            key={session.id}
+            type="button"
+            onClick={() => selectSession(session.id)}
+            className={`mb-1 flex w-full flex-col rounded px-2 py-2 text-left transition ${
+              session.id === activeSessionId ? "bg-crema-amber/20" : "hover:bg-cream"
+            }`}
+          >
+            <span className="truncate text-sm text-espresso">{session.title}</span>
+            <span className="flex items-center justify-between text-xs text-medium-roast">
+              <span>{formatRelativeTime(session.updated_at)}</span>
+              <span className="font-mono tabular-nums">${session.cost_total_usd.toFixed(4)}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </aside>
+  );
+}

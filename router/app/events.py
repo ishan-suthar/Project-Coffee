@@ -44,12 +44,26 @@ class RouteSelectedEvent(BaseEvent):
     complexity: Literal["espresso_shot", "cold_brew"]
     est_cost_usd: Optional[float] = None
     policy_entry: str
+    # Added in contract version 1.2 (Brew 38): why routing deviated from
+    # the plain policy/manual pick, e.g. a vision-needing request being
+    # escalated to a vision-capable Bean. None when routing was not
+    # constrained by anything - the normal case. Optional and additive -
+    # existing consumers that ignore it are unaffected. See
+    # docs/design/attachments-design.md Section 6.3.
+    constraint_reason: Optional[str] = None
 
 
 class GeneratingEvent(BaseEvent):
     event: Literal["generating"] = "generating"
     tokens_out: int
     est_cost_usd: Optional[float] = None
+    # Added in contract version 1.1 (Brew 37): the incremental text chunk
+    # produced since the last tick, so a UI can render markdown as it
+    # streams instead of waiting for `complete`. Optional and additive -
+    # existing consumers that ignore it are unaffected. None on any
+    # `generating` tick that produced no new visible text (should not
+    # happen in practice, but kept optional for forward safety).
+    text_delta: Optional[str] = None
 
 
 class EscalationPendingEvent(BaseEvent):

@@ -1,7 +1,7 @@
 # Coffee Core Router - Event Contract
 
-Status: Brew 36B - frozen once this file is committed
-Version: 1
+Status: Brew 38B - frozen once this file is committed
+Version: 1.2
 
 This is the authoritative SSE event contract for `POST /v1/order` and
 `POST /v1/retry`. The UI and any future animation are pure consumers of
@@ -12,6 +12,18 @@ or removal, without a version bump to this file.
 Drafted and approved in `docs/design/coffee-core-router-design.md` Section
 4 before implementation; this is the as-implemented version, matching
 `router/app/events.py` exactly.
+
+## Changelog
+
+- **1.2** (Brew 38, `docs/design/attachments-design.md` Section 6.3):
+  added optional `constraint_reason` to `route_selected` - explains why
+  routing deviated from the plain policy/manual pick (e.g. a vision-needing
+  request escalated to a vision-capable Bean). Additive only.
+- **1.1** (Brew 37, `docs/design/coffee-counter-chat-ui-design.md` Section
+  9): added optional `text_delta` to `generating`. Additive only - no
+  field renamed or removed. Existing consumers that ignore the new field
+  are unaffected.
+- **1.0** (Brew 36): initial frozen contract.
 
 ## Transport
 
@@ -41,6 +53,7 @@ order_received
         -> [escalation_pending -> escalating]   (optional, see below)
       -> complete
   -> error      (may replace any step)
+  -> cancelled  (may replace any step, via POST /v1/cancel)
 ```
 
 `escalation_pending` is followed by one of:
@@ -82,9 +95,10 @@ No extra fields.
 | `complexity` | `"espresso_shot"` \| `"cold_brew"` |
 | `est_cost_usd` | number or `null` |
 | `policy_entry` | string - which `routing_policy.yaml` entry justified this route |
+| `constraint_reason` | string or `null` (added in v1.2) - why routing deviated from the plain policy/manual pick, e.g. a vision-needing request escalated to a vision-capable Bean; `null` in the normal, unconstrained case |
 
 ```json
-{"event": "route_selected", "ts": "2026-07-09T20:14:03.210Z", "request_id": "b3f1c2d4-...", "bean_alias": "House Blend", "task_type": "code", "complexity": "espresso_shot", "est_cost_usd": 0.0, "policy_entry": "code/house-blend"}
+{"event": "route_selected", "ts": "2026-07-09T20:14:03.210Z", "request_id": "b3f1c2d4-...", "bean_alias": "House Blend", "task_type": "code", "complexity": "espresso_shot", "est_cost_usd": 0.0, "policy_entry": "code/house-blend", "constraint_reason": null}
 ```
 
 ### `generating`
@@ -93,12 +107,17 @@ No extra fields.
 | --- | --- |
 | `tokens_out` | integer - cumulative, not a delta |
 | `est_cost_usd` | number or `null` |
+| `text_delta` | string or `null` (added in v1.1) - the incremental text chunk since the last tick, not cumulative |
 
 Emitted after `settings.generating_tick_tokens` output tokens or
 `settings.generating_tick_seconds` seconds, whichever comes first.
+`text_delta` is the new content produced since the previous `generating`
+event (or since `route_selected`, for the first tick) - concatenate
+`text_delta` values in arrival order to reconstruct the full streamed
+text; do not use `tokens_out` for reconstruction, it is a count, not text.
 
 ```json
-{"event": "generating", "ts": "2026-07-09T20:14:04.500Z", "request_id": "b3f1c2d4-...", "tokens_out": 40, "est_cost_usd": 0.0}
+{"event": "generating", "ts": "2026-07-09T20:14:04.500Z", "request_id": "b3f1c2d4-...", "tokens_out": 40, "est_cost_usd": 0.0, "text_delta": "A Python decorator is a function that "}
 ```
 
 ### `escalation_pending`
@@ -158,17 +177,36 @@ or an approved `POST /v1/approve_escalation`.
 {"event": "error", "ts": "2026-07-09T20:14:07.050Z", "request_id": "b3f1c2d4-...", "error_type": "provider_error", "message": "OpenRouter did not respond within the configured timeout.", "retryable": true}
 ```
 
+Known `error_type` values include `provider_error`, `invalid_bean_override`
+(Brew 37), and, since Brew 38, `no_vision_bean_available` - emitted when a
+request needs a vision-capable Bean (an image was attached) but no Bean in
+`router/config/beans.yaml` has `capabilities.vision: true` (see
+`docs/design/attachments-design.md` Section 6.2 - as of Brew 38 this is
+every real request with an image attached, since no vision Bean is
+configured yet):
+
+```json
+{"event": "error", "ts": "2026-07-11T20:14:07.050Z", "request_id": "b3f1c2d4-...", "error_type": "no_vision_bean_available", "message": "This request needs a vision-capable Bean, but none is configured in beans.yaml.", "retryable": false}
+```
+
 ### `cancelled`
 
-Reserved in the schema (`router/app/events.py:CancelledEvent`) for a future
-client-initiated cancel endpoint. Not emitted by the current
-implementation: once a client disconnects from an open SSE stream there is
-no one left to receive a final event, so `sse_stream()` simply lets the
-generator stop.
+Emitted when `POST /v1/cancel` is called for an in-flight `request_id`
+(reason `"client_cancel_request"`) - the generation loop checks a
+per-request cancellation flag each iteration and stops early. A plain
+client disconnect (closing the browser tab, network drop) is different:
+nothing is listening anymore by definition, so no final event is
+emitted for that case - `sse_stream()` simply lets the generator stop.
+`reason: "client_disconnect"` is reserved in the schema for a future
+server-side detection path but is not emitted today.
 
 | Field | Type |
 | --- | --- |
 | `reason` | `"client_disconnect"` \| `"client_cancel_request"` |
+
+```json
+{"event": "cancelled", "ts": "2026-07-10T20:14:05.000Z", "request_id": "b3f1c2d4-...", "reason": "client_cancel_request"}
+```
 
 ## Aliases (never raw model IDs)
 

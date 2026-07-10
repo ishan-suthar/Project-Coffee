@@ -23,6 +23,7 @@ Use model scorecards to record model performance.
 | 2026-07-08 | No remote Bean; local standard-library doctor | Brew 17 / Shot 17B Coffee Doctor dogfood | COMPLETE - root, JSON, section, strict fail-on-issue, incomplete scratch, test, and compile checks passed | Workflow evidence below |
 | 2026-07-09 | No remote Bean; local standard-library gate repair | Gate repair - executed PLAN-spill-guard-token-log-fix.md and PLAN-root-test-discovery-fix.md | COMPLETE WITH ONE MID-EXECUTION FIX - Spill Guard parity restored; root test-suite gate now collects 252 tests instead of 0; the plan's own prescribed script content had to be corrected during execution | Workflow evidence below |
 | 2026-07-09 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router) | Brew 36B live demo - one real `/v1/order` request, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct classification (explain/espresso_shot), correct alias-only routing, 65 output tokens, 1733ms latency, not escalated, not draft | Full transcript below |
+| 2026-07-10 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router + new Coffee Counter Chat UI) | Brew 37B live demo - one real `/v1/order` request through the actual browser UI, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct status-line sequence, correct alias-only rendering, session persisted with auto-set title, 70 output tokens, 2405ms latency, not escalated, not draft, zero raw model ID leaks in rendered page | Full narrative below |
 
 ## Cup Test Notes
 
@@ -2175,3 +2176,256 @@ Needs improvement:
   flow end to end, though the no-premium-Bean gap (Section 3 of the design
   doc) means the auto-escalate and pending-approval-then-escalate paths
   still cannot be demoed live until a premium Bean is selected.
+
+### 2026-07-10 - Brew 37B: Coffee Counter Chat UI Live Demo
+
+Scope: one real, human-approved `/v1/order` call driven through the actual
+running browser UI (`web/`, Next.js on `localhost:3000`) against the
+actual running Coffee Core Router (`127.0.0.1:8765`) against real
+OpenRouter - the first time this repository's chat UI and router have
+been exercised together end to end with a real remote Bean call.
+
+Preconditions:
+
+- Full test suite green first: 139 `router/tests/`, 391 total repo-wide
+  (`python tools\run_all_tests.py`), plus 25 Vitest/RTL component tests
+  and 3 Playwright smoke tests (mocked router, no live call) in `web/`.
+  `npx tsc --noEmit`, `eslint`, and `npm run build` all clean.
+- `OPENROUTER_API_KEY` was already present in the shell environment from
+  the Brew 36 demo session; never pasted into chat or written to a file.
+- A stale router process from the Brew 36 demo (PID 27952, predating all
+  Brew 37 backend changes) was found still running in the background and
+  killed before starting a fresh instance with current code.
+
+Commands (both servers started fresh with current code):
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765 --host 127.0.0.1
+npx next start -p 3000
+```
+
+Driven via a throwaway Playwright script (not committed - a manual demo
+aid, not part of the automated suite) that filled the Order Box textarea
+with "Explain what a Python decorator is in two sentences.", pressed
+Enter, and polled the status line and rendered message content.
+
+Observed behavior:
+
+- Status line moved through the real sequence: "Ready when you are" ->
+  "Reaching for the House Blend jar" -> "Brewing" -> "Order up", matching
+  `router/EVENT_CONTRACT.md` v1.1's event order exactly.
+- The assistant message streamed in via the new `text_delta` field on
+  `generating` events and rendered as markdown.
+- Message header showed `House Blend` (bean alias badge, mono,
+  tabular-nums), `$0.0000` (cost pill), and `2405ms` (latency) - never a
+  raw model ID.
+- A session was auto-created on first send, titled from the prompt text
+  ("Explain what a Python decorator..."), and appeared in the sidebar
+  with a correct running cost total.
+- Both the user and assistant messages persisted to
+  `router/data/sessions.db` (verified directly via `SessionStore`), and a
+  second real row was appended to `ledger/router_requests.csv` with the
+  correct raw model ID, tokens, cost, and latency.
+- `grep`-equivalent check of the full rendered page text against the
+  live `/v1/beans` alias list: zero raw model ID occurrences.
+- Zero browser console errors or page errors (`page.on("pageerror")`
+  reported none) during the whole flow.
+- Rating buttons (Good / Needed fixing / Failed), Copy, and the Re-brew
+  button with a Bean-override dropdown (populated from `/v1/beans`, only
+  the two other available aliases plus "Same Bean") all rendered
+  correctly on the completed message.
+- Screenshots were captured, visually reviewed (matched the design
+  tokens - cream background, latte sidebar, caramel borders, espresso
+  text, single crema-amber accent on the active session), and then
+  discarded - they are not part of the repository.
+
+Two real bugs were found and fixed during this session, both caught by
+tooling rather than by eyeballing the demo:
+
+1. A Zustand selector in `ResponseSection` (`web/src/components/
+   ResponseSection/index.tsx`) returned a brand-new `[]` literal on every
+   render whenever there was no active session. Zustand's default
+   `Object.is` equality check saw that as "changed" on every render,
+   causing an infinite re-render loop - React's minified error #185
+   ("Maximum update depth exceeded"). This manifested in Playwright as
+   what looked exactly like a real network failure ("This page couldn't
+   load"), and took `page.on("pageerror")` console capture to correctly
+   diagnose as a client-side crash, not a navigation problem. Fixed with
+   a module-level stable `EMPTY_MESSAGES` constant reused across renders
+   instead of a fresh literal.
+2. The router's CORS allowlist (`http://localhost:3000`, approved in the
+   Brew 37A plan) correctly rejected an early demo run that had navigated
+   to `http://127.0.0.1:3000` instead - browsers treat `127.0.0.1` and
+   `localhost` as different origins even on the same port. Confirmed via
+   direct `curl -X OPTIONS` preflight requests with each Origin header
+   that this was Starlette's `CORSMiddleware` working exactly as
+   configured (`400 Disallowed CORS origin`), not a product defect. Fixed
+   by correcting the demo script's navigation URL, not the router.
+
+Cost and token evidence:
+
+- Model / Bean: House Blend (`nvidia/nemotron-3-ultra-550b-a55b:free`),
+  via `router/app/openrouter_client.py`'s async streaming client, driven
+  through `web/`'s `fetch()`-based SSE client (`web/src/lib/sse.ts`).
+- Tokens: 13 input, 70 output (from OpenRouter's own usage field).
+- Cost: `$0.00` (free-tier Bean).
+
+What worked:
+
+- The full stack - browser UI, router orchestration, session persistence,
+  Ledger write - worked correctly on the first live call once both
+  demo-script bugs (not product bugs) were fixed, with zero code changes
+  needed to the actual `router/` or `web/` source between the last test
+  run and the successful demo.
+- The frozen `CounterDisplay` interface and the event-to-status-text
+  table made the status line trivial to verify against the real event
+  stream - every transition matched the table exactly.
+- Catching the React error #185 loop via `page.on("pageerror")` instead
+  of guessing from the misleading "page couldn't load" symptom is a
+  reusable debugging pattern worth remembering: a Chromium
+  network-error-looking page during a Playwright test is not proof of an
+  actual network failure - check for a client-side crash first.
+
+Needs improvement:
+
+- Like Brew 36B, this demo only exercised the happy path - no escalation
+  pause, no cancel-mid-stream, no re-brew, no rating submission were
+  exercised against the real router live (all are covered by mocked
+  Vitest/Playwright/router tests). A future Brew could demo the cancel
+  path live (Esc mid-stream) since it needs no premium Bean to exercise,
+  unlike escalation.
+
+### 2026-07-11 - Brew 38B: File/Image Attachments Live Demo
+
+Scope: two real, human-approved `/v1/order` calls with attachments, driven
+through the actual running browser UI against the actual running Coffee
+Core Router against real OpenRouter - one PDF question (extraction/
+inlining success path) and one image question (the approved "ship
+inert" vision-routing error path, since no Bean in `beans.yaml` has
+`vision: true` today).
+
+Preconditions:
+
+- Full test suite green first: 211 `router/tests/` (12 new for this
+  Brew's `main.py` attachment wiring, plus new tests in `uploads.py`,
+  `aliases.py`, `routing.py`, `events.py`, `openrouter_client.py`,
+  `ledger.py`, `classifier.py`), all OpenRouter calls mocked. 29
+  Vitest/RTL component tests in `web/` (new `AttachmentChip.test.tsx`).
+  `npx tsc --noEmit`, `eslint`, and `npm run build` all clean.
+- `OPENROUTER_API_KEY` already present in the shell environment; never
+  pasted into chat or written to a file.
+- Two small real fixture files were generated for the demo (not
+  committed): a single-page PDF with a real Helvetica text content
+  stream reading "Project Coffee brews only decaf on Tuesdays. This is a
+  demo fact for Brew 38.", and a 300x150 PNG with rendered text
+  ("COFFEE DEMO").
+
+Commands (both servers started fresh with current code):
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765
+npx next dev -p 3000
+```
+
+Driven via a throwaway Playwright script (not committed - a manual demo
+aid, not part of the automated suite) that attached each fixture file via
+the Order Box's hidden file input, waited for the attachment chip to
+reach `ready`, filled the textarea with a question referencing the
+attachment, and pressed Send.
+
+Observed behavior - PDF question:
+
+- Chip reached `ready` status after a real `POST /v1/upload` round trip;
+  the router's `pypdf` extraction found the real text.
+- Sent user message rendered the attachment chip (filename + size) via
+  the new `AttachmentGallery` component.
+- `route_selected` classified the request as `cold_brew` (any attachment
+  forces this per the approved Decision 3) and `constraint_reason` was
+  `null` (no vision needed, nothing to escalate).
+- Assistant answered correctly: "According to the PDF, Project Coffee
+  brews only decaf on Tuesdays." - proving upload, `pypdf` extraction,
+  `--- Attached file: ... ---` inlining, and the real OpenRouter round
+  trip all work end to end.
+- `ledger/router_requests.csv` recorded `attachment_count=1`,
+  `attachment_tokens_est=19` (`len(extracted_text) // 4`) on the new row.
+
+Observed behavior - image question:
+
+- Chip reached `ready` with a rendered thumbnail (`URL.createObjectURL`).
+- Sent user message rendered the image inline via `AttachmentGallery`
+  (click-to-expand overlay untested in this run, code path unchanged
+  from the design's overlay pattern).
+- The request correctly raised `NoVisionBeanError` inside
+  `RoutingPolicy.select_route()` (House Blend lacks `vision: true` and no
+  vision-capable Bean exists anywhere in `beans.yaml` today), and
+  `main.py` emitted a clean `error` event rather than crashing, guessing
+  a model, or silently sending the request without the image. The UI
+  rendered the exact message: "This request needs a vision-capable Bean,
+  but none is configured in beans.yaml." No ledger row was written for
+  this request (matches `_run_order_body` returning before reaching
+  `ledger.append()` on this error path - a request that never generated
+  should not appear in the audit trail as if it had).
+- Zero browser console/page errors in either question.
+
+One real, pre-existing bug (not introduced by this Brew) was found by
+this live demo, not by tests:
+
+1. `_consume_stream` (`router/app/main.py`) broke out of its streaming
+   loop on the final chunk without flushing any text accumulated since
+   the last `generating` tick. `CompleteEvent` carries no content field -
+   all response text travels exclusively via `generating.text_delta` - so
+   a response shorter than one `settings.generating_tick_tokens` tick
+   was silently and completely lost before ever reaching the client. The
+   first PDF-question demo run surfaced this directly: the model
+   answered in ~92 tokens in a single fast completion (confirmed via the
+   Ledger's `tokens_out` and OpenRouter usage field), but the UI rendered
+   an empty assistant bubble. This bug predates Brew 38 (it lives in
+   `_consume_stream`'s tick-flush logic from Brew 36) and is unrelated to
+   attachments - it would affect any sufficiently short response.
+   Test suites never caught it because `router/tests/test_main.py`'s
+   fake stream fixtures are sized deliberately to cross a tick threshold
+   mid-stream. Fixed by flushing any remaining `text_since_tick` as one
+   last `generating` event immediately before the `__final__` sentinel.
+   All 211 router tests still pass after the fix; the PDF demo was
+   re-run and produced the correct visible answer.
+
+Cost and token evidence:
+
+- Model / Bean: House Blend (`nvidia/nemotron-3-ultra-550b-a55b:free`),
+  PDF question only (the image question errored before any model call
+  was made, per the ship-inert design).
+- Tokens: 16 input, 94 output (from OpenRouter's own usage field, final
+  successful run after the streaming fix).
+- Cost: `$0.00` (free-tier Bean).
+- Attachment tokens estimate: 19 (`len(extracted_text) // 4` for the PDF;
+  images are recorded as `"unknown"`, never guessed, per Coffee Ledger
+  discipline - not applicable here since the image request never reached
+  the Ledger).
+
+What worked:
+
+- The full attachment pipeline - client-side validation, real upload,
+  server-side `pypdf` extraction, text inlining with the delimiter
+  format, and the real OpenRouter round trip - worked correctly end to
+  end on the first successful run (after the pre-existing streaming bug
+  above was fixed).
+- The vision-routing constraint's "ship inert" design worked exactly as
+  specified: a real image attachment against real `beans.yaml` state
+  produced a precise, human-readable error rather than a crash, a
+  guessed model substitution, or a silently text-only request.
+- The same `localhost` (not `127.0.0.1`) origin lesson recorded in the
+  Brew 37B Tasting Note repeated here on the first attempt and was fixed
+  the same way (correct the demo script's navigation URL, not the
+  product) - worth keeping in mind for any future live-demo script.
+
+Needs improvement:
+
+- Only the router-level attachment pipeline and the "ship inert" error
+  path were exercised live; escalation-with-attachments (a failed
+  generation on a request that also has an attachment) and the
+  click-to-expand image overlay were not exercised against the real
+  server, though both are covered by the mocked test suites.
+- The pre-existing `_consume_stream` tick-flush bug found here suggests
+  the fake stream fixtures in `router/tests/test_main.py` should
+  eventually gain a "response shorter than one tick" case so this class
+  of bug is caught by tests, not by a live demo, next time.

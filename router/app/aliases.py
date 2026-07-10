@@ -98,3 +98,27 @@ class BeanRegistry:
 
     def known_aliases(self) -> List[str]:
         return [bean.alias for bean in self._beans]
+
+    def vision_capable_beans(self) -> List[Bean]:
+        """Available Beans with capabilities.vision: true (Brew 38). As of
+        this Brew, config/beans.yaml has none - see docs/design/
+        attachments-design.md Section 2, Gap 1 and Section 7 Decision 1:
+        vision routing ships structurally correct but inert until a real
+        vision-capable Bean is added and Roastery-tested."""
+
+        return [bean for bean in self._beans if bean.vision and bean.is_available]
+
+    def default_vision_bean(self) -> Optional[Bean]:
+        """The Bean vision-constrained routing should escalate to: the
+        first available vision-capable Bean, preferring one with
+        role="default" if more than one qualifies. Returns None when no
+        vision-capable Bean is configured - callers must handle that
+        explicitly (never silently proceed without the image)."""
+
+        candidates = self.vision_capable_beans()
+        if not candidates:
+            return None
+        for bean in candidates:
+            if bean.role == "default":
+                return bean
+        return candidates[0]

@@ -34,6 +34,37 @@ class EventContractTests(unittest.TestCase):
         )
         self.assertEqual(event.complexity, "espresso_shot")
 
+    def test_route_selected_constraint_reason_defaults_to_none(self):
+        """v1.2: constraint_reason is additive and optional - old-style
+        RouteSelectedEvent construction (no constraint_reason) must still
+        work."""
+
+        event = RouteSelectedEvent(
+            request_id=REQUEST_ID,
+            bean_alias="House Blend",
+            task_type="code",
+            complexity="espresso_shot",
+            est_cost_usd=0.0,
+            policy_entry="code/house-blend",
+        )
+        self.assertIsNone(event.constraint_reason)
+
+    def test_route_selected_constraint_reason_round_trips(self):
+        event = RouteSelectedEvent(
+            request_id=REQUEST_ID,
+            bean_alias="Vision Blend",
+            task_type="explain",
+            complexity="espresso_shot",
+            est_cost_usd=0.0,
+            policy_entry="explain/house-blend",
+            constraint_reason="needs_vision: escalated from House Blend to Vision Blend",
+        )
+        frame = event.to_sse()
+        payload = json.loads(frame[len("data: "):].strip())
+        self.assertEqual(
+            payload["constraint_reason"], "needs_vision: escalated from House Blend to Vision Blend"
+        )
+
     def test_complexity_only_accepts_barista_charter_values(self):
         with self.assertRaises(ValueError):
             RouteSelectedEvent(
@@ -43,6 +74,21 @@ class EventContractTests(unittest.TestCase):
                 complexity="medium",  # not a real Barista Charter work mode
                 policy_entry="code/default",
             )
+
+    def test_generating_event_text_delta_defaults_to_none(self):
+        """v1.1: text_delta is additive and optional - old-style
+        GeneratingEvent construction (no text_delta) must still work."""
+
+        event = GeneratingEvent(request_id=REQUEST_ID, tokens_out=10, est_cost_usd=0.0)
+        self.assertIsNone(event.text_delta)
+
+    def test_generating_event_text_delta_round_trips(self):
+        event = GeneratingEvent(
+            request_id=REQUEST_ID, tokens_out=10, est_cost_usd=0.0, text_delta="Hello "
+        )
+        frame = event.to_sse()
+        payload = json.loads(frame[len("data: "):].strip())
+        self.assertEqual(payload["text_delta"], "Hello ")
 
     def test_to_sse_produces_data_frame(self):
         event = ClassifyingEvent(request_id=REQUEST_ID)

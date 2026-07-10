@@ -246,7 +246,11 @@ def _classify_complexity(
         return "cold_brew"
     if code_fence_lines > 80:
         return "cold_brew"
-    if len(attachments) > 2:
+    # Brew 38 (docs/design/attachments-design.md Section 7, Decision 3):
+    # any attachment at all pushes toward cold_brew - simple and
+    # predictable rather than a size/kind-dependent table. Refine with
+    # real usage data later if this proves too blunt.
+    if len(attachments) > 0:
         return "cold_brew"
     if any(keyword in lowered for keyword in MULTI_STEP_KEYWORDS):
         return "cold_brew"

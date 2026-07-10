@@ -60,6 +60,22 @@ class ComplexityTests(unittest.TestCase):
         result = classify_heuristic("Look at these files.", attachments)
         self.assertEqual(result.complexity, "cold_brew")
 
+    def test_single_attachment_is_also_cold_brew(self):
+        """Brew 38 (docs/design/attachments-design.md Section 7, Decision
+        3): any attachment at all pushes toward cold_brew, not just
+        multiple - simpler and more predictable than a size/kind table."""
+
+        attachments = [Attachment(filename="photo.png", content_type="image/png")]
+        result = classify_heuristic("What is this?", attachments)
+        self.assertEqual(result.complexity, "cold_brew")
+
+    def test_short_prompt_with_no_attachments_stays_espresso_shot(self):
+        """Confirms the new any-attachment rule did not accidentally
+        change the no-attachment path."""
+
+        result = classify_heuristic("Fix this typo.", attachments=None)
+        self.assertEqual(result.complexity, "espresso_shot")
+
 
 class VisionTests(unittest.TestCase):
     def test_image_attachment_sets_needs_vision(self):

@@ -23,6 +23,15 @@ class RoutingError(Exception):
     """Raised when a route cannot be resolved to an available Bean."""
 
 
+class NoVisionBeanError(RoutingError):
+    """Raised when a request needs a vision-capable Bean (an image was
+    attached) but no Bean in beans.yaml has capabilities.vision: true.
+    A distinct subclass so router/app/main.py can catch it specifically
+    and emit error_type="no_vision_bean_available" (see docs/design/
+    attachments-design.md Section 6.2) rather than a generic routing
+    failure."""
+
+
 @dataclass(frozen=True)
 class RouteDecision:
     task_type: str
@@ -32,6 +41,10 @@ class RouteDecision:
     policy_entry: str
     policy_status: str
     est_cost_usd: Optional[float]
+    # Added in Brew 38 (contract v1.2): why routing deviated from the
+    # plain policy/manual pick, e.g. a vision constraint. None in the
+    # normal, unconstrained case.
+    constraint_reason: Optional[str] = None
 
 
 class RoutingPolicy:
@@ -73,7 +86,7 @@ class RoutingPolicy:
             raise RoutingError("No default Bean is configured in beans.yaml.")
         return default_bean.alias
 
-    def select_route(self, task_type: str) -> RouteDecision:
+    def select_route(self, task_type: str, needs_vision: bool = False) -> RouteDecision:
         entry = self.entry_for_task_type(task_type)
         primary_alias = entry.get("primary_bean_alias") or self._house_blend_default_alias()
         primary_bean = self._bean_registry.by_alias(primary_alias)
@@ -87,6 +100,25 @@ class RoutingPolicy:
             primary_bean = self._bean_registry.by_alias(fallback_default_alias)
             primary_alias = fallback_default_alias
 
+        constraint_reason = None
+        if needs_vision and not primary_bean.vision:
+            vision_bean = self._bean_registry.default_vision_bean()
+            if vision_bean is None:
+                # No vision-capable Bean exists anywhere (Brew 38 - see
+                # docs/design/attachments-design.md Section 2, Gap 1: this
+                # is every real request today). Never silently proceed
+                # without the image or crash - the caller (main.py) turns
+                # this into a clear `error` event.
+                raise NoVisionBeanError(
+                    "This request needs a vision-capable Bean, but none is "
+                    "configured in beans.yaml."
+                )
+            constraint_reason = (
+                f"needs_vision: escalated from {primary_alias} to {vision_bean.alias}"
+            )
+            primary_bean = vision_bean
+            primary_alias = vision_bean.alias
+
         est_cost_usd = _estimate_cost_usd(primary_bean)
         policy_entry_name = f"{task_type}/{_slugify(primary_alias)}"
 
@@ -98,6 +130,45 @@ class RoutingPolicy:
             policy_entry=policy_entry_name,
             policy_status=entry.get("status", "default"),
             est_cost_usd=est_cost_usd,
+            constraint_reason=constraint_reason,
+        )
+
+    def manual_route(self, task_type: str, bean_alias: str, needs_vision: bool = False) -> RouteDecision:
+        """A human explicitly picked a Bean (Order Box override or
+        re-brew dropdown - docs/design/coffee-counter-chat-ui-design.md
+        Section 3.2/5.4), bypassing policy selection entirely.
+        `policy_entry` becomes "manual/<slug>" instead of a policy path -
+        no event-contract schema change, policy_entry was always a
+        free-form string. Unlike select_route(), this never silently
+        substitutes a different Bean if the requested one is unavailable -
+        that would defeat the point of an explicit manual choice - it
+        raises instead. The same "never silently substitute" rule applies
+        to a vision-needing request manually routed to a non-vision Bean:
+        this raises rather than silently switching Beans out from under an
+        explicit human choice (unlike select_route()'s policy path, where
+        auto-escalating is the whole point)."""
+
+        bean = self._bean_registry.by_alias(bean_alias)
+        if not bean.is_available:
+            raise RoutingError(
+                f"Manually selected Bean {bean_alias!r} is not available "
+                f"(status={bean.status!r})."
+            )
+        if needs_vision and not bean.vision:
+            raise RoutingError(
+                f"Manually selected Bean {bean_alias!r} does not support vision, "
+                "but this request has an image attached. Choose a vision-capable "
+                "Bean instead."
+            )
+
+        return RouteDecision(
+            task_type=task_type,
+            bean_alias=bean.alias,
+            fallback_bean_alias=None,
+            premium_bean_alias=None,
+            policy_entry=f"manual/{_slugify(bean.alias)}",
+            policy_status="manual_override",
+            est_cost_usd=_estimate_cost_usd(bean),
         )
 
     def select_fallback_route(self, decision: RouteDecision) -> Optional[RouteDecision]:

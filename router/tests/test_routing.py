@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import yaml
 
 from router.app.aliases import Bean, BeanRegistry
-from router.app.routing import RoutingError, RoutingPolicy
+from router.app.routing import NoVisionBeanError, RoutingError, RoutingPolicy
 
 
 def _make_registry():
@@ -172,6 +172,144 @@ class RoutingPolicyTests(unittest.TestCase):
 
         research_decision = real_policy.select_route("research")
         self.assertEqual(research_decision.policy_status, "default")
+
+
+class ManualRouteTests(unittest.TestCase):
+    def setUp(self):
+        self.registry = _make_registry()
+        self.policy = RoutingPolicy(FIXTURE_POLICY, self.registry)
+
+    def test_manual_route_selects_requested_bean(self):
+        decision = self.policy.manual_route("code", "Second Pour")
+        self.assertEqual(decision.bean_alias, "Second Pour")
+        self.assertEqual(decision.policy_entry, "manual/second-pour")
+        self.assertEqual(decision.policy_status, "manual_override")
+
+    def test_manual_route_ignores_policy_entry_for_task_type(self):
+        """Even though the fixture policy's "code" entry names House
+        Blend as primary, a manual override to Second Pour must win."""
+
+        decision = self.policy.manual_route("code", "Second Pour")
+        self.assertNotEqual(decision.bean_alias, "House Blend")
+
+    def test_manual_route_unavailable_bean_raises(self):
+        with self.assertRaises(RoutingError):
+            self.policy.manual_route("code", "Reserve Blend")  # model_id is None
+
+    def test_manual_route_unknown_alias_raises(self):
+        from router.app.aliases import AliasError
+
+        with self.assertRaises(AliasError):
+            self.policy.manual_route("code", "Nonexistent Alias")
+
+    def test_manual_route_has_no_fallback_or_premium(self):
+        decision = self.policy.manual_route("code", "House Blend")
+        self.assertIsNone(decision.fallback_bean_alias)
+        self.assertIsNone(decision.premium_bean_alias)
+
+
+def _make_registry_with_vision_bean():
+    return BeanRegistry(
+        [
+            Bean(
+                alias="House Blend",
+                role="default",
+                model_id="vendor/default:free",
+                vision=False,
+                code=True,
+                price_per_1k_input_usd=0.0,
+                price_per_1k_output_usd=0.0,
+                status="active",
+            ),
+            Bean(
+                alias="Vision Blend",
+                role="fallback",
+                model_id="vendor/vision:free",
+                vision=True,
+                code=True,
+                price_per_1k_input_usd=0.0,
+                price_per_1k_output_usd=0.0,
+                status="active",
+            ),
+        ]
+    )
+
+
+class VisionRoutingConstraintTests(unittest.TestCase):
+    """docs/design/attachments-design.md Section 6.2/7 Decision 1."""
+
+    def test_select_route_no_vision_needed_is_unconstrained(self):
+        registry = _make_registry_with_vision_bean()
+        policy = RoutingPolicy(FIXTURE_POLICY, registry)
+        decision = policy.select_route("code", needs_vision=False)
+        self.assertEqual(decision.bean_alias, "House Blend")
+        self.assertIsNone(decision.constraint_reason)
+
+    def test_select_route_needs_vision_escalates_to_vision_bean(self):
+        registry = _make_registry_with_vision_bean()
+        policy = RoutingPolicy(FIXTURE_POLICY, registry)
+        decision = policy.select_route("code", needs_vision=True)
+        self.assertEqual(decision.bean_alias, "Vision Blend")
+        self.assertIsNotNone(decision.constraint_reason)
+        self.assertIn("needs_vision", decision.constraint_reason)
+        self.assertIn("House Blend", decision.constraint_reason)
+        self.assertIn("Vision Blend", decision.constraint_reason)
+
+    def test_select_route_policy_bean_already_vision_capable_is_unconstrained(self):
+        vision_default = BeanRegistry(
+            [
+                Bean(
+                    alias="Vision Blend",
+                    role="default",
+                    model_id="vendor/vision:free",
+                    vision=True,
+                    code=True,
+                    price_per_1k_input_usd=0.0,
+                    price_per_1k_output_usd=0.0,
+                    status="active",
+                )
+            ]
+        )
+        policy = RoutingPolicy({"task_types": {}}, vision_default)
+        decision = policy.select_route("code", needs_vision=True)
+        self.assertEqual(decision.bean_alias, "Vision Blend")
+        self.assertIsNone(decision.constraint_reason)
+
+    def test_select_route_needs_vision_no_vision_bean_anywhere_raises(self):
+        """Real state as of Brew 38 - see test_aliases.py::
+        test_real_config_has_no_vision_bean_today. Must raise a distinct,
+        catchable error, never silently proceed without the image."""
+
+        registry = _make_registry()  # no vision=True Bean at all
+        policy = RoutingPolicy(FIXTURE_POLICY, registry)
+        with self.assertRaises(NoVisionBeanError):
+            policy.select_route("code", needs_vision=True)
+
+    def test_manual_route_needs_vision_with_vision_capable_choice_succeeds(self):
+        registry = _make_registry_with_vision_bean()
+        policy = RoutingPolicy(FIXTURE_POLICY, registry)
+        decision = policy.manual_route("code", "Vision Blend", needs_vision=True)
+        self.assertEqual(decision.bean_alias, "Vision Blend")
+
+    def test_manual_route_needs_vision_with_non_vision_choice_raises(self):
+        """Manual override never silently substitutes - unlike
+        select_route()'s auto-escalation, a human's explicit non-vision
+        choice for a vision-needing request must fail clearly, not swap
+        Beans out from under them."""
+
+        registry = _make_registry_with_vision_bean()
+        policy = RoutingPolicy(FIXTURE_POLICY, registry)
+        with self.assertRaises(RoutingError):
+            policy.manual_route("code", "House Blend", needs_vision=True)
+
+    def test_real_generated_policy_needs_vision_raises_today(self):
+        """Integration check against the real generated
+        router/config/routing_policy.yaml and real beans.yaml - no vision
+        Bean is configured, so this must raise, not silently drop images."""
+
+        real_policy = RoutingPolicy.from_yaml()
+        with self.assertRaises(NoVisionBeanError):
+            real_policy.select_route("explain", needs_vision=True)
 
 
 if __name__ == "__main__":

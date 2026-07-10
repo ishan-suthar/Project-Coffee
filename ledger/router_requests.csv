@@ -1,2 +1,8 @@
-timestamp,request_id,task_type,bean_alias,raw_model_id,tokens_in,tokens_out,cost_usd,latency_ms,escalated,escalation_approved,rating
-2026-07-09T23:51:10.980202+00:00,2975e487-d46d-4ee9-8e48-f42291b90118,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,65,0.0,1733,False,n/a,
+timestamp,request_id,task_type,bean_alias,raw_model_id,tokens_in,tokens_out,cost_usd,latency_ms,escalated,escalation_approved,rating,attachment_count,attachment_tokens_est
+2026-07-09T23:51:10.980202+00:00,2975e487-d46d-4ee9-8e48-f42291b90118,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,65,0.0,1733,False,n/a,,,
+2026-07-10T01:20:32.955132+00:00,2ba2e3a2-3a77-446d-8f7b-56479df46955,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,70,0.0,2405,False,n/a,,,
+2026-07-10T22:17:58.026321+00:00,e244df84-555f-454b-bdb9-68c124fec18b,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,16,42,0.0,3672,False,n/a,,1,19
+2026-07-10T22:18:29.395254+00:00,845826ed-d8fb-4ffe-b04b-5accca0694e0,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,16,100,0.0,2952,False,n/a,,1,19
+2026-07-10T22:18:54.841490+00:00,1345957e-09fa-4c92-8461-a71124395a56,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,16,96,0.0,1812,False,n/a,,1,19
+2026-07-10T22:19:07.465889+00:00,e50d1470-7e34-4a92-8207-d5c79b7074d5,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,16,92,0.0,1641,False,n/a,,1,19
+2026-07-10T22:20:36.707161+00:00,5dce6c6b-235f-4699-80af-90d22c36ff9f,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,16,94,0.0,2016,False,n/a,,1,19

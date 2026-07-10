@@ -38,6 +38,10 @@ class Settings(BaseModel):
     classifier_model_fallback_bean_alias: str = "House Blend"
     truncation_min_expected_tokens: int = 32
     refusal_keywords: List[str] = []
+    max_upload_size_bytes: int = 20_971_520
+    pdf_min_extracted_chars: int = 20
+    max_inline_text_chars: int = 50_000
+    upload_ttl_seconds: int = 3600
 
     @classmethod
     def from_yaml(cls, path: Path = DEFAULT_SETTINGS_PATH) -> "Settings":
