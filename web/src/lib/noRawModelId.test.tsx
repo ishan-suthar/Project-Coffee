@@ -1,9 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { CounterDisplay } from "@/components/CounterDisplay";
 import { MessageHeader } from "@/components/ResponseSection/MessageHeader";
 import { newAssistantMessage } from "@/lib/chat";
+import * as preferences from "@/lib/preferences";
 import type { RouterEvent } from "@/lib/events";
+
+vi.mock("@/lib/preferences");
+vi.mocked(preferences.getPreferences).mockResolvedValue({});
+vi.mocked(preferences.setPreference).mockResolvedValue(undefined);
+
+// BaristaScene needs a real WASM/canvas context jsdom can't provide - see
+// CounterDisplay/SceneShell.test.tsx for the same stub approach.
+vi.mock("@/components/CounterDisplay/BaristaScene", () => ({
+  BaristaScene: () => <div data-testid="mock-barista-scene" />,
+}));
 
 /**
  * Requirement 8 (docs/design/coffee-counter-chat-ui-design.md): raw model
@@ -56,7 +67,15 @@ describe("Requirement 8: raw model IDs never appear in the UI", () => {
     ];
 
     for (const event of events) {
-      const { container, unmount } = render(<CounterDisplay event={event} sessionCostUsd={0} />);
+      const { container, unmount } = render(
+        <CounterDisplay
+          event={event}
+          sessionCostUsd={0}
+          beanAlias={null}
+          complexity={null}
+          hasVisibleContent={false}
+        />
+      );
       for (const rawId of RAW_MODEL_IDS) {
         expect(container.textContent).not.toContain(rawId);
       }

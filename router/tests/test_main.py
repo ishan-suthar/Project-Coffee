@@ -15,6 +15,7 @@ from router.app.config import Settings
 from router.app.ledger import RouterLedger
 from router.app.main import RouterState, create_app, run_order
 from router.app.openrouter_client import StreamChunk
+from router.app.preferences import PreferenceStore
 from router.app.routing import RoutingPolicy
 from router.app.sessions import SessionStore
 from router.app.uploads import UploadRecord, new_attachment_id, save_upload
@@ -654,12 +655,14 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
         settings = Settings(generating_tick_tokens=5, generating_tick_seconds=999)
         ledger = RouterLedger(Path(self._tmp_dir.name) / "router_requests.csv")
         session_store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        preference_store = PreferenceStore(Path(self._tmp_dir.name) / "preferences.db")
         self.state = RouterState(
             bean_registry=registry,
             routing_policy=policy,
             settings=settings,
             ledger=ledger,
             session_store=session_store,
+            preference_store=preference_store,
             stream_order_fn=_fake_stream_healthy,
             uploads_root=Path(self._tmp_dir.name) / "uploads",
         )
@@ -706,6 +709,23 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post("/v1/retry", json={"request_id": "nonexistent"})
         self.assertEqual(response.status_code, 404)
+
+    async def test_get_preferences_empty_by_default(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/v1/preferences")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {})
+
+    async def test_set_then_get_preference_round_trips(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            set_response = await client.post(
+                "/v1/preferences", json={"key": "counter_collapsed", "value": "true"}
+            )
+            self.assertEqual(set_response.status_code, 200)
+            get_response = await client.get("/v1/preferences")
+        self.assertEqual(get_response.json(), {"counter_collapsed": "true"})
 
     async def test_order_request_id_collision_returns_409(self):
         """Brew 38: a client-generated request_id (used to scope uploads)

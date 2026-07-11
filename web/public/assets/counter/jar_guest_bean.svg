@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" role="img" aria-label="Guest Bean jar">
+  <rect x="20" y="10" width="80" height="18" rx="4" fill="#3e2a1e" />
+  <rect x="15" y="28" width="90" height="112" rx="10" fill="#3e2a1e" stroke="#c99b6f" stroke-width="3" />
+  <rect x="25" y="60" width="70" height="40" rx="4" fill="#f5ede3" />
+  <text x="60" y="85" font-family="monospace" font-size="10" fill="#3e2a1e" text-anchor="middle">Guest</text>
+  <text x="60" y="98" font-family="monospace" font-size="10" fill="#3e2a1e" text-anchor="middle">Bean</text>
+</svg>

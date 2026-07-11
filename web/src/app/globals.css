@@ -52,3 +52,28 @@ html:not([data-hydrated="true"]) * {
   transition: none !important;
   animation: none !important;
 }
+
+/*
+ * Tips Jar coin-drop (docs/design/counter-scene-design.md Section 3.2 /
+ * TipsJar.tsx) - a coin falls into the jar and fades out. Throttling to
+ * at most one coin per 500ms is pure-function logic in tipsJarMath.ts,
+ * not CSS; this keyframe only controls how one already-decided coin
+ * looks while it falls.
+ */
+@keyframes coin-drop {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.coin-drop {
+  animation: coin-drop 600ms ease-in forwards;
+}

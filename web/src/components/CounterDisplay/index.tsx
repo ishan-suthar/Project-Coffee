@@ -1,32 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { CounterDisplayProps } from "@/components/CounterDisplay/types";
-import { statusTextFor } from "@/components/CounterDisplay/statusText";
+import { SceneShell } from "@/components/CounterDisplay/SceneShell";
 
 export type { CounterDisplayProps } from "@/components/CounterDisplay/types";
 
 /**
- * Plain-text status line standing in for the future animated scene
- * (Stage E). Everything below is private to this module - callers only
- * ever see CounterDisplayProps (types.ts). Do not import statusTextFor or
- * any other internal from outside this directory.
+ * The animated Coffee Counter scene (Stage E, Brew 39 - see
+ * docs/design/counter-scene-design.md). Everything below is private to
+ * this module - callers only ever see CounterDisplayProps (types.ts).
+ * Do not import SceneShell, BaristaScene, sceneState, or any other
+ * internal from outside this directory.
  */
-export function CounterDisplay({ event, sessionCostUsd }: CounterDisplayProps) {
-  const statusText = statusTextFor(event);
+export function CounterDisplay({
+  event,
+  sessionCostUsd,
+  beanAlias,
+  complexity,
+  hasVisibleContent,
+}: CounterDisplayProps) {
+  // Starts false to match server-rendered HTML exactly (window doesn't
+  // exist during SSR - same reasoning as HydrationMarker's "nothing
+  // animates before hydration" pattern), then syncs to the real value via
+  // the same listener function used for later changes, immediately on
+  // mount - not a separate direct setState call in the effect body.
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    function handleChange(e: MediaQueryListEvent | MediaQueryList) {
+      setReducedMotion(e.matches);
+    }
+    handleChange(query);
+    query.addEventListener("change", handleChange as (e: MediaQueryListEvent) => void);
+    return () => query.removeEventListener("change", handleChange as (e: MediaQueryListEvent) => void);
+  }, []);
 
   return (
-    <div
-      data-testid="counter-display"
-      className="flex items-center justify-between border-b border-caramel bg-latte px-4 py-2"
-    >
-      <span data-testid="counter-display-status" className="text-sm text-espresso">
-        {statusText}
-      </span>
-      <span
-        data-testid="counter-display-tips-jar"
-        className="font-mono text-sm tabular-nums text-medium-roast"
-        title="Tips Jar - running cost for the active message"
-      >
-        Tips Jar: ${sessionCostUsd.toFixed(4)}
-      </span>
-    </div>
+    <SceneShell
+      event={event}
+      sessionCostUsd={sessionCostUsd}
+      beanAlias={beanAlias}
+      complexity={complexity}
+      hasVisibleContent={hasVisibleContent}
+      reducedMotion={reducedMotion}
+    />
   );
 }

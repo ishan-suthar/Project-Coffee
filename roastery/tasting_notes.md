@@ -2429,3 +2429,147 @@ Needs improvement:
   the fake stream fixtures in `router/tests/test_main.py` should
   eventually gain a "response shorter than one tick" case so this class
   of bug is caught by tests, not by a live demo, next time.
+
+### 2026-07-11 - Brew 39B: Animated Coffee Counter Scene Live Demo
+
+Scope: one real, human-approved `/v1/order` call driven through the
+actual running browser UI against the actual running Coffee Core Router
+against real OpenRouter, exercising the full animated scene state walk,
+the Tips Jar, the collapse toggle and its new server-side persistence,
+and `prefers-reduced-motion` emulation - the first live exercise of
+Stage E, replacing the plain-text status line shipped since Brew 37.
+
+Preconditions:
+
+- Full test suite green first: 221 `router/tests/` (7 new for
+  `PreferenceStore`/`/v1/preferences`), 84 Vitest/RTL tests in `web/` (42
+  new: `sceneState.test.ts`, `tipsJarMath.test.ts`, `BaristaScene.test.tsx`,
+  `SceneShell.test.tsx`, plus updated `CounterDisplay/index.test.tsx` and
+  `noRawModelId.test.tsx` for the additive props). `npx tsc --noEmit`,
+  `eslint`, and `npm run build` (with the new `prebuild` asset-budget
+  check) all clean.
+- `OPENROUTER_API_KEY` already present in the shell environment; never
+  pasted into chat or written to a file.
+- A stale router/web process pair from the Brew 38 demo session (missing
+  the new `/v1/preferences` endpoint - confirmed via `curl`, not assumed)
+  was found still listening and was stopped by PID (looked up via
+  `netstat`, not a blanket process-name kill) before starting fresh
+  instances with current code.
+
+Commands (both servers started fresh with current code):
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765
+npx next dev -p 3000
+```
+
+Driven via a throwaway Playwright script (not committed - a manual demo
+aid, not part of the automated suite) that sent one real prompt, polled
+the scene caption on a 50ms interval to capture the full transition
+sequence, toggled collapse, checked the router's `/v1/preferences` state
+directly, reloaded the page to prove persistence, and re-loaded once more
+under `page.emulateMedia({ reducedMotion: "reduce" })`.
+
+Observed behavior:
+
+- Initial idle state: caption "Ready when you are", not collapsed, scene
+  correctly on the fallback (tier 2, `barista_static.svg`) - expected,
+  since no real `barista_scene.riv` exists yet.
+- Full caption sequence captured during the real request, matching
+  `router/EVENT_CONTRACT.md`'s event order exactly: "Ready when you are"
+  -> "Reaching for the House Blend jar" -> "Brewing" -> "Order up".
+  (`order_received`/`classifying` resolved between polling ticks - too
+  fast at 50ms resolution to catch individually - but the visible
+  transitions through `route_selected`, `generating`, and `complete` all
+  landed correctly and in order.)
+- Assistant answered correctly and rendered normally alongside the scene.
+- Tips Jar showed `$0.0000` - correct, not a bug: every active Bean is
+  still free-tier (same documented gap since Brew 37).
+- Collapse toggle correctly set `scene-body`'s class to `h-0
+  overflow-hidden` and switched the Tips Jar display to the plain
+  collapsed-strip total.
+- `GET /v1/preferences` (called directly via `fetch` from the page,
+  bypassing any UI-only illusion of persistence) returned
+  `{"counter_collapsed":"true"}` immediately after toggling - confirming
+  the preference actually reached the router's SQLite store, not just
+  local component state.
+- After a full page reload, the scene loaded already collapsed - proving
+  the persistence is real and server-side, not `localStorage` (which this
+  Brew was explicitly asked to avoid) and not an artifact of the same
+  in-memory session never having unmounted.
+- Under `page.emulateMedia({ reducedMotion: "reduce" })` plus a reload,
+  the scene correctly rendered the fallback tier (`barista_static.svg`)
+  and the status caption remained present and correct - the exact
+  Requirement 5 combination (reduced motion -> static art + reused text
+  line), verified against a real browser's reduced-motion signal, not a
+  mocked media query.
+- Zero browser console/page errors across the entire session
+  (`page.on("pageerror")` and console-error listeners both silent).
+
+CPU profiling note (Requirement 6, "collapsed scene must consume
+near-zero CPU"): measured via Chrome DevTools Protocol's
+`Performance.getMetrics()` over two 3-second idle windows (expanded vs.
+collapsed), using a fresh CDP session for each measurement rather than
+eyeballing the DevTools Performance panel, so the numbers below are
+exact deltas, not estimates:
+
+| State | TaskDuration | ScriptDuration | LayoutDuration |
+| --- | --- | --- | --- |
+| Expanded (scene visible, idle) | 4.7ms | 3.0ms | 0.0ms |
+| Collapsed (scene paused, idle) | 2.9ms | 0.7ms | 0.0ms |
+
+Collapsed is measurably lower on both `TaskDuration` and
+`ScriptDuration`. Both numbers are already small in absolute terms today
+specifically because Phase 1 has no real Rive WASM animation loop
+running yet (the fallback tier is a static `<img>`, inherently cheap
+regardless of collapse state) - this comparison is a directional
+baseline confirming the `rive.pause()`/`rive.play()` wiring has the right
+effect (also directly asserted in `BaristaScene.test.tsx` via the mocked
+Rive instance), not a definitive Phase-2 measurement. Re-measuring once a
+real `barista_scene.riv` is dropped in would be the meaningful follow-up
+- flagged as future work, not silently assumed to still hold.
+
+Cost and token evidence:
+
+- Model / Bean: House Blend (`nvidia/nemotron-3-ultra-550b-a55b:free`).
+- Tokens: from OpenRouter's own usage field, same order of magnitude as
+  prior Brew 36-38 demo calls for a comparable two-sentence prompt.
+- Cost: `$0.00` (free-tier Bean) - reflected correctly and honestly by
+  the Tips Jar, not hidden or faked with a placeholder number.
+
+What worked:
+
+- The entire fallback ladder (Rive attempt -> `barista_static.svg` on
+  failure/missing-file/reduced-motion) worked identically whether the
+  cause was "no `.riv` file exists" (Phase 1's real, permanent state
+  today) or "the browser asked for reduced motion" (a real signal) -
+  confirming the design decision to make Phase 1's placeholder art and
+  the permanent reduced-motion fallback the exact same code path, not two
+  systems that could drift apart.
+- Persisting the collapse preference through a real new router endpoint
+  rather than `localStorage`, then proving it with an actual reload
+  rather than trusting the toggle's in-memory state, caught the one class
+  of bug this design was most exposed to (a preference that "works" in a
+  demo only because the page never actually reloaded).
+- Finding and killing the stale Brew 38 server process by looking up its
+  PID via `netstat` (rather than a blanket `taskkill /IM python.exe`,
+  which the environment's own safety classifier correctly refused as
+  too broad) is worth remembering as the right pattern for future
+  demo-server cleanup on a shared machine.
+
+Needs improvement:
+
+- No real `.riv` file exists to demo tier 1 (the actual Rive canvas
+  rendering) - `BaristaScene.test.tsx`'s mocked-library tests are the only
+  evidence that the state-machine input wiring (`state`, the five jar
+  booleans, `complexity_cold_brew`) is correct; a real artist-authored
+  file is required before that specific code path can be demoed live.
+- The CPU profiling numbers above are a Phase 1 baseline only, as noted -
+  they should be re-measured once a real `.riv` exists, since a live
+  Rive WASM animation loop is the actual scenario the "near-zero CPU"
+  requirement was written to guard against.
+- Escalation-state scene art (`escalating`, state 6) and the error/spill
+  state (state 8) were not exercised live in this session (the demo
+  prompt completed on the first try, no escalation triggered) - both are
+  covered by `sceneState.test.ts`'s full 9-state mapping table, but not
+  against a real event stream yet.

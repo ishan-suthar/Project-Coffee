@@ -18,10 +18,23 @@ export default function Home() {
     latestEvent?.event === "generating"
       ? latestEvent.est_cost_usd ?? 0
       : activeMessage?.costUsd ?? 0;
+  // Carried forward from the active message's own tracked fields, not
+  // re-derived from the raw event stream - see CounterDisplayProps
+  // (Brew 39, docs/design/counter-scene-design.md Section 3.2).
+  const beanAlias = activeMessage?.role === "assistant" ? activeMessage.beanAlias : null;
+  const complexity = activeMessage?.role === "assistant" ? activeMessage.complexity : null;
+  const hasVisibleContent =
+    activeMessage?.role === "assistant" ? activeMessage.content.length > 0 : false;
 
   return (
     <div className="flex h-screen flex-col">
-      <CounterDisplay event={latestEvent} sessionCostUsd={sessionCostUsd} />
+      <CounterDisplay
+        event={latestEvent}
+        sessionCostUsd={sessionCostUsd}
+        beanAlias={beanAlias}
+        complexity={complexity}
+        hasVisibleContent={hasVisibleContent}
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">

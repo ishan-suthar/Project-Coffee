@@ -9,3 +9,22 @@ import { cleanup } from "@testing-library/react";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom does not implement window.matchMedia - default stub reports
+// "no reduced motion" so any component reading prefers-reduced-motion
+// (CounterDisplay/index.tsx, Brew 39) doesn't crash. Tests exercising a
+// specific media query result override this per-test via
+// vi.spyOn(window, "matchMedia").
+if (typeof window !== "undefined" && !window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}

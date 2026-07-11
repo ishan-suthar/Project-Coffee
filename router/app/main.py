@@ -50,6 +50,7 @@ from router.app.events import (
 )
 from router.app.ledger import LedgerRow, RouterLedger
 from router.app.openrouter_client import OpenRouterClientError, StreamChunk, stream_order
+from router.app.preferences import PreferenceStore
 from router.app.routing import NoVisionBeanError, RoutingError, RoutingPolicy
 from router.app.sessions import SessionStore
 from router.app.uploads import (
@@ -110,6 +111,11 @@ class RouterState:
     # field (not a hardcoded path) so tests can point it at a temp dir.
     uploads: Dict[str, UploadRecord] = field(default_factory=dict)
     uploads_root: Path = field(default=DEFAULT_UPLOADS_ROOT)
+    # Brew 39 (docs/design/counter-scene-design.md Section 5): device-wide
+    # UI preferences (e.g. the Coffee Counter scene's collapse state).
+    # Optional so tests that don't touch preferences don't need a real
+    # SQLite file - endpoints construct a default store lazily if absent.
+    preference_store: Optional[PreferenceStore] = None
 
 
 async def _consume_stream(
@@ -651,6 +657,11 @@ class CreateSessionRequest(BaseModel):
     project: str = DEFAULT_PROJECT
 
 
+class SetPreferenceRequest(BaseModel):
+    key: str
+    value: str
+
+
 VALID_RATINGS = {"good", "needed_fixing", "failed"}
 
 
@@ -665,12 +676,14 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         settings = Settings.from_yaml()
         ledger = RouterLedger()
         session_store = SessionStore()
+        preference_store = PreferenceStore()
         state = RouterState(
             bean_registry=bean_registry,
             routing_policy=routing_policy,
             settings=settings,
             ledger=ledger,
             session_store=session_store,
+            preference_store=preference_store,
         )
 
     app.state.coffee = state
@@ -837,6 +850,21 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
             {"alias": bean.alias, "role": bean.role, "available": bean.is_available}
             for bean in app.state.coffee.bean_registry.all_beans()
         ]
+
+    @app.get("/v1/preferences")
+    async def get_preferences():
+        store = app.state.coffee.preference_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Preference storage is not configured.")
+        return store.get_all()
+
+    @app.post("/v1/preferences")
+    async def set_preference(body: SetPreferenceRequest):
+        store = app.state.coffee.preference_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Preference storage is not configured.")
+        store.set(body.key, body.value)
+        return {"key": body.key, "value": body.value, "status": "saved"}
 
     @app.post("/v1/sessions")
     async def create_session(body: CreateSessionRequest):

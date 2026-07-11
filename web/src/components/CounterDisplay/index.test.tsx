@@ -1,11 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CounterDisplay } from "@/components/CounterDisplay";
 import { statusTextFor } from "@/components/CounterDisplay/statusText";
+import * as preferences from "@/lib/preferences";
 import type { RouterEvent } from "@/lib/events";
+
+vi.mock("@/lib/preferences");
+vi.mocked(preferences.getPreferences).mockResolvedValue({});
+vi.mocked(preferences.setPreference).mockResolvedValue(undefined);
+
+// BaristaScene needs a real WASM/canvas context jsdom can't provide -
+// same stub approach as SceneShell.test.tsx.
+vi.mock("@/components/CounterDisplay/BaristaScene", () => ({
+  BaristaScene: () => <div data-testid="mock-barista-scene" />,
+}));
 
 const REQUEST_ID = "req-1";
 const TS = "2026-07-10T20:14:03.101Z";
+
+function baseProps() {
+  return {
+    beanAlias: null,
+    complexity: null,
+    hasVisibleContent: false,
+  };
+}
 
 describe("statusTextFor - event-to-text mapping table", () => {
   it("idle (null) shows the ready state", () => {
@@ -112,13 +131,13 @@ describe("statusTextFor - event-to-text mapping table", () => {
 
 describe("CounterDisplay component", () => {
   it("renders the mapped status text for the given event", () => {
-    render(<CounterDisplay event={null} sessionCostUsd={0} />);
-    expect(screen.getByTestId("counter-display-status")).toHaveTextContent("Ready when you are");
+    render(<CounterDisplay event={null} sessionCostUsd={0} {...baseProps()} />);
+    expect(screen.getByTestId("scene-caption")).toHaveTextContent("Ready when you are");
   });
 
   it("renders the Tips Jar total, tabular-nums formatted to 4 decimal places", () => {
-    render(<CounterDisplay event={null} sessionCostUsd={0.1234} />);
-    expect(screen.getByTestId("counter-display-tips-jar")).toHaveTextContent("$0.1234");
+    render(<CounterDisplay event={null} sessionCostUsd={0.1234} {...baseProps()} />);
+    expect(screen.getByTestId("tips-jar-total")).toHaveTextContent("$0.1234");
   });
 
   it("updates status text when a generating event arrives", () => {
@@ -130,7 +149,28 @@ describe("CounterDisplay component", () => {
       est_cost_usd: 0,
       text_delta: "Hi",
     };
-    render(<CounterDisplay event={event} sessionCostUsd={0} />);
-    expect(screen.getByTestId("counter-display-status")).toHaveTextContent("Brewing");
+    render(<CounterDisplay event={event} sessionCostUsd={0} {...baseProps()} />);
+    expect(screen.getByTestId("scene-caption")).toHaveTextContent("Brewing");
+  });
+
+  it("passes reducedMotion=true down to the scene when prefers-reduced-motion matches", async () => {
+    const matchMediaSpy = vi.spyOn(window, "matchMedia").mockReturnValue({
+      matches: true,
+      media: "(prefers-reduced-motion: reduce)",
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    } as MediaQueryList);
+
+    render(<CounterDisplay event={null} sessionCostUsd={0} {...baseProps()} />);
+
+    // SceneShell forwards reducedMotion straight into BaristaScene, which
+    // is stubbed above - real reduced-motion -> tier-2-only behavior is
+    // covered directly in BaristaScene.test.tsx.
+    expect(matchMediaSpy).toHaveBeenCalledWith("(prefers-reduced-motion: reduce)");
+    matchMediaSpy.mockRestore();
   });
 });
