@@ -207,6 +207,8 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         escalation_cost_cap_usd=0.50,
         with_session_store=False,
         escalation_approval_timeout_seconds=600.0,
+        pantry_index_path=None,
+        pantry_top_k=5,
     ):
         registry = _make_bean_registry(with_premium=with_premium)
         policy = RoutingPolicy.from_yaml(self.policy_path, bean_registry=registry)
@@ -217,11 +219,15 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
             generating_tick_seconds=999,
             truncation_min_expected_tokens=10,
             refusal_keywords=["i cannot help"],
+            pantry_top_k=pantry_top_k,
         )
         ledger = RouterLedger(self.ledger_path)
         session_store = (
             SessionStore(Path(self._tmp_dir.name) / "sessions.db") if with_session_store else None
         )
+        kwargs = {}
+        if pantry_index_path is not None:
+            kwargs["pantry_index_path"] = pantry_index_path
         return RouterState(
             bean_registry=registry,
             routing_policy=policy,
@@ -229,6 +235,7 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
             ledger=ledger,
             session_store=session_store,
             uploads_root=Path(self._tmp_dir.name) / "uploads",
+            **kwargs,
         )
 
     async def _collect(self, state, stream_fn, **kwargs):
@@ -584,6 +591,78 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         await self._collect(state, _fake_stream_healthy, request_id="req-cleanup")
         self.assertNotIn("req-cleanup", state.cancel_flags)
 
+    def _build_pantry_index(self, *, rows):
+        """rows: list of (path, chunk_index, text). Writes a minimal FTS5
+        index directly (bypassing the indexer CLI, which is covered by its
+        own tests) so these tests only exercise run_order()'s retrieval
+        wiring."""
+
+        from router.app.pantry import connect
+
+        index_path = Path(self._tmp_dir.name) / "pantry_index.db"
+        with connect(index_path) as conn:
+            for path, chunk_index, text in rows:
+                conn.execute(
+                    "INSERT INTO chunks (path, chunk_index, text) VALUES (?, ?, ?)",
+                    (path, chunk_index, text),
+                )
+        return index_path
+
+    async def test_use_pantry_true_injects_chunks_and_reports_sources(self):
+        index_path = self._build_pantry_index(
+            rows=[
+                ("knowledge/00_index.md", 0, "Implement a function that greets the user."),
+                ("knowledge/other.md", 0, "Unrelated coffee brewing notes."),
+            ]
+        )
+        state = self._make_state(pantry_index_path=index_path, pantry_top_k=5)
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **_kwargs):
+            captured["prompt"] = prompt
+            async for chunk in _fake_stream_healthy(model_id, prompt, **_kwargs):
+                yield chunk
+
+        events = await self._collect(state, _capturing_stream, use_pantry=True)
+
+        self.assertIn("--- Pantry source: knowledge/00_index.md ---", captured["prompt"])
+        complete = next(e for e in events if e.event == "complete")
+        self.assertIsNotNone(complete.pantry_sources)
+        self.assertIn("knowledge/00_index.md", complete.pantry_sources)
+
+    async def test_use_pantry_false_never_retrieves_even_with_index_present(self):
+        index_path = self._build_pantry_index(
+            rows=[("knowledge/00_index.md", 0, "Implement a function that greets the user.")]
+        )
+        state = self._make_state(pantry_index_path=index_path)
+
+        events = await self._collect(state, _fake_stream_healthy, use_pantry=False)
+
+        complete = next(e for e in events if e.event == "complete")
+        self.assertIsNone(complete.pantry_sources)
+
+    async def test_use_pantry_true_with_missing_index_degrades_gracefully(self):
+        missing_index_path = Path(self._tmp_dir.name) / "does-not-exist.db"
+        state = self._make_state(pantry_index_path=missing_index_path)
+
+        events = await self._collect(state, _fake_stream_healthy, use_pantry=True)
+
+        complete = next(e for e in events if e.event == "complete")
+        self.assertIsNone(complete.pantry_sources)
+        self.assertEqual([e.event for e in events][-1], "complete")
+
+    async def test_use_pantry_true_with_no_matching_chunks_yields_none_sources(self):
+        index_path = self._build_pantry_index(
+            rows=[("knowledge/other.md", 0, "zzzznomatchzzzz qqqqnothingqqqq")]
+        )
+        state = self._make_state(pantry_index_path=index_path)
+
+        events = await self._collect(state, _fake_stream_healthy, use_pantry=True)
+
+        complete = next(e for e in events if e.event == "complete")
+        self.assertIsNone(complete.pantry_sources)
+
 
 class AttachmentFlowTests(unittest.IsolatedAsyncioTestCase):
     """Brew 38: end-to-end attachment resolution inside run_order() -
@@ -815,6 +894,43 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
         event_names = [item["event"] for item in body_lines]
         self.assertEqual(event_names[0], "order_received")
         self.assertEqual(event_names[-1], "complete")
+
+    async def test_pantry_file_endpoint_serves_real_knowledge_file(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/v1/pantry/file", params={"path": "knowledge/00_index.md"})
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["path"], "knowledge/00_index.md")
+        self.assertIn("Knowledge Index", body["content"])
+
+    async def test_pantry_file_endpoint_rejects_path_traversal(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            for traversal_path in [
+                "../router/config/settings.yaml",
+                "knowledge/../../router/config/settings.yaml",
+                "knowledge/../../.env",
+            ]:
+                response = await client.get("/v1/pantry/file", params={"path": traversal_path})
+                self.assertEqual(response.status_code, 404, msg=traversal_path)
+
+    async def test_pantry_file_endpoint_rejects_absolute_path(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get(
+                "/v1/pantry/file", params={"path": "C:/Windows/win.ini"}
+            )
+        self.assertEqual(response.status_code, 404)
+
+    async def test_pantry_file_endpoint_404_for_unknown_file(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get(
+                "/v1/pantry/file", params={"path": "knowledge/does-not-exist.md"}
+            )
+        self.assertEqual(response.status_code, 404)
 
     async def test_approve_escalation_resolves_pending_future(self):
         loop = asyncio.get_event_loop()
@@ -1196,6 +1312,168 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
         route_event = next(item for item in body_lines if item["event"] == "route_selected")
         self.assertEqual(route_event["bean_alias"], "Second Pour")
         self.assertEqual(route_event["policy_entry"], "manual/second-pour")
+
+
+class MemoryProposalEndpointTests(unittest.IsolatedAsyncioTestCase):
+    """Brew 41 (docs/design/memory-and-pantry-design.md Section 3): the
+    generate/approve/discard endpoints. memory_proposal_repo_root always
+    points at a temp fixture, never the real repo - these tests must
+    never write to the real brew-log/ files."""
+
+    VALID_RESPONSE = (
+        "### FILE: brew-log/active_context.md\n"
+        "# Active Context\n\nUpdated during the session.\n"
+        "### END FILE\n\n"
+        "### FILE: brew-log/progress.md\n"
+        "# Progress\n\nDid a thing.\n"
+        "### END FILE\n"
+    )
+
+    async def _fake_proposal_stream(self, model_id, prompt, **_kwargs):
+        yield StreamChunk(content_delta=self.VALID_RESPONSE)
+        yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 42})
+        yield StreamChunk(is_final=True)
+
+    async def _bad_format_stream(self, model_id, prompt, **_kwargs):
+        yield StreamChunk(content_delta="not the right format at all")
+        yield StreamChunk(is_final=True)
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        policy_path = Path(self._tmp_dir.name) / "routing_policy.yaml"
+        with open(policy_path, "w", encoding="utf-8") as handle:
+            yaml.safe_dump(FIXTURE_POLICY, handle)
+
+        self.repo_root = Path(self._tmp_dir.name) / "fixture_repo"
+        (self.repo_root / "brew-log").mkdir(parents=True)
+        (self.repo_root / "brew-log" / "active_context.md").write_text(
+            "# Active Context\n\nOriginal line.\n", encoding="utf-8"
+        )
+        (self.repo_root / "brew-log" / "progress.md").write_text(
+            "# Progress\n\nOriginal progress line.\n", encoding="utf-8"
+        )
+
+        registry = _make_bean_registry(with_premium=True)
+        policy = RoutingPolicy.from_yaml(policy_path, bean_registry=registry)
+        settings = Settings(generating_tick_tokens=5, generating_tick_seconds=999)
+        ledger = RouterLedger(Path(self._tmp_dir.name) / "router_requests.csv")
+        session_store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.state = RouterState(
+            bean_registry=registry,
+            routing_policy=policy,
+            settings=settings,
+            ledger=ledger,
+            session_store=session_store,
+            uploads_root=Path(self._tmp_dir.name) / "uploads",
+            stream_order_fn=self._fake_proposal_stream,
+            memory_proposal_repo_root=self.repo_root,
+        )
+        self.session_id = session_store.create_session("default")
+        session_store.add_message(
+            self.session_id, request_id="r1", role="user", content="Implement the widget."
+        )
+        session_store.add_message(
+            self.session_id, request_id="r1", role="assistant", content="Done, widget implemented."
+        )
+        self.app = create_app(state=self.state)
+
+    async def test_generate_returns_diffs_for_both_files(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(f"/v1/sessions/{self.session_id}/memory_proposal")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        paths = {f["path"] for f in body["files"]}
+        self.assertEqual(paths, {"brew-log/active_context.md", "brew-log/progress.md"})
+        self.assertIn(body["proposal_id"], self.state.memory_proposals)
+
+    async def test_generate_unknown_session_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/sessions/does-not-exist/memory_proposal")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_generate_unparseable_response_returns_422_and_stores_nothing(self):
+        self.state.stream_order_fn = self._bad_format_stream
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(f"/v1/sessions/{self.session_id}/memory_proposal")
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(self.state.memory_proposals, {})
+
+    async def test_approve_writes_files_logs_ledger_and_clears_proposal(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            generate_response = await client.post(f"/v1/sessions/{self.session_id}/memory_proposal")
+            proposal_id = generate_response.json()["proposal_id"]
+
+            approve_response = await client.post(f"/v1/memory_proposals/{proposal_id}/approve")
+
+        self.assertEqual(approve_response.status_code, 200)
+        self.assertNotIn(proposal_id, self.state.memory_proposals)
+        self.assertIn(
+            "Updated during the session.",
+            (self.repo_root / "brew-log" / "active_context.md").read_text(encoding="utf-8"),
+        )
+        ledger_rows = self.state.ledger.read_all_rows()
+        memory_rows = [row for row in ledger_rows if row["task_type"] == "memory"]
+        self.assertEqual(len(memory_rows), 1)
+        self.assertEqual(memory_rows[0]["request_id"], proposal_id)
+
+    async def test_approve_unknown_proposal_id_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/memory_proposals/does-not-exist/approve")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_discard_clears_proposal_and_writes_nothing(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            generate_response = await client.post(f"/v1/sessions/{self.session_id}/memory_proposal")
+            proposal_id = generate_response.json()["proposal_id"]
+
+            discard_response = await client.post(f"/v1/memory_proposals/{proposal_id}/discard")
+
+        self.assertEqual(discard_response.status_code, 200)
+        self.assertNotIn(proposal_id, self.state.memory_proposals)
+        self.assertEqual(
+            (self.repo_root / "brew-log" / "active_context.md").read_text(encoding="utf-8"),
+            "# Active Context\n\nOriginal line.\n",
+        )
+        ledger_rows = self.state.ledger.read_all_rows()
+        self.assertEqual([row for row in ledger_rows if row["task_type"] == "memory"], [])
+
+    async def test_discard_unknown_proposal_id_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/memory_proposals/does-not-exist/discard")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_approve_re_checks_guardrail_and_returns_422_on_race(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            generate_response = await client.post(f"/v1/sessions/{self.session_id}/memory_proposal")
+            proposal_id = generate_response.json()["proposal_id"]
+
+            # Simulate a concurrent edit that makes the already-generated
+            # new_content look like an over-50% deletion by the time
+            # approval runs.
+            (self.repo_root / "brew-log" / "active_context.md").write_text(
+                "line one\nline two\nline three\nline four\nline five\nline six\n",
+                encoding="utf-8",
+            )
+
+            approve_response = await client.post(f"/v1/memory_proposals/{proposal_id}/approve")
+
+        self.assertEqual(approve_response.status_code, 422)
+        # Nothing was written - the race-triggering edit is still intact.
+        self.assertIn(
+            "line six",
+            (self.repo_root / "brew-log" / "active_context.md").read_text(encoding="utf-8"),
+        )
 
 
 class UploadEndpointTests(unittest.IsolatedAsyncioTestCase):

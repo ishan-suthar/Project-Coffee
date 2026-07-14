@@ -30,6 +30,7 @@ interface AttachmentChipState {
 export function OrderBox() {
   const [prompt, setPrompt] = useState("");
   const [overrideAlias, setOverrideAlias] = useState("");
+  const [usePantry, setUsePantry] = useState(false);
   const [beans, setBeans] = useState<Bean[]>([]);
   const [attachments, setAttachments] = useState<AttachmentChipState[]>([]);
   const [draftRequestId, setDraftRequestId] = useState<string | null>(null);
@@ -160,6 +161,7 @@ export function OrderBox() {
       attachmentIds,
       attachments: attachmentSummaries,
       requestId,
+      usePantry,
     });
   }
 
@@ -274,6 +276,19 @@ export function OrderBox() {
               </option>
             ))}
         </select>
+
+        <label
+          className="flex items-center gap-1 whitespace-nowrap text-xs text-medium-roast"
+          title="Prepend relevant knowledge/ excerpts to this request, with citations"
+        >
+          <input
+            type="checkbox"
+            data-testid="use-pantry-toggle"
+            checked={usePantry}
+            onChange={(e) => setUsePantry(e.target.checked)}
+          />
+          Use Pantry
+        </label>
 
         {activeRequestId !== null ? (
           <button

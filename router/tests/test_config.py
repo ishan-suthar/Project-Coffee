@@ -13,12 +13,20 @@ class SettingsTests(unittest.TestCase):
         self.assertFalse(settings.classifier_model_fallback_enabled)
         self.assertGreater(settings.escalation_approval_timeout_seconds, 0)
         self.assertGreater(settings.sse_heartbeat_interval_seconds, 0)
+        self.assertEqual(settings.memory_proposal_bean_alias, "House Blend")
+        self.assertGreater(settings.pantry_chunk_size_chars, 0)
+        self.assertGreater(settings.pantry_top_k, 0)
 
     def test_defaults_when_field_missing(self):
         settings = Settings(**{})
         self.assertEqual(settings.escalation_cost_cap_usd, 0.50)
         self.assertEqual(settings.escalation_approval_timeout_seconds, 600.0)
         self.assertEqual(settings.sse_heartbeat_interval_seconds, 15.0)
+        self.assertEqual(settings.memory_proposal_bean_alias, "House Blend")
+        self.assertEqual(settings.memory_proposal_max_transcript_chars, 20_000)
+        self.assertEqual(settings.pantry_chunk_size_chars, 1200)
+        self.assertEqual(settings.pantry_chunk_overlap_chars, 200)
+        self.assertEqual(settings.pantry_top_k, 5)
 
 
 class StartupSafetyTests(unittest.TestCase):

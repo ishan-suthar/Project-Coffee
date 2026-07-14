@@ -1,7 +1,7 @@
 # Coffee Core Router - Event Contract
 
-Status: Brew 40B - frozen once this file is committed
-Version: 1.3
+Status: Brew 41B - frozen once this file is committed
+Version: 1.4
 
 This is the authoritative SSE event contract for `POST /v1/order` and
 `POST /v1/retry`. The UI and any future animation are pure consumers of
@@ -15,6 +15,12 @@ Drafted and approved in `docs/design/coffee-core-router-design.md` Section
 
 ## Changelog
 
+- **1.4** (Brew 41, `docs/design/memory-and-pantry-design.md` Section 4.2):
+  added optional `pantry_sources` to `complete` - the distinct source
+  paths of the Pantry (`knowledge/`) chunks actually injected into the
+  request's context when `OrderRequest.use_pantry` was true, or `null`
+  when Pantry retrieval wasn't requested or nothing matched. Additive
+  only.
 - **1.3** (Brew 40, `docs/design/escalation-approval-ui-design.md`
   Sections 3.2/3.4): added a new `heartbeat` event (keep-alive only,
   ignored by any consumer for state purposes) and an optional
@@ -188,9 +194,21 @@ or an approved `POST /v1/approve_escalation`.
 | `latency_ms` | integer |
 | `escalated` | boolean |
 | `draft_quality` | boolean - true exactly when escalation was declined or unavailable |
+| `pantry_sources` | string array or `null` (added in v1.4) |
 
 ```json
-{"event": "complete", "ts": "2026-07-09T20:14:07.050Z", "request_id": "b3f1c2d4-...", "bean_alias": "House Blend", "tokens_in": 210, "tokens_out": 640, "cost_usd": 0.0, "latency_ms": 2940, "escalated": false, "draft_quality": false}
+{"event": "complete", "ts": "2026-07-09T20:14:07.050Z", "request_id": "b3f1c2d4-...", "bean_alias": "House Blend", "tokens_in": 210, "tokens_out": 640, "cost_usd": 0.0, "latency_ms": 2940, "escalated": false, "draft_quality": false, "pantry_sources": null}
+```
+
+`pantry_sources` (v1.4) is `null` unless the originating `OrderRequest` had
+`use_pantry: true` and at least one chunk matched - it is never an empty
+list standing in for "asked but nothing found," always `null` in that
+case. When present, it lists the distinct repo-root-relative paths (e.g.
+`"knowledge/00_index.md"`) of every Pantry chunk actually prepended to
+the model's context for this request - see "Pantry retrieval" below.
+
+```json
+{"event": "complete", "ts": "2026-07-15T20:14:07.050Z", "request_id": "b3f1c2d4-...", "bean_alias": "House Blend", "tokens_in": 310, "tokens_out": 640, "cost_usd": 0.0, "latency_ms": 2940, "escalated": false, "draft_quality": false, "pantry_sources": ["knowledge/00_index.md", "knowledge/project_docs/project-coffee-foundation-summary.md"]}
 ```
 
 ### `error`
@@ -289,6 +307,57 @@ timeout already fired) returns HTTP 200 with
 `{"status": "already_resolved", "resolution": "approved" | "declined" | "timed_out" | "cancelled"}`
 instead of silently no-op'ing or a bare 404 - see Section 3.6 of the same
 design doc.
+
+## Pantry retrieval (Brew 41)
+
+`POST /v1/order` gains an additive `use_pantry: boolean` field (default
+`false`). When true, the router queries the FTS5 index at
+`router/data/pantry_index.db` (built by `python router/tools/index_pantry.py`
+- see `docs/design/memory-and-pantry-design.md`) for the
+`settings.pantry_top_k` best-matching chunks of `knowledge/`, prepends
+them to the model's context with clear source headers and an
+instruction not to fabricate citations or claim coverage the material
+doesn't have (Constitution Article 6.4), and reports exactly which
+sources were injected via `complete.pantry_sources` (see above) - never
+a model self-report of what it "used." If the index doesn't exist yet
+(the indexer has never been run) or the prompt yields no FTS5 tokens
+(e.g. punctuation-only), the request proceeds without retrieval and
+`pantry_sources` stays `null` - `use_pantry: true` never fails the
+request outright.
+
+`GET /v1/pantry/file?path=knowledge/00_index.md` returns the raw text
+content of a file for the citation-chip file viewer - read-only, and
+path-traversal safe (rejects absolute paths, `..` escapes, and anything
+outside `knowledge/`; 404s rather than erroring on a bad path). Returns
+HTTP 404 for any path that doesn't resolve to a real file inside
+`knowledge/`.
+
+## Memory proposals (Brew 41)
+
+Three new endpoints, all plain request/response (not SSE) - a single
+bounded model call, not a multi-minute human-wait phase, so none of the
+Brew 40 background-task/heartbeat machinery applies here:
+
+- `POST /v1/sessions/{session_id}/memory_proposal` - generates a
+  proposed update to exactly two files, `brew-log/active_context.md` and
+  `brew-log/progress.md`, from the session's transcript using
+  `settings.memory_proposal_bean_alias` (default `House Blend`). Returns
+  `{"proposal_id": "...", "files": [{"path": "...", "diff": "<unified diff>", "new_content": "..."}]}`
+  for each of the two files. Refuses (HTTP 422) if the model's proposal
+  names any path other than those exact two files, or if either file's
+  proposed content deletes more than 50% of its current lines
+  (`docs/design/memory-and-pantry-design.md` Section 3.3) - the proposal
+  is never shown to the UI in that case.
+- `POST /v1/memory_proposals/{proposal_id}/approve` - re-validates both
+  guardrails against the *current* on-disk content (not the snapshot the
+  proposal was generated from), writes both files, and appends one
+  `ledger/router_requests.csv` row with `task_type=memory` (no schema
+  change - `task_type` is already a free-form column).
+  `POST /v1/memory_proposals/{proposal_id}/discard` - drops the proposal,
+  writes nothing, logs nothing.
+
+Memory is never written without this explicit approval call - there is
+no auto-approve path.
 
 ## Aliases (never raw model IDs)
 

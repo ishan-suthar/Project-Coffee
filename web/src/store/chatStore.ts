@@ -30,6 +30,9 @@ interface SendPromptOptions {
   attachmentIds?: string[];
   attachments?: AttachmentSummary[];
   requestId?: string;
+  // Brew 41: per-request Pantry retrieval toggle (OrderBox's "Use
+  // Pantry" checkbox) - not a session-wide setting.
+  usePantry?: boolean;
 }
 
 interface ChatState {
@@ -100,6 +103,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // docs/design/attachments-design.md Section 11).
       attachments: [],
       pendingEscalationRecovered: false,
+      // Session history has no Pantry-source persistence either (same
+      // reasoning as attachments above - SessionStore doesn't store it).
+      pantrySources: null,
     }));
     set((state) => ({ messages: { ...state.messages, [sessionId]: messages } }));
 
@@ -134,6 +140,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         beanAliasOverride: options.beanAliasOverride,
         attachmentIds: options.attachmentIds,
         requestId: options.requestId,
+        usePantry: options.usePantry,
         signal: controller.signal,
       })) {
         if (assistantMessage === null) {

@@ -52,7 +52,23 @@ from router.app.events import (
     RouteSelectedEvent,
 )
 from router.app.ledger import LedgerRow, RouterLedger
+from router.app.memory_proposals import REPO_ROOT as MEMORY_PROPOSALS_REPO_ROOT
+from router.app.memory_proposals import (
+    MemoryProposal,
+    MemoryProposalError,
+    MemoryProposalGuardrailError,
+    approve_memory_proposal,
+    generate_memory_proposal,
+)
 from router.app.openrouter_client import OpenRouterClientError, StreamChunk, stream_order
+from router.app.pantry import (
+    DEFAULT_INDEX_PATH,
+    PantryChunk,
+    build_fts_query,
+    resolve_pantry_file_path,
+    retrieve_chunks,
+)
+from router.app.pantry import connect as pantry_connect
 from router.app.preferences import PreferenceStore
 from router.app.routing import NoVisionBeanError, RoutingError, RoutingPolicy
 from router.app.sessions import SessionStore
@@ -163,6 +179,21 @@ class RouterState:
     # asyncio doesn't garbage-collect an in-flight task (a well-known
     # asyncio footgun), discarded once a task finishes.
     background_tasks: set = field(default_factory=set)
+    # Brew 41 (docs/design/memory-and-pantry-design.md Section 4.2): the
+    # FTS5 index built by router/tools/index_pantry.py. A field (not a
+    # hardcoded path), matching uploads_root, so tests can point it at a
+    # temp/fixture index instead of the real router/data/pantry_index.db.
+    pantry_index_path: Path = field(default=DEFAULT_INDEX_PATH)
+    # Brew 41 (docs/design/memory-and-pantry-design.md Section 3.1): a
+    # generated-but-not-yet-approved-or-discarded proposal, keyed by
+    # proposal_id. Same in-memory, no-TTL-sweep precedent as
+    # pending_escalation_context - fine at this router's real request
+    # volume.
+    memory_proposals: Dict[str, MemoryProposal] = field(default_factory=dict)
+    # A field (not a hardcoded constant), matching uploads_root/
+    # pantry_index_path, so tests never touch the real brew-log/ files -
+    # defaults to the real repo root only for the actual running router.
+    memory_proposal_repo_root: Path = field(default=MEMORY_PROPOSALS_REPO_ROOT)
 
 
 async def _consume_stream(
@@ -252,6 +283,7 @@ async def run_order(
     request_id: Optional[str] = None,
     session_id: Optional[str] = None,
     bean_alias_override: Optional[str] = None,
+    use_pantry: bool = False,
     stream_order_fn: StreamOrderFn = stream_order,
     wait_for_approval: Optional[Callable[[str], "asyncio.Future[str]"]] = None,
 ) -> AsyncIterator[BaseEvent]:
@@ -280,6 +312,7 @@ async def run_order(
             request_id=request_id,
             session_id=session_id,
             bean_alias_override=bean_alias_override,
+            use_pantry=use_pantry,
             stream_order_fn=stream_order_fn,
             wait_for_approval=wait_for_approval,
             cancel_event=cancel_event,
@@ -311,6 +344,7 @@ async def _run_order_body(
     request_id: str,
     session_id: Optional[str],
     bean_alias_override: Optional[str],
+    use_pantry: bool = False,
     stream_order_fn: StreamOrderFn,
     wait_for_approval: Optional[Callable[[str], "asyncio.Future[str]"]],
     cancel_event: asyncio.Event,
@@ -338,6 +372,8 @@ async def _run_order_body(
         ClassifierAttachment(filename=record.filename, content_type=record.content_type)
         for record in upload_records
     )
+
+    pantry_chunks = _retrieve_pantry_chunks(state, prompt) if use_pantry else []
 
     classification = classify(
         prompt,
@@ -397,8 +433,12 @@ async def _run_order_body(
     tokens_in = max(1, len(prompt) // 4)
 
     outbound_text, image_data_urls = _build_outbound_content(
-        prompt, upload_records, max_inline_text_chars=state.settings.max_inline_text_chars
+        prompt,
+        upload_records,
+        max_inline_text_chars=state.settings.max_inline_text_chars,
+        pantry_chunks=pantry_chunks,
     )
+    pantry_sources = _distinct_pantry_sources(pantry_chunks)
 
     try:
         final_text = ""
@@ -542,6 +582,7 @@ async def _run_order_body(
         latency_ms=latency_ms,
         escalated=escalated,
         draft_quality=draft_quality,
+        pantry_sources=pantry_sources,
     )
 
     state.request_records[request_id] = RequestRecord(
@@ -663,11 +704,43 @@ async def _await_approval(
         state.pending_escalations.pop(request_id, None)
 
 
+def _retrieve_pantry_chunks(state: "RouterState", prompt: str) -> List[PantryChunk]:
+    """Brew 41 (docs/design/memory-and-pantry-design.md Section 4.2):
+    retrieves the top-k Pantry chunks for `prompt` from the FTS5 index at
+    state.pantry_index_path. Degrades gracefully to an empty list - never
+    raises - when the index hasn't been built yet or the prompt has no
+    tokens an FTS5 MATCH query can use, so a request with `use_pantry=True`
+    still completes normally."""
+
+    if not state.pantry_index_path.is_file():
+        return []
+    fts_query = build_fts_query(prompt)
+    if fts_query is None:
+        return []
+    with pantry_connect(state.pantry_index_path) as conn:
+        return retrieve_chunks(conn, prompt, top_k=state.settings.pantry_top_k)
+
+
+def _distinct_pantry_sources(pantry_chunks: List[PantryChunk]) -> Optional[List[str]]:
+    """Distinct source paths in first-appearance (relevance) order - never
+    an empty-but-claimed list (contract v1.4: None means nothing was
+    actually injected)."""
+
+    seen: set = set()
+    sources: List[str] = []
+    for chunk in pantry_chunks:
+        if chunk.path not in seen:
+            seen.add(chunk.path)
+            sources.append(chunk.path)
+    return sources or None
+
+
 def _build_outbound_content(
     prompt: str,
     upload_records: List[UploadRecord],
     *,
     max_inline_text_chars: int,
+    pantry_chunks: Optional[List[PantryChunk]] = None,
 ) -> Tuple[str, Optional[List[str]]]:
     """Builds the text actually sent to OpenRouter (prompt plus any
     extracted PDF/text attachment content, inlined with a clear delimiter -
@@ -677,9 +750,28 @@ def _build_outbound_content(
     a redundant ~33%-larger base64 copy alongside the raw file. Returns
     `None` for image_data_urls when there are no images, so
     stream_order()'s plain-string content path (the common case) is used
-    unchanged."""
+    unchanged.
 
-    text_parts = [prompt]
+    Pantry chunks (Brew 41), when present, are prepended before the
+    prompt with an uncertainty instruction (Constitution Article 6.4 -
+    never fabricate citations) so the model treats them as background
+    material to ground its answer in, not as the question itself."""
+
+    text_parts: List[str] = []
+
+    if pantry_chunks:
+        text_parts.append(
+            "The following Pantry excerpts may help answer the question "
+            "below. Only rely on them if they actually cover the question - "
+            "if they don't, say so plainly instead of guessing, and never "
+            "claim a source supports something it doesn't."
+        )
+        for chunk in pantry_chunks:
+            text_parts.append(
+                f"--- Pantry source: {chunk.path} ---\n{chunk.text}\n--- end of {chunk.path} ---"
+            )
+
+    text_parts.append(prompt)
     image_data_urls: List[str] = []
 
     for record in upload_records:
@@ -797,6 +889,10 @@ class OrderRequest(BaseModel):
     # messages leave this None and the server generates one as before.
     attachment_ids: List[str] = []
     request_id: Optional[str] = None
+    # Brew 41 (docs/design/memory-and-pantry-design.md Section 4.2): a
+    # per-request toggle, not a session-wide or global setting - the order
+    # box asks for Pantry context explicitly on the requests that need it.
+    use_pantry: bool = False
 
 
 class UploadResponse(BaseModel):
@@ -896,6 +992,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
                 request_id=request_id,
                 session_id=body.session_id,
                 bean_alias_override=body.bean_alias_override,
+                use_pantry=body.use_pantry,
                 stream_order_fn=state.stream_order_fn,
             )
         )
@@ -1086,6 +1183,23 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
             for bean in app.state.coffee.bean_registry.all_beans()
         ]
 
+    @app.get("/v1/pantry/file")
+    async def pantry_file(path: str):
+        """Serves raw file content for the citation chip file viewer
+        (docs/design/memory-and-pantry-design.md Section 4.3). Read-only,
+        scoped to knowledge/ only via resolve_pantry_file_path() - never
+        serves anything outside that directory, regardless of `..` or
+        absolute-path tricks in `path`."""
+
+        resolved = resolve_pantry_file_path(path)
+        if resolved is None:
+            raise HTTPException(status_code=404, detail="No such Pantry file.")
+        try:
+            content = resolved.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            raise HTTPException(status_code=404, detail="No such Pantry file.")
+        return {"path": path, "content": content}
+
     @app.get("/v1/preferences")
     async def get_preferences():
         store = app.state.coffee.preference_store
@@ -1151,6 +1265,82 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
             }
             for m in store.get_messages(session_id)
         ]
+
+    @app.post("/v1/sessions/{session_id}/memory_proposal")
+    async def create_memory_proposal(session_id: str):
+        """Brew 41 (docs/design/memory-and-pantry-design.md Section 3.1):
+        a plain blocking request/response, not SSE - one bounded model
+        call, no multi-minute human-wait phase to justify Brew 40's
+        background-task machinery. Never writes memory itself - only
+        POST .../approve does that, and only after re-checking both
+        guardrails."""
+
+        state = app.state.coffee
+        store = state.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        if not store.session_exists(session_id):
+            raise HTTPException(status_code=404, detail="Unknown session_id.")
+
+        try:
+            proposal = await generate_memory_proposal(
+                session_id=session_id,
+                session_store=store,
+                bean_registry=state.bean_registry,
+                bean_alias=state.settings.memory_proposal_bean_alias,
+                max_transcript_chars=state.settings.memory_proposal_max_transcript_chars,
+                stream_order_fn=state.stream_order_fn,
+                repo_root=state.memory_proposal_repo_root,
+            )
+        except (MemoryProposalError, MemoryProposalGuardrailError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+        state.memory_proposals[proposal.proposal_id] = proposal
+        return {
+            "proposal_id": proposal.proposal_id,
+            "files": [
+                {"path": f.path, "diff": f.diff, "new_content": f.new_content}
+                for f in proposal.files
+            ],
+        }
+
+    @app.post("/v1/memory_proposals/{proposal_id}/approve")
+    async def approve_memory_proposal_endpoint(proposal_id: str):
+        state = app.state.coffee
+        proposal = state.memory_proposals.get(proposal_id)
+        if proposal is None:
+            raise HTTPException(status_code=404, detail="Unknown proposal_id.")
+
+        try:
+            approve_memory_proposal(proposal, repo_root=state.memory_proposal_repo_root)
+        except MemoryProposalGuardrailError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+        state.ledger.append(
+            LedgerRow(
+                timestamp=_iso_now(),
+                request_id=proposal.proposal_id,
+                task_type="memory",
+                bean_alias=proposal.bean_alias,
+                raw_model_id=proposal.model_id or "unknown",
+                tokens_in=proposal.tokens_in,
+                tokens_out=proposal.tokens_out,
+                cost_usd=proposal.cost_usd,
+                latency_ms=proposal.latency_ms,
+                escalated=False,
+                escalation_approved=None,
+            )
+        )
+        state.memory_proposals.pop(proposal_id, None)
+        return {"proposal_id": proposal_id, "status": "approved"}
+
+    @app.post("/v1/memory_proposals/{proposal_id}/discard")
+    async def discard_memory_proposal_endpoint(proposal_id: str):
+        state = app.state.coffee
+        if proposal_id not in state.memory_proposals:
+            raise HTTPException(status_code=404, detail="Unknown proposal_id.")
+        state.memory_proposals.pop(proposal_id, None)
+        return {"proposal_id": proposal_id, "status": "discarded"}
 
     return app
 

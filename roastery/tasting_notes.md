@@ -2729,3 +2729,133 @@ Needs improvement:
   clearly documented and never touching real config, is a reminder that
   a second real premium/vision Bean selection is increasingly overdue -
   three separate Brews now have needed a workaround for the same gap.
+
+### 2026-07-14 - Brew 41B: Session Memory Proposals and Pantry Retrieval Live Demo
+
+Scope: real, human-approved calls through the actual running Coffee Core
+Router against the real `knowledge/` directory and real OpenRouter,
+covering both new Brew 41 features for the first time - Pantry retrieval
+with citations, and session memory proposal generation with guardrails.
+
+Preconditions:
+
+- Full test suite green first: 308 `router/tests/` (89 new - 23
+  `test_pantry.py`, 6 `test_index_pantry.py`, 23 `test_memory_proposals.py`,
+  25 `test_main.py` additions across Pantry retrieval wiring, the file
+  viewer endpoint, and the three memory-proposal endpoints, 2
+  `test_events.py`, plus `test_config.py` updates), 123 Vitest/RTL tests
+  (20 new - `OrderBox`'s Use Pantry toggle, `PantrySourceChips`, `SessionMenu`,
+  `MemoryProposalPanel`, `Sidebar` wiring). `npx tsc --noEmit`, `eslint`,
+  and `next build` all clean.
+- `OPENROUTER_API_KEY` already present in the shell environment; never
+  pasted into chat or written to a file.
+- Ran `python router/tools/index_pantry.py` fresh against the real
+  `knowledge/` directory (4 files, 8 chunks) before starting the router.
+
+Commands (router started fresh with current code):
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765
+```
+
+Driven via direct `curl`/`httpx` calls against the real router (no
+browser UI session this time - both features are fully exercisable via
+their HTTP contract, and the frontend wiring was already covered by the
+Vitest/RTL suite above).
+
+Observed behavior - Pantry retrieval:
+
+- `POST /v1/order` with `use_pantry: true` and the prompt "What is
+  Pantry retrieval and how does it save tokens?" produced a normal
+  `order_received` -> `classifying` -> `route_selected` (`House Blend`,
+  `explain`) -> `generating` -> `complete` sequence, and the `complete`
+  event correctly carried
+  `pantry_sources: ["knowledge/README.md", "knowledge/project_docs/project-coffee-foundation-summary.md", "knowledge/00_index.md"]` -
+  three of the real `knowledge/` directory's four files, correctly
+  ranked as relevant to a question about Pantry retrieval itself.
+- `GET /v1/pantry/file?path=knowledge/00_index.md` returned the real
+  file content (`# Knowledge Index...`), confirming the citation chip's
+  file-viewer path works against real data, not just test fixtures.
+- The exact path-traversal example named in the design doc
+  (`../router/config/settings.yaml`) correctly returned 404 against the
+  real, running endpoint - not just in the unit tests.
+
+Observed behavior - Memory proposals:
+
+- Created a real session, sent one real message ("Explain in one
+  sentence what the Coffee Core Router is."), then called
+  `POST /v1/sessions/{id}/memory_proposal`. The real House Blend model
+  returned a syntactically valid two-file response on the first try (no
+  retry needed) - the strict `### FILE: ... ### END FILE` parser
+  accepted it cleanly.
+- `brew-log/active_context.md`'s diff was empty (the model proposed no
+  change - a legitimate, guardrail-passing "nothing to add" outcome, not
+  an error).
+- `brew-log/progress.md`'s diff was a single near-no-op line edit
+  ("Markdown" -> "MarkDown" in one existing table cell) - both
+  guardrails passed cleanly (well under the 50% deletion threshold), but
+  the edit itself carried no real value from a one-message session with
+  no substantive close-out content to record.
+- Called `POST /v1/memory_proposals/{id}/discard` rather than
+  `.../approve` - a deliberate choice, not a bug: writing that trivial
+  edit into the real project memory files as a demo artifact would have
+  been exactly the kind of low-value noise the over-deletion guardrail
+  exists to prevent on the *other* end (stale-memory protection cuts
+  both ways, but a human reviewer choosing not to approve a real-but-
+  worthless diff is the same protection, applied manually). `git status`
+  confirmed `brew-log/` was completely untouched after the full demo.
+
+Cost and token evidence:
+
+- Model / Bean: House Blend, `nvidia/nemotron-3-ultra-550b-a55b:free`,
+  for all three calls (two Pantry-toggled `/v1/order` calls, one memory
+  proposal generation call).
+- Cost: `$0.00` across every call (free-tier model).
+- Tokens: Pantry demo call 13 input / 718 output; session demo call 13
+  input / 881 output (both OpenRouter-reported, via `complete` events).
+  The memory proposal call's tokens were not written to
+  `ledger/router_requests.csv`, since a discarded proposal logs nothing
+  by design (Section 3.2 of the design doc) - this is working as
+  intended, not a gap in evidence capture.
+
+What worked:
+
+- FTS5 BM25 ranking correctly surfaced all three genuinely relevant
+  `knowledge/` files (out of only four total) for a question about the
+  Pantry system itself, on the very first real query against the real
+  index - no tuning needed.
+- The strict two-file parser (`### FILE: ... ### END FILE`, exact path
+  match, no near-misses accepted) worked against a real, non-adversarial
+  model response with zero friction - the format constraint clearly
+  fits within House Blend's instruction-following ability for this task.
+- Both guardrails (path allowlist, over-50%-deletion) ran silently and
+  correctly on real content without ever needing to reject anything in
+  this run - the interesting guardrail-triggering cases are the
+  synthetic ones already covered in `test_memory_proposals.py`
+  (`test_generate_raises_guardrail_error_on_over_deletion`).
+- Discarding a real-but-low-value proposal, rather than reflexively
+  approving anything that passes the mechanical guardrails, demonstrated
+  the design's intended human-in-the-loop check actually being useful in
+  practice: mechanical guardrails caught nothing wrong here, but the
+  edit still wasn't worth keeping.
+
+Needs improvement:
+
+- `knowledge/` is still only 4 files (a hand-curated pointer table, not
+  a content corpus) - this demo proves the retrieval *mechanism* is
+  correct, but doesn't yet demonstrate Pantry answering a question its
+  current index can't directly cover (the "mark uncertainty" behavior
+  from Requirement 7 remains unexercised against a real gap - only
+  tested synthetically in `test_pantry.py`).
+- A one-message demo session is a weak input for memory-proposal
+  quality - the near-no-op "Markdown"/"MarkDown" edit is more a
+  reflection of there being nothing substantive to summarize than a
+  finding about House Blend's proposal-drafting ability. A future Brew
+  closed out with a real, substantive multi-message session would be a
+  more honest test of proposal quality.
+- The Pantry citation chip's click-through file viewer was exercised
+  directly via the router endpoint (`curl`), not through an actual
+  browser click - the Vitest/RTL suite covers the component's fetch/
+  render/error-state logic, but a real browser session (same class of
+  gap as this Brew skipping a UI-driven demo entirely) would still add
+  independent confirmation.

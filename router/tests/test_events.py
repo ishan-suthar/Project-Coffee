@@ -157,6 +157,38 @@ class EventContractTests(unittest.TestCase):
         )
         self.assertTrue(event.draft_quality)
 
+    def test_complete_event_pantry_sources_defaults_to_none(self):
+        """v1.4: pantry_sources is additive and optional - old-style
+        CompleteEvent construction (no pantry_sources) must still work."""
+
+        event = CompleteEvent(
+            request_id=REQUEST_ID,
+            bean_alias="House Blend",
+            tokens_in=10,
+            tokens_out=20,
+            cost_usd=0.0,
+            latency_ms=100,
+            escalated=False,
+            draft_quality=False,
+        )
+        self.assertIsNone(event.pantry_sources)
+
+    def test_complete_event_pantry_sources_round_trips(self):
+        event = CompleteEvent(
+            request_id=REQUEST_ID,
+            bean_alias="House Blend",
+            tokens_in=10,
+            tokens_out=20,
+            cost_usd=0.0,
+            latency_ms=100,
+            escalated=False,
+            draft_quality=False,
+            pantry_sources=["knowledge/00_index.md", "knowledge/README.md"],
+        )
+        frame = event.to_sse()
+        payload = json.loads(frame[len("data: "):].strip())
+        self.assertEqual(payload["pantry_sources"], ["knowledge/00_index.md", "knowledge/README.md"])
+
     def test_no_raw_model_id_ever_appears_in_any_event_payload(self):
         """Requirement 2: raw model IDs must never leak into event payloads."""
 

@@ -17,6 +17,7 @@ interface OrderOptions {
   beanAliasOverride?: string;
   attachmentIds?: string[];
   requestId?: string;
+  usePantry?: boolean;
   signal?: AbortSignal;
 }
 
@@ -29,6 +30,7 @@ export function orderStream(prompt: string, options: OrderOptions = {}): AsyncGe
       bean_alias_override: options.beanAliasOverride ?? null,
       attachment_ids: options.attachmentIds ?? [],
       request_id: options.requestId ?? null,
+      use_pantry: options.usePantry ?? false,
     },
     options.signal
   );
@@ -115,6 +117,54 @@ export async function listBeans(): Promise<Bean[]> {
   const response = await fetch(`${ROUTER_BASE_URL}/v1/beans`);
   if (!response.ok) throw new Error(`Failed to list beans: ${response.status}`);
   return response.json();
+}
+
+/** GET /v1/pantry/file (Brew 41) - read-only file viewer content for a
+ * citation chip. path must be one of the sources the router itself
+ * reported in a `complete` event's pantry_sources - the router 404s on
+ * anything outside knowledge/ regardless. */
+export async function getPantryFile(path: string): Promise<PantryFileContent> {
+  const response = await fetch(
+    `${ROUTER_BASE_URL}/v1/pantry/file?${new URLSearchParams({ path }).toString()}`
+  );
+  if (!response.ok) throw new Error(`Failed to load Pantry file: ${response.status}`);
+  return response.json();
+}
+
+export interface PantryFileContent {
+  path: string;
+  content: string;
+}
+
+export interface MemoryProposalFile {
+  path: string;
+  diff: string;
+  new_content: string;
+}
+
+export interface MemoryProposalResult {
+  proposal_id: string;
+  files: MemoryProposalFile[];
+}
+
+/** POST /v1/sessions/{id}/memory_proposal (Brew 41) - generates a
+ * reviewable proposal, never writes anything. Throws on a 422 guardrail
+ * or parse failure - the caller shows the error, there is no partial
+ * proposal to render. */
+export async function generateMemoryProposal(sessionId: string): Promise<MemoryProposalResult> {
+  return postJSON(`/v1/sessions/${sessionId}/memory_proposal`, {});
+}
+
+export async function approveMemoryProposal(
+  proposalId: string
+): Promise<{ proposal_id: string; status: string }> {
+  return postJSON(`/v1/memory_proposals/${proposalId}/approve`, {});
+}
+
+export async function discardMemoryProposal(
+  proposalId: string
+): Promise<{ proposal_id: string; status: string }> {
+  return postJSON(`/v1/memory_proposals/${proposalId}/discard`, {});
 }
 
 async function postJSON<T = unknown>(path: string, body: unknown): Promise<T> {

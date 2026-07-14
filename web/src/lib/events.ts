@@ -66,6 +66,11 @@ export interface CompleteEvent extends BaseEvent {
   latency_ms: number;
   escalated: boolean;
   draft_quality: boolean;
+  // Added in contract v1.4 (Brew 41): the distinct source paths of the
+  // Pantry chunks the router actually injected into this request's
+  // context - not a model self-report. null when the request didn't set
+  // use_pantry, or no chunks matched - never an empty-but-claimed array.
+  pantry_sources: string[] | null;
 }
 
 export interface ErrorEvent extends BaseEvent {

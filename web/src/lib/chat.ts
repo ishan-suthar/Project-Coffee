@@ -47,6 +47,11 @@ export interface ChatMessage {
   // server-side, but this client does not resume live token streaming
   // for it.
   pendingEscalationRecovered: boolean;
+  // Brew 41: source paths the router actually injected for this request
+  // (contract v1.4's pantry_sources). null when Pantry wasn't used or
+  // nothing matched - PantrySourceChips renders only when this is a
+  // non-empty array, so a message never claims sources it didn't get.
+  pantrySources: string[] | null;
 }
 
 export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent): ChatMessage {
@@ -92,6 +97,7 @@ export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent)
         latencyMs: event.latency_ms,
         escalated: event.escalated,
         draftQuality: event.draft_quality,
+        pantrySources: event.pantry_sources,
       };
     case "error":
       return {
@@ -130,6 +136,7 @@ export function newAssistantMessage(requestId: string): ChatMessage {
     errorMessage: null,
     attachments: [],
     pendingEscalationRecovered: false,
+    pantrySources: null,
   };
 }
 
@@ -157,5 +164,6 @@ export function newUserMessage(
     errorMessage: null,
     attachments,
     pendingEscalationRecovered: false,
+    pantrySources: null,
   };
 }

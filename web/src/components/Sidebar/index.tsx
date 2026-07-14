@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useChatStore } from "@/store/chatStore";
 import { formatRelativeTime } from "@/lib/relativeTime";
+import { SessionMenu } from "@/components/Sidebar/SessionMenu";
+import { MemoryProposalPanel } from "@/components/MemoryProposal/MemoryProposalPanel";
 
 /**
  * Sessions grouped by project, collapsible to an icon rail. Fetched AFTER
@@ -14,6 +16,7 @@ import { formatRelativeTime } from "@/lib/relativeTime";
  */
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [closeOutSessionId, setCloseOutSessionId] = useState<string | null>(null);
   const sessions = useChatStore((s) => s.sessions);
   const sessionsLoaded = useChatStore((s) => s.sessionsLoaded);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
@@ -89,22 +92,34 @@ export function Sidebar() {
           <p className="px-2 text-xs text-medium-roast">No sessions yet.</p>
         )}
         {sessions.map((session) => (
-          <button
+          <div
             key={session.id}
-            type="button"
-            onClick={() => selectSession(session.id)}
-            className={`mb-1 flex w-full flex-col rounded px-2 py-2 text-left transition ${
+            className={`mb-1 flex items-center rounded transition ${
               session.id === activeSessionId ? "bg-crema-amber/20" : "hover:bg-cream"
             }`}
           >
-            <span className="truncate text-sm text-espresso">{session.title}</span>
-            <span className="flex items-center justify-between text-xs text-medium-roast">
-              <span>{formatRelativeTime(session.updated_at)}</span>
-              <span className="font-mono tabular-nums">${session.cost_total_usd.toFixed(4)}</span>
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => selectSession(session.id)}
+              className="flex min-w-0 flex-1 flex-col px-2 py-2 text-left"
+            >
+              <span className="truncate text-sm text-espresso">{session.title}</span>
+              <span className="flex items-center justify-between text-xs text-medium-roast">
+                <span>{formatRelativeTime(session.updated_at)}</span>
+                <span className="font-mono tabular-nums">${session.cost_total_usd.toFixed(4)}</span>
+              </span>
+            </button>
+            <SessionMenu onCloseOutSession={() => setCloseOutSessionId(session.id)} />
+          </div>
         ))}
       </div>
+
+      {closeOutSessionId && (
+        <MemoryProposalPanel
+          sessionId={closeOutSessionId}
+          onClose={() => setCloseOutSessionId(null)}
+        />
+      )}
     </aside>
   );
 }

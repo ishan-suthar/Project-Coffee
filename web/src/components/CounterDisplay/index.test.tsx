@@ -103,6 +103,7 @@ describe("statusTextFor - event-to-text mapping table", () => {
       latency_ms: 100,
       escalated: false,
       draft_quality: false,
+      pantry_sources: null,
     };
     expect(statusTextFor(event)).toBe("Order up");
   });

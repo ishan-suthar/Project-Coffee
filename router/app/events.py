@@ -9,7 +9,7 @@ a version bump. See docs/design/coffee-core-router-design.md Section 4.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Literal, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -96,6 +96,14 @@ class CompleteEvent(BaseEvent):
     latency_ms: int
     escalated: bool
     draft_quality: bool
+    # Added in contract version 1.4 (Brew 41): the distinct repo-root-
+    # relative source paths of the Pantry chunks actually injected into
+    # this request's context (router/app/pantry.py) - not a model self-
+    # report of what it "used." None when the request didn't ask for
+    # Pantry retrieval (OrderRequest.use_pantry was false) or no chunks
+    # matched - never an empty-but-claimed list. See docs/design/
+    # memory-and-pantry-design.md Section 4.2.
+    pantry_sources: Optional[List[str]] = None
 
 
 class ErrorEvent(BaseEvent):

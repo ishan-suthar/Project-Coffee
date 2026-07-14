@@ -44,6 +44,11 @@ class Settings(BaseModel):
     pdf_min_extracted_chars: int = 20
     max_inline_text_chars: int = 50_000
     upload_ttl_seconds: int = 3600
+    memory_proposal_bean_alias: str = "House Blend"
+    memory_proposal_max_transcript_chars: int = 20_000
+    pantry_chunk_size_chars: int = 1200
+    pantry_chunk_overlap_chars: int = 200
+    pantry_top_k: int = 5
 
     @classmethod
     def from_yaml(cls, path: Path = DEFAULT_SETTINGS_PATH) -> "Settings":

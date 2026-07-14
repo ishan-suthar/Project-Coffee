@@ -47,3 +47,14 @@ max_upload_size_bytes: 20971520  # 20 MB
 pdf_min_extracted_chars: 20  # below this, treat a PDF as scanned/no-text
 max_inline_text_chars: 50000  # cap on extracted text inlined into a prompt
 upload_ttl_seconds: 3600  # abandoned router/uploads/<request_id>/ dirs older than this are swept
+
+# Session memory proposals (Brew 41). See router/app/memory_proposals.py
+# and docs/design/memory-and-pantry-design.md.
+memory_proposal_bean_alias: "House Blend"  # cheap Bean used to draft a proposal
+memory_proposal_max_transcript_chars: 20000  # transcript truncates from the start, keeping the most recent messages
+
+# Pantry retrieval (Brew 41). See router/app/pantry.py,
+# router/tools/index_pantry.py, and docs/design/memory-and-pantry-design.md.
+pantry_chunk_size_chars: 1200
+pantry_chunk_overlap_chars: 200
+pantry_top_k: 5  # number of top-ranked chunks injected per request

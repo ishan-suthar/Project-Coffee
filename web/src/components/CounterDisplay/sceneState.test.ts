@@ -55,6 +55,7 @@ function eventOf(event: RouterEvent["event"]): RouterEvent {
         latency_ms: 100,
         escalated: false,
         draft_quality: false,
+        pantry_sources: null,
       };
     case "error":
       return { event, request_id: REQUEST_ID, ts: TS, error_type: "provider_error", message: "x", retryable: true };

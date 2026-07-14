@@ -6,6 +6,7 @@ import { MessageFooter } from "@/components/ResponseSection/MessageFooter";
 import { CodeBlock } from "@/components/ResponseSection/CodeBlock";
 import { AttachmentGallery } from "@/components/ResponseSection/AttachmentGallery";
 import { EscalationApprovalCard } from "@/components/ResponseSection/EscalationApprovalCard";
+import { PantrySourceChips } from "@/components/ResponseSection/PantrySourceChips";
 
 /** True while a message's escalation is genuinely awaiting a decision -
  * live pause or a reload-recovered card (Brew 40). Once the next real
@@ -64,6 +65,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         </p>
       )}
       {hasOpenEscalationApproval(message) && <EscalationApprovalCard message={message} />}
+      {!message.isStreaming && <PantrySourceChips sources={message.pantrySources} />}
       {!message.isStreaming && <MessageFooter message={message} />}
     </div>
   );
