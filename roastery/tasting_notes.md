@@ -2573,3 +2573,159 @@ Needs improvement:
   prompt completed on the first try, no escalation triggered) - both are
   covered by `sceneState.test.ts`'s full 9-state mapping table, but not
   against a real event stream yet.
+
+### 2026-07-14 - Brew 40B: Escalation Approval Gate Live Demo
+
+Scope: real, human-approved `/v1/order` calls through the actual running
+browser UI against the actual running Coffee Core Router against real
+OpenRouter, exercising all three approval-gate outcomes for the first
+time - approve, decline, and reload recovery - plus verifying the Tips
+Jar correctly stays frozen during a pause.
+
+Preconditions:
+
+- Full test suite green first: 238 `router/tests/` (17 new - real-timeout
+  path, real cancel-during-pause exercising the actual `_await_approval`
+  race rather than the `wait_for_approval` test seam, double-click,
+  late-approval, reload-recovery spawning the background task the same
+  way the real endpoint does, heartbeat-during-pause, force_escalation
+  on/off), 103 Vitest/RTL tests (19 new - `EscalationApprovalCard`,
+  `MessageBubble` visibility gating, `chatStore` action + polling with
+  fake timers). `npx tsc --noEmit`, `eslint`, and `npm run build` all
+  clean.
+- `OPENROUTER_API_KEY` already present in the shell environment; never
+  pasted into chat or written to a file.
+- A real, structural constraint had to be worked around to demo this at
+  all: `router/config/beans.yaml` has no available premium Bean (Reserve
+  Blend's `model_id` is `null`, `status: not_yet_selected` - the same gap
+  documented since Brew 36), so the real router config can never actually
+  reach `escalation_pending` - `decide_escalation()` always returns
+  `no_premium_available` instead. A standalone demo launcher script (not
+  committed - `run_demo_router.py`, scratch-only) built a `RouterState`
+  with a substitute premium Bean reusing House Blend's real free-tier
+  model ID (`nvidia/nemotron-3-ultra-550b-a55b:free`), so every escalation
+  re-run in this demo was a real, free OpenRouter call - `beans.yaml`
+  itself was never touched, confirmed via `git status` after the demo.
+  `COFFEE_ROUTER_FORCE_ESCALATION=1` forced every generation to look like
+  a failure so the pause could be triggered on demand.
+
+Commands (all three servers/scripts started fresh with current code):
+
+```powershell
+$env:COFFEE_ROUTER_FORCE_ESCALATION = "1"
+python run_demo_router.py    # scratch-only launcher, not committed
+npx next dev -p 3000
+```
+
+Driven via throwaway Playwright scripts (not committed - manual demo
+aids, not part of the automated suite).
+
+Observed behavior - approve:
+
+- Sending "Explain what a Python decorator is." reached a real failure
+  (forced), and the approval card appeared with the correct plain-
+  language reason ("You reported this response as needing a retry." -
+  `caller_reported`, matching `force_escalation`'s mechanism exactly),
+  premium alias (`Reserve Blend`), cost (`$0.0000`, correctly reflecting
+  the free-tier substitute), and a live countdown ("Auto-declining in
+  120s if no decision is made.").
+- The scene's caption correctly showed "Waiting for your approval" while
+  paused (state 5, unchanged from Brew 39's mapping).
+- Clicking "Brew premium" resumed the stream: a real second OpenRouter
+  call ran, the scene caption moved to "Order up" on completion, the
+  completed message's header showed the escalation marker (expandable,
+  matching the pre-existing read-only `MessageHeader` behavior), and a
+  full, real, substantive answer rendered.
+- Tips Jar read `$0.0000` before the pause and `$0.0000` after - no code
+  was needed for Requirement 5 ("Tips Jar does not tick during the
+  pause"), confirmed live: no `generating` events fire during a pause, so
+  `TipsJar.tsx` never had anything to react to.
+
+Observed behavior - decline:
+
+- Same setup, clicked "Keep the cheap cup" instead. The message completed
+  immediately with the draft-quality tag visible and no `escalating`
+  event - and, correctly, the escalation marker was *still* present on
+  the completed message (the pause itself happened and is real history,
+  even though it wasn't escalated).
+
+Observed behavior - reload recovery:
+
+- Sent a fresh message, reached the pause, confirmed via a direct
+  (non-browser) fetch to `GET /v1/sessions/{id}/pending_escalation` that
+  the router genuinely still considered it open. Reloaded the page.
+- This app has never auto-restored the active session across a bare
+  reload (true for every piece of session state, not just escalations -
+  a pre-existing, unrelated design choice) - so the real recovery flow is
+  "reload, then click your session in the sidebar," identical to how a
+  user already returns to any past conversation. Clicking the (only)
+  session in a clean single-session run correctly re-showed the approval
+  card, with the "Recovered after a reload - the original message text
+  isn't available" note rendered (the honest gap: the user's original
+  prompt was never persisted for a still-in-flight turn, and this Brew
+  deliberately does not fabricate it).
+- Clicking "Keep the cheap cup" on the *recovered* card correctly called
+  `POST /v1/approve_escalation` for the still-genuinely-running background
+  task, and `chatStore`'s polling loop (every 2s, since a recovered card
+  has no live SSE stream of its own) picked up the final draft-quality
+  result and replaced the placeholder content with the real persisted
+  message within one polling cycle.
+
+One test-script-only false alarm, not a product bug: an earlier two-flow-
+in-one-page-session demo script showed the sidebar landing on the wrong
+session after reload and the recovery endpoint correctly 404ing for it -
+looked like a recovery bug at first. A direct Python `httpx` test (open a
+stream, read until `escalation_pending`, close the connection abruptly
+from the client side, then `GET` the recovery endpoint) proved the
+background task genuinely survives an abrupt disconnect - 200, correct
+context. The demo router process had accumulated seven sessions across
+several repeated debug runs sharing one long-lived `sessions.db`, and the
+two-flow script's second `sendPrompt` call landed on a different session
+than expected; a clean, single-session isolated run then reproduced the
+correct end-to-end recovery. Worth remembering: a long-lived demo server
+across many repeated script executions accumulates state that can make an
+otherwise-correct feature look broken - restart with a clean data
+directory when a multi-step demo script produces a surprising result,
+before assuming the product is wrong.
+
+Cost and token evidence:
+
+- Model / Bean: House Blend and the demo-only Reserve Blend substitute,
+  both `nvidia/nemotron-3-ultra-550b-a55b:free`.
+- Cost: `$0.00` across every call (free-tier model, both the initial
+  draft and every premium re-run).
+
+What worked:
+
+- The background-task/queue decoupling (Section 3.1 of the design doc)
+  worked exactly as designed on the first real end-to-end run - no
+  connection-lifetime bugs, no orphaned tasks, no hung requests. The
+  direct `httpx` disconnect test gave independent confirmation beyond
+  what the browser-based demo alone could prove.
+- Building `EscalationContext` as a mutable dataclass that stays in
+  `RouterState.pending_escalation_context` past request completion
+  (rather than being popped immediately) is what made both "late
+  approval" and "reload recovery" work without extra machinery - a
+  single piece of state serving two different edge cases from the plan.
+- Treating a recovered card and a live card identically in
+  `MessageBubble`'s visibility gate (`isStreaming && latestEvent.event === "escalation_pending"`)
+  meant no separate recovered-card rendering path was needed - only the
+  "how did this message get resolved" side (live event vs. polling)
+  differs, not the card itself.
+
+Needs improvement:
+
+- The real escalation flow (against real `beans.yaml`, no substitute)
+  remains undemoed, same as the vision-routing and premium-Bean gaps from
+  Brews 36/38 - all three are blocked on the same underlying fact: no
+  premium/vision Bean has ever been selected or Roastery-tested.
+- Heartbeat frames during a pause were exercised automatically by the
+  router test suite (`test_order_endpoint_emits_heartbeat_during_a_long_pause`)
+  but not separately observed in the browser network layer during this
+  live session - the approve/decline demo runs simply didn't pause long
+  enough to need one at the 15s demo interval before a human clicked a
+  button. Worth a dedicated long-idle live check in a future session.
+- The demo router launcher script's substitute-Bean approach, while
+  clearly documented and never touching real config, is a reminder that
+  a second real premium/vision Bean selection is increasingly overdue -
+  three separate Brews now have needed a workaround for the same gap.

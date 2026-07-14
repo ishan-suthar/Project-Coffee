@@ -39,6 +39,7 @@ function eventOf(event: RouterEvent["event"]): RouterEvent {
         reason: "truncated",
         est_cost_usd: 0.5,
         premium_bean_alias: "Reserve Blend",
+        decision_deadline: "2026-07-11T20:24:03.101Z",
       };
     case "escalating":
       return { event, request_id: REQUEST_ID, ts: TS, bean_alias: "Reserve Blend" };
@@ -59,6 +60,8 @@ function eventOf(event: RouterEvent["event"]): RouterEvent {
       return { event, request_id: REQUEST_ID, ts: TS, error_type: "provider_error", message: "x", retryable: true };
     case "cancelled":
       return { event, request_id: REQUEST_ID, ts: TS, reason: "client_cancel_request" };
+    case "heartbeat":
+      return { event, request_id: REQUEST_ID, ts: TS };
   }
 }
 
@@ -77,6 +80,7 @@ describe("sceneStateIndexFor", () => {
     ["complete", 7],
     ["error", 8],
     ["cancelled", 8],
+    ["heartbeat", 4], // unreachable in practice - see sceneState.ts's comment
   ];
 
   for (const [eventName, expected] of table) {

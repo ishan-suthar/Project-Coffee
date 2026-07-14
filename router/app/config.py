@@ -31,6 +31,8 @@ class StartupSafetyError(Exception):
 
 class Settings(BaseModel):
     escalation_cost_cap_usd: float = 0.50
+    escalation_approval_timeout_seconds: float = 600.0
+    sse_heartbeat_interval_seconds: float = 15.0
     generating_tick_tokens: int = 20
     generating_tick_seconds: float = 2.0
     request_timeout_seconds: int = 60

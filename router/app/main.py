@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple
 
@@ -45,6 +47,7 @@ from router.app.events import (
     EscalatingEvent,
     EscalationPendingEvent,
     GeneratingEvent,
+    HeartbeatEvent,
     OrderReceivedEvent,
     RouteSelectedEvent,
 )
@@ -68,8 +71,20 @@ from router.app.uploads import (
     validate_upload,
 )
 
-ESCALATION_APPROVAL_TIMEOUT_SECONDS = 300.0
 DEFAULT_PROJECT = "default"
+
+# Test/demo-only: forces every generation through the escalation path
+# regardless of its real content, so the approval-gate UI can be
+# demonstrated without crafting a real failing prompt. A raw environment
+# variable rather than a settings.yaml field on purpose - a config file
+# can be committed by accident, an environment variable someone has to
+# set deliberately every time cannot. Never read anywhere except
+# _force_escalation_enabled() below.
+FORCE_ESCALATION_ENV_VAR = "COFFEE_ROUTER_FORCE_ESCALATION"
+
+
+def _force_escalation_enabled() -> bool:
+    return os.environ.get(FORCE_ESCALATION_ENV_VAR) == "1"
 
 
 @dataclass
@@ -84,6 +99,28 @@ class RequestRecord:
     accumulated_text: str = ""
     tokens_out: int = 0
     finish_reason: Optional[str] = None
+
+
+@dataclass
+class EscalationContext:
+    """Everything a reloaded client needs to redraw the approval card for
+    a request currently paused on escalation_pending (Brew 40 - see
+    docs/design/escalation-approval-ui-design.md Section 3.5), plus
+    enough to answer a late/duplicate POST /v1/approve_escalation
+    meaningfully instead of a bare 404 (Section 3.6). Mutable (not
+    frozen): `resolved`/`resolution` are set in place once the wait ends,
+    so a late request can still find out what happened. Cleaned up in
+    run_order()'s `finally` block once the whole request completes."""
+
+    request_id: str
+    session_id: Optional[str]
+    reason: str
+    est_cost_usd: float
+    premium_bean_alias: str
+    started_at: str
+    decision_deadline: str
+    resolved: bool = False
+    resolution: Optional[str] = None  # "approved" | "declined" | "timed_out" | "cancelled"
 
 
 StreamOrderFn = Callable[..., AsyncIterator[StreamChunk]]
@@ -116,6 +153,16 @@ class RouterState:
     # Optional so tests that don't touch preferences don't need a real
     # SQLite file - endpoints construct a default store lazily if absent.
     preference_store: Optional[PreferenceStore] = None
+    # Brew 40 (docs/design/escalation-approval-ui-design.md Section 3.5):
+    # pending/resolved escalation info, keyed by request_id, for reload
+    # recovery and late/duplicate-approval handling.
+    pending_escalation_context: Dict[str, EscalationContext] = field(default_factory=dict)
+    # Brew 40 Section 3.1: references to the background asyncio.Task
+    # objects that run each order to completion independent of the
+    # /v1/order HTTP connection that started them - held here only so
+    # asyncio doesn't garbage-collect an in-flight task (a well-known
+    # asyncio footgun), discarded once a task finishes.
+    background_tasks: set = field(default_factory=set)
 
 
 async def _consume_stream(
@@ -241,6 +288,14 @@ async def run_order(
             yield event
     finally:
         state.cancel_flags.pop(request_id, None)
+        # pending_escalation_context is deliberately NOT popped here: a
+        # resolved context must stay available so a late or duplicate
+        # POST /v1/approve_escalation arriving after the request has
+        # already finished still gets a clear already_resolved response
+        # (docs/design/escalation-approval-ui-design.md Section 3.6)
+        # instead of a bare 404. Same ephemeral-in-memory, no-TTL-sweep
+        # precedent as the rest of RouterState's per-request dicts - fine
+        # for this single-process/local-dev router's real request volume.
         if attachment_ids:
             cleanup_request_uploads(request_id, uploads_root=state.uploads_root)
             for attachment_id in attachment_ids:
@@ -374,7 +429,16 @@ async def _run_order_body(
         )
         return
 
-    generation = GenerationResult(text=final_text, tokens_out=tokens_out, finish_reason=finish_reason)
+    generation = GenerationResult(
+        text=final_text, tokens_out=tokens_out, finish_reason=finish_reason,
+        # Test/demo-only escape hatch (docs/design/escalation-approval-ui-design.md
+        # Section 5): forces every generation to look like a failure so the
+        # escalation approval flow can be demoed on demand, without
+        # crafting a real failing prompt. A raw environment variable, not
+        # a settings.yaml field, so a committed config file can never ship
+        # this "on" by accident. Off unless explicitly set.
+        caller_reported_failure=_force_escalation_enabled(),
+    )
     failure = check_for_failure(
         generation,
         truncation_min_expected_tokens=state.settings.truncation_min_expected_tokens,
@@ -396,11 +460,17 @@ async def _run_order_body(
     draft_quality = False
 
     if decision is not None:
+        decision_deadline = (
+            _iso_deadline(state.settings.escalation_approval_timeout_seconds)
+            if decision.outcome == "escalation_pending"
+            else None
+        )
         yield EscalationPendingEvent(
             request_id=request_id,
             reason=decision.reason,
             est_cost_usd=decision.est_cost_usd,
             premium_bean_alias=decision.premium_bean_alias,
+            decision_deadline=decision_deadline,
         )
 
         if decision.outcome == "no_premium_available":
@@ -416,9 +486,35 @@ async def _run_order_body(
                     yield item
             escalated, draft_quality = True, False
         elif decision.outcome == "escalation_pending":
-            approval = await _await_approval(state, request_id, wait_for_approval)
+            assert decision.premium_bean_alias is not None  # guaranteed by decide_escalation for this outcome
+            context = EscalationContext(
+                request_id=request_id,
+                session_id=session_id,
+                reason=decision.reason,
+                est_cost_usd=decision.est_cost_usd,
+                premium_bean_alias=decision.premium_bean_alias,
+                started_at=_iso_now(),
+                decision_deadline=decision_deadline,
+            )
+            state.pending_escalation_context[request_id] = context
+
+            approval = await _await_approval(
+                state,
+                request_id,
+                wait_for_approval,
+                cancel_event,
+                state.settings.escalation_approval_timeout_seconds,
+            )
+
+            if approval == "cancelled":
+                context.resolved, context.resolution = True, "cancelled"
+                yield CancelledEvent(request_id=request_id, reason="client_cancel_request")
+                return
+
             resolution = resolve_pending_escalation(approval)
+            context.resolved = True
             if resolution.should_escalate:
+                context.resolution = "approved"
                 yield EscalatingEvent(request_id=request_id, bean_alias=premium_bean.alias)
                 async for item in _run_escalation(
                     state, request_id, premium_bean, outbound_text, stream_order_fn, image_data_urls
@@ -429,6 +525,7 @@ async def _run_order_body(
                         yield item
                 escalated, draft_quality = True, False
             else:
+                context.resolution = "timed_out" if _is_past_deadline(decision_deadline) else "declined"
                 draft_quality = True
 
     latency_ms = int((time.monotonic() - started_at) * 1000)
@@ -526,17 +623,42 @@ async def _run_escalation(
     yield ("__escalation_final__", final_text, tokens_out, None)
 
 
-async def _await_approval(state: RouterState, request_id: str, wait_for_approval) -> str:
+async def _await_approval(
+    state: RouterState,
+    request_id: str,
+    wait_for_approval,
+    cancel_event: asyncio.Event,
+    timeout_seconds: float,
+) -> str:
+    """Returns "approved" | "declined" | "cancelled". A timeout resolves
+    to "declined" - EVENT_CONTRACT.md's decision_deadline is how a UI
+    tells an explicit decline apart from a timeout, not this return value.
+    Also races the wait against cancel_event (Brew 40, docs/design/
+    escalation-approval-ui-design.md Section 3.3) so POST /v1/cancel
+    actually interrupts a pending approval instead of being silently
+    ignored until the wait resolves some other way."""
+
     if wait_for_approval is not None:
         return await wait_for_approval(request_id)
 
     loop = asyncio.get_event_loop()
     future: "asyncio.Future[str]" = loop.create_future()
     state.pending_escalations[request_id] = future
+    cancel_wait_task = asyncio.create_task(cancel_event.wait())
     try:
-        return await asyncio.wait_for(future, timeout=ESCALATION_APPROVAL_TIMEOUT_SECONDS)
-    except asyncio.TimeoutError:
-        return "declined"
+        done, pending = await asyncio.wait(
+            {future, cancel_wait_task}, timeout=timeout_seconds, return_when=asyncio.FIRST_COMPLETED
+        )
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+
+        if cancel_wait_task in done:
+            return "cancelled"
+        if future in done:
+            return future.result()
+        return "declined"  # timed out - neither future nor cancel_wait_task completed
     finally:
         state.pending_escalations.pop(request_id, None)
 
@@ -596,9 +718,15 @@ def _is_free_tier(state: RouterState, bean_alias: str) -> bool:
 
 
 def _iso_now() -> str:
-    from datetime import datetime, timezone
-
     return datetime.now(timezone.utc).isoformat()
+
+
+def _iso_deadline(seconds_from_now: float) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=seconds_from_now)).isoformat()
+
+
+def _is_past_deadline(deadline_iso: str) -> bool:
+    return datetime.now(timezone.utc) >= datetime.fromisoformat(deadline_iso)
 
 
 async def sse_stream(events: AsyncIterator[BaseEvent]) -> AsyncIterator[bytes]:
@@ -607,6 +735,51 @@ async def sse_stream(events: AsyncIterator[BaseEvent]) -> AsyncIterator[bytes]:
             yield event.to_sse().encode("utf-8")
     except asyncio.CancelledError:
         raise
+
+
+async def _run_order_and_publish(
+    state: RouterState,
+    queue: "asyncio.Queue[Optional[BaseEvent]]",
+    **run_order_kwargs: Any,
+) -> None:
+    """Runs run_order() to completion, publishing each event into `queue`
+    instead of yielding directly to an HTTP response. This decouples the
+    whole order - including a multi-minute escalation_pending pause -
+    from any one /v1/order connection's lifetime (Brew 40, docs/design/
+    escalation-approval-ui-design.md Section 3.1): if the client
+    disconnects, only the draining side (sse_stream_from_queue) stops;
+    this producer keeps running, still writes the Ledger/SessionStore
+    normally, and a still-open approval wait is unaffected. Always queues
+    a final `None` sentinel, even on an unexpected exception, so the
+    draining side never hangs forever waiting for one."""
+
+    try:
+        async for event in run_order(state, **run_order_kwargs):
+            await queue.put(event)
+    finally:
+        await queue.put(None)
+
+
+async def sse_stream_from_queue(
+    queue: "asyncio.Queue[Optional[BaseEvent]]",
+    *,
+    request_id: str,
+    heartbeat_interval_seconds: float,
+) -> AsyncIterator[bytes]:
+    """Drains `queue` (fed by _run_order_and_publish) as SSE frames,
+    sending a `heartbeat` frame (contract v1.3) whenever nothing real has
+    arrived for heartbeat_interval_seconds - long idle gaps happen mainly
+    during an escalation_pending pause. Stops on the `None` sentinel."""
+
+    while True:
+        try:
+            event = await asyncio.wait_for(queue.get(), timeout=heartbeat_interval_seconds)
+        except asyncio.TimeoutError:
+            yield HeartbeatEvent(request_id=request_id).to_sse().encode("utf-8")
+            continue
+        if event is None:
+            return
+        yield event.to_sse().encode("utf-8")
 
 
 # --- FastAPI wiring -------------------------------------------------------
@@ -697,26 +870,49 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
 
     @app.post("/v1/order")
     async def order(body: OrderRequest):
-        store = app.state.coffee.session_store
+        state = app.state.coffee
+        store = state.session_store
         if body.session_id is not None and store is not None and not store.session_exists(
             body.session_id
         ):
             raise HTTPException(status_code=404, detail="Unknown session_id.")
-        if body.request_id is not None and body.request_id in app.state.coffee.cancel_flags:
+        if body.request_id is not None and body.request_id in state.cancel_flags:
             raise HTTPException(
                 status_code=409, detail=f"request_id {body.request_id!r} is already in flight."
             )
 
-        events = run_order(
-            app.state.coffee,
-            prompt=body.prompt,
-            attachment_ids=body.attachment_ids or None,
-            request_id=body.request_id,
-            session_id=body.session_id,
-            bean_alias_override=body.bean_alias_override,
-            stream_order_fn=app.state.coffee.stream_order_fn,
+        # request_id is chosen here, not inside run_order(), so
+        # sse_stream_from_queue can label heartbeat frames correctly even
+        # before the first real event (OrderReceivedEvent) is queued.
+        request_id = body.request_id or str(uuid.uuid4())
+        queue: "asyncio.Queue[Optional[BaseEvent]]" = asyncio.Queue()
+
+        task = asyncio.create_task(
+            _run_order_and_publish(
+                state,
+                queue,
+                prompt=body.prompt,
+                attachment_ids=body.attachment_ids or None,
+                request_id=request_id,
+                session_id=body.session_id,
+                bean_alias_override=body.bean_alias_override,
+                stream_order_fn=state.stream_order_fn,
+            )
         )
-        return StreamingResponse(sse_stream(events), media_type="text/event-stream")
+        # Held on RouterState so asyncio never garbage-collects an
+        # in-flight task (see https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task's
+        # own warning about this) - discarded automatically once done.
+        state.background_tasks.add(task)
+        task.add_done_callback(state.background_tasks.discard)
+
+        return StreamingResponse(
+            sse_stream_from_queue(
+                queue,
+                request_id=request_id,
+                heartbeat_interval_seconds=state.settings.sse_heartbeat_interval_seconds,
+            ),
+            media_type="text/event-stream",
+        )
 
     @app.post("/v1/upload", response_model=UploadResponse)
     async def upload(request_id: str = Form(...), file: UploadFile = File(...)):
@@ -811,12 +1007,51 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
 
     @app.post("/v1/approve_escalation")
     async def approve_escalation(body: ApproveEscalationRequest):
-        future = app.state.coffee.pending_escalations.get(body.request_id)
-        if future is None:
+        state = app.state.coffee
+        context = state.pending_escalation_context.get(body.request_id)
+        if context is None:
             raise HTTPException(status_code=404, detail="No pending escalation for this request_id.")
-        if not future.done():
-            future.set_result("approved" if body.approve else "declined")
+
+        if context.resolved:
+            return {
+                "request_id": body.request_id,
+                "status": "already_resolved",
+                "resolution": context.resolution,
+            }
+
+        future = state.pending_escalations.get(body.request_id)
+        if future is None or future.done():
+            # The wait already resolved (e.g. a near-simultaneous duplicate
+            # click) but _run_order_body hasn't updated context.resolved
+            # yet - treat it the same as already_resolved rather than
+            # silently pretending this call changed anything.
+            return {
+                "request_id": body.request_id,
+                "status": "already_resolved",
+                "resolution": context.resolution,
+            }
+
+        future.set_result("approved" if body.approve else "declined")
         return {"request_id": body.request_id, "approve": body.approve, "status": "acknowledged"}
+
+    @app.get("/v1/sessions/{session_id}/pending_escalation")
+    async def get_pending_escalation(session_id: str):
+        state = app.state.coffee
+        store = state.session_store
+        if store is not None and not store.session_exists(session_id):
+            raise HTTPException(status_code=404, detail="Unknown session_id.")
+
+        for context in state.pending_escalation_context.values():
+            if context.session_id == session_id and not context.resolved:
+                return {
+                    "request_id": context.request_id,
+                    "reason": context.reason,
+                    "est_cost_usd": context.est_cost_usd,
+                    "premium_bean_alias": context.premium_bean_alias,
+                    "started_at": context.started_at,
+                    "decision_deadline": context.decision_deadline,
+                }
+        raise HTTPException(status_code=404, detail="No pending escalation for this session_id.")
 
     @app.post("/v1/cancel")
     async def cancel(body: CancelRequest):

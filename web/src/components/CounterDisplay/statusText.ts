@@ -29,5 +29,11 @@ export function statusTextFor(event: RouterEvent | null): string {
       return "Order dropped";
     case "cancelled":
       return "Order cancelled";
+    case "heartbeat":
+      // Unreachable in practice - reduceEventIntoMessage (chat.ts) never
+      // lets a heartbeat become a message's latestEvent, so this case
+      // exists only to satisfy TypeScript's exhaustiveness check now
+      // that heartbeat is part of RouterEvent (contract v1.3).
+      return "Brewing";
   }
 }

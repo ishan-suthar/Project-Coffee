@@ -110,6 +110,17 @@ def decide_escalation(
     )
 
 
+# "cancelled" (Brew 40 - a POST /v1/cancel arriving while paused on
+# escalation_pending, see docs/design/escalation-approval-ui-design.md
+# Section 3.3) is a real outcome of the approval wait, but it is handled
+# by the caller (router/app/main.py:_run_order_body) *before*
+# resolve_pending_escalation() is ever invoked - a cancelled request
+# yields CancelledEvent and returns immediately, the same as a cancel
+# during generation, rather than resolving to any kind of completed
+# result. resolve_pending_escalation() itself only ever needs to
+# distinguish "approved" from "declined" (which a timeout also resolves
+# to - see _await_approval), so its own signature stays a plain two-value
+# decision, not three.
 ApprovalResponse = Literal["approved", "declined"]
 
 

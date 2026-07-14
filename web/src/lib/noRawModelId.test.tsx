@@ -94,6 +94,7 @@ describe("Requirement 8: raw model IDs never appear in the UI", () => {
         reason: "truncated" as const,
         estCostUsd: 0.5,
         premiumBeanAlias: "Reserve Blend",
+        decisionDeadline: null,
       },
     };
 

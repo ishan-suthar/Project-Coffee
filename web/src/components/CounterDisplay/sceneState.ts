@@ -67,6 +67,14 @@ export function sceneStateIndexFor(event: RouterEvent | null): SceneStateIndex {
       return 8;
     case "cancelled":
       return 8;
+    case "heartbeat":
+      // Unreachable in practice - reduceEventIntoMessage (chat.ts) never
+      // lets a heartbeat become a message's latestEvent, so this scene
+      // state function never actually sees one. Case exists only to
+      // satisfy TypeScript's exhaustiveness check now that heartbeat is
+      // part of RouterEvent (contract v1.3). 4 ("generating"/brewing) is
+      // the closest real state to "the pipeline is still alive."
+      return 4;
   }
 }
 

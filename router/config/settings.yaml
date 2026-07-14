@@ -7,6 +7,18 @@
 # of running automatically. See router/app/escalation.py.
 escalation_cost_cap_usd: 0.50
 
+# How long a paused escalation_pending request waits for a human decision
+# (POST /v1/approve_escalation) before auto-declining and keeping the
+# draft. See router/app/main.py:_await_approval and docs/design/
+# escalation-approval-ui-design.md.
+escalation_approval_timeout_seconds: 600.0
+
+# SSE keep-alive cadence: a heartbeat event is sent if no real event has
+# been queued for this many seconds - long enough to matter mainly during
+# an escalation_pending pause, comfortably under typical proxy/browser
+# idle-connection timeouts. See router/EVENT_CONTRACT.md v1.3.
+sse_heartbeat_interval_seconds: 15.0
+
 # generating SSE tick cadence: emit a tick after this many output tokens OR
 # this many seconds, whichever comes first.
 generating_tick_tokens: 20

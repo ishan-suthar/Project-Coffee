@@ -1,5 +1,12 @@
 import { streamSSE } from "@/lib/sse";
-import type { Bean, Rating, RouterEvent, SessionSummary, StoredMessage } from "@/lib/events";
+import type {
+  Bean,
+  PendingEscalationInfo,
+  Rating,
+  RouterEvent,
+  SessionSummary,
+  StoredMessage,
+} from "@/lib/events";
 import type { UploadResponse } from "@/lib/attachments";
 
 export const ROUTER_BASE_URL =
@@ -53,8 +60,29 @@ export function retryStream(requestId: string, signal?: AbortSignal): AsyncGener
   return streamSSE(`${ROUTER_BASE_URL}/v1/retry`, { request_id: requestId }, signal);
 }
 
-export async function approveEscalation(requestId: string, approve: boolean): Promise<void> {
-  await postJSON("/v1/approve_escalation", { request_id: requestId, approve });
+export interface ApproveEscalationResult {
+  request_id: string;
+  status: "acknowledged" | "already_resolved";
+  approve?: boolean;
+  resolution?: "approved" | "declined" | "timed_out" | "cancelled";
+}
+
+export async function approveEscalation(
+  requestId: string,
+  approve: boolean
+): Promise<ApproveEscalationResult> {
+  return postJSON("/v1/approve_escalation", { request_id: requestId, approve });
+}
+
+/** GET /v1/sessions/{id}/pending_escalation (Brew 40) - null when no
+ * escalation is currently awaiting a decision for that session (the
+ * normal case), not an error. See docs/design/
+ * escalation-approval-ui-design.md Section 3.5. */
+export async function getPendingEscalation(sessionId: string): Promise<PendingEscalationInfo | null> {
+  const response = await fetch(`${ROUTER_BASE_URL}/v1/sessions/${sessionId}/pending_escalation`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Failed to load pending escalation: ${response.status}`);
+  return response.json();
 }
 
 export async function cancelOrder(requestId: string): Promise<void> {

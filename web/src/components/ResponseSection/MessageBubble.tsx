@@ -5,6 +5,19 @@ import { MessageHeader } from "@/components/ResponseSection/MessageHeader";
 import { MessageFooter } from "@/components/ResponseSection/MessageFooter";
 import { CodeBlock } from "@/components/ResponseSection/CodeBlock";
 import { AttachmentGallery } from "@/components/ResponseSection/AttachmentGallery";
+import { EscalationApprovalCard } from "@/components/ResponseSection/EscalationApprovalCard";
+
+/** True while a message's escalation is genuinely awaiting a decision -
+ * live pause or a reload-recovered card (Brew 40). Once the next real
+ * event arrives (live) or polling resolves it (recovered), isStreaming
+ * flips false and the card disappears on its own. */
+function hasOpenEscalationApproval(message: ChatMessage): boolean {
+  return (
+    message.escalation !== null &&
+    message.isStreaming &&
+    message.latestEvent?.event === "escalation_pending"
+  );
+}
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -22,6 +35,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <div className="mr-auto max-w-2xl rounded-lg border border-caramel bg-cream px-4 py-3" data-testid="assistant-message">
+      {message.pendingEscalationRecovered && (
+        <p className="mb-1 text-xs italic text-medium-roast" data-testid="recovered-escalation-note">
+          Recovered after a reload - the original message text isn&apos;t available.
+        </p>
+      )}
       <MessageHeader message={message} />
       <div className="prose prose-sm mt-2 max-w-none text-espresso">
         <ReactMarkdown
@@ -45,6 +63,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {message.errorMessage}
         </p>
       )}
+      {hasOpenEscalationApproval(message) && <EscalationApprovalCard message={message} />}
       {!message.isStreaming && <MessageFooter message={message} />}
     </div>
   );

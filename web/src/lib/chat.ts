@@ -35,10 +35,18 @@ export interface ChatMessage {
     reason: EscalationReason;
     estCostUsd: number;
     premiumBeanAlias: string | null;
+    decisionDeadline: string | null;
   } | null;
   rating: Rating | null;
   errorMessage: string | null;
   attachments: AttachmentSummary[];
+  // Brew 40: true only for a card reconstructed from GET
+  // /v1/sessions/{id}/pending_escalation after a reload - never set by
+  // the live SSE path. See docs/design/escalation-approval-ui-design.md
+  // Section 3.5 - a recovered card's decision still takes effect
+  // server-side, but this client does not resume live token streaming
+  // for it.
+  pendingEscalationRecovered: boolean;
 }
 
 export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent): ChatMessage {
@@ -69,6 +77,7 @@ export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent)
           reason: event.reason,
           estCostUsd: event.est_cost_usd,
           premiumBeanAlias: event.premium_bean_alias,
+          decisionDeadline: event.decision_deadline,
         },
       };
     case "escalating":
@@ -93,6 +102,11 @@ export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent)
       };
     case "cancelled":
       return { ...message, latestEvent: event, isStreaming: false };
+    case "heartbeat":
+      // Keep-alive only (contract v1.3) - never becomes latestEvent, so
+      // the scene/status text/approval card never have to know it
+      // exists.
+      return message;
   }
 }
 
@@ -115,6 +129,7 @@ export function newAssistantMessage(requestId: string): ChatMessage {
     rating: null,
     errorMessage: null,
     attachments: [],
+    pendingEscalationRecovered: false,
   };
 }
 
@@ -141,5 +156,6 @@ export function newUserMessage(
     rating: null,
     errorMessage: null,
     attachments,
+    pendingEscalationRecovered: false,
   };
 }

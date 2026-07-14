@@ -71,6 +71,15 @@ class EscalationPendingEvent(BaseEvent):
     reason: Literal["truncated", "empty", "refusal_shaped", "caller_reported"]
     est_cost_usd: float
     premium_bean_alias: Optional[str] = None
+    # Added in contract version 1.3 (Brew 40): the UTC instant by which a
+    # human must respond via POST /v1/approve_escalation before the pause
+    # auto-declines (settings.escalation_approval_timeout_seconds after
+    # this event). Lets a UI render an accurate countdown and later
+    # distinguish "declined" from "timed out" without a new event - see
+    # docs/design/escalation-approval-ui-design.md Section 3.4. Optional
+    # and additive; None only if a premium Bean isn't configured, since
+    # then there's nothing to wait for.
+    decision_deadline: Optional[datetime] = None
 
 
 class EscalatingEvent(BaseEvent):
@@ -101,6 +110,17 @@ class CancelledEvent(BaseEvent):
     reason: Literal["client_disconnect", "client_cancel_request"]
 
 
+class HeartbeatEvent(BaseEvent):
+    """Added in contract version 1.3 (Brew 40): a keep-alive frame sent
+    when no real event has been queued for settings.sse_heartbeat_interval_seconds
+    - purely to stop an idle connection (most likely during a long
+    escalation_pending pause) from being dropped by a proxy or browser.
+    No extra fields beyond the shared base. Any consumer must ignore this
+    for state purposes - it never becomes a UI's "latest event"."""
+
+    event: Literal["heartbeat"] = "heartbeat"
+
+
 RouterEvent = Union[
     OrderReceivedEvent,
     ClassifyingEvent,
@@ -111,4 +131,5 @@ RouterEvent = Union[
     CompleteEvent,
     ErrorEvent,
     CancelledEvent,
+    HeartbeatEvent,
 ]

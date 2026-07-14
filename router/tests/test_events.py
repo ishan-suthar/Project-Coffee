@@ -1,5 +1,6 @@
 import json
 import unittest
+from datetime import datetime, timezone
 
 from router.app.aliases import BeanRegistry
 from router.app.events import (
@@ -10,6 +11,7 @@ from router.app.events import (
     EscalationPendingEvent,
     ErrorEvent,
     GeneratingEvent,
+    HeartbeatEvent,
     OrderReceivedEvent,
     RouteSelectedEvent,
 )
@@ -108,6 +110,40 @@ class EventContractTests(unittest.TestCase):
         )
         self.assertIsNone(event.premium_bean_alias)
 
+    def test_escalation_pending_decision_deadline_defaults_to_none(self):
+        """v1.3: decision_deadline is additive and optional - old-style
+        EscalationPendingEvent construction (no decision_deadline) must
+        still work."""
+
+        event = EscalationPendingEvent(
+            request_id=REQUEST_ID,
+            reason="truncated",
+            est_cost_usd=0.42,
+            premium_bean_alias="Reserve Blend",
+        )
+        self.assertIsNone(event.decision_deadline)
+
+    def test_escalation_pending_decision_deadline_round_trips(self):
+        deadline = datetime(2026, 7, 12, 20, 30, 0, tzinfo=timezone.utc)
+        event = EscalationPendingEvent(
+            request_id=REQUEST_ID,
+            reason="truncated",
+            est_cost_usd=0.42,
+            premium_bean_alias="Reserve Blend",
+            decision_deadline=deadline,
+        )
+        frame = event.to_sse()
+        payload = json.loads(frame[len("data: "):].strip())
+        self.assertIn("2026-07-12T20:30:00", payload["decision_deadline"])
+
+    def test_heartbeat_event_shape(self):
+        event = HeartbeatEvent(request_id=REQUEST_ID)
+        self.assertEqual(event.event, "heartbeat")
+        frame = event.to_sse()
+        payload = json.loads(frame[len("data: "):].strip())
+        self.assertEqual(payload["event"], "heartbeat")
+        self.assertEqual(payload["request_id"], REQUEST_ID)
+
     def test_complete_event_draft_quality_flag(self):
         event = CompleteEvent(
             request_id=REQUEST_ID,
@@ -163,6 +199,7 @@ class EventContractTests(unittest.TestCase):
                 retryable=True,
             ),
             CancelledEvent(request_id=REQUEST_ID, reason="client_disconnect"),
+            HeartbeatEvent(request_id=REQUEST_ID),
         ]
 
         for event in events:

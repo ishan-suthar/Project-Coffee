@@ -50,7 +50,12 @@ describe("MessageHeader", () => {
     render(
       <MessageHeader
         message={completedMessage({
-          escalation: { reason: "truncated", estCostUsd: 0.5, premiumBeanAlias: "Reserve Blend" },
+          escalation: {
+            reason: "truncated",
+            estCostUsd: 0.5,
+            premiumBeanAlias: "Reserve Blend",
+            decisionDeadline: null,
+          },
         })}
       />
     );
@@ -61,7 +66,12 @@ describe("MessageHeader", () => {
     render(
       <MessageHeader
         message={completedMessage({
-          escalation: { reason: "empty", estCostUsd: 0.25, premiumBeanAlias: "Reserve Blend" },
+          escalation: {
+            reason: "empty",
+            estCostUsd: 0.25,
+            premiumBeanAlias: "Reserve Blend",
+            decisionDeadline: null,
+          },
         })}
       />
     );
@@ -75,7 +85,7 @@ describe("MessageHeader", () => {
     render(
       <MessageHeader
         message={completedMessage({
-          escalation: { reason: "empty", estCostUsd: 0, premiumBeanAlias: null },
+          escalation: { reason: "empty", estCostUsd: 0, premiumBeanAlias: null, decisionDeadline: null },
         })}
       />
     );

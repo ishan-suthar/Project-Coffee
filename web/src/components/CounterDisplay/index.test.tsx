@@ -76,6 +76,7 @@ describe("statusTextFor - event-to-text mapping table", () => {
       reason: "truncated",
       est_cost_usd: 0.5,
       premium_bean_alias: "Reserve Blend",
+      decision_deadline: "2026-07-12T20:24:00.000Z",
     };
     expect(statusTextFor(event)).toBe("Waiting for your approval");
   });

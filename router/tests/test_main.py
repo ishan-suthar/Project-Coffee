@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import unittest
 from io import BytesIO
 from pathlib import Path
@@ -13,7 +14,13 @@ from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 from router.app.aliases import Bean, BeanRegistry
 from router.app.config import Settings
 from router.app.ledger import RouterLedger
-from router.app.main import RouterState, create_app, run_order
+from router.app.main import (
+    EscalationContext,
+    RouterState,
+    _run_order_and_publish,
+    create_app,
+    run_order,
+)
 from router.app.openrouter_client import StreamChunk
 from router.app.preferences import PreferenceStore
 from router.app.routing import RoutingPolicy
@@ -194,11 +201,18 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         self.policy_path = policy_path
         self.ledger_path = Path(self._tmp_dir.name) / "router_requests.csv"
 
-    def _make_state(self, with_premium=True, escalation_cost_cap_usd=0.50, with_session_store=False):
+    def _make_state(
+        self,
+        with_premium=True,
+        escalation_cost_cap_usd=0.50,
+        with_session_store=False,
+        escalation_approval_timeout_seconds=600.0,
+    ):
         registry = _make_bean_registry(with_premium=with_premium)
         policy = RoutingPolicy.from_yaml(self.policy_path, bean_registry=registry)
         settings = Settings(
             escalation_cost_cap_usd=escalation_cost_cap_usd,
+            escalation_approval_timeout_seconds=escalation_approval_timeout_seconds,
             generating_tick_tokens=5,
             generating_tick_seconds=999,
             truncation_min_expected_tokens=10,
@@ -323,6 +337,126 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         complete = events[-1]
         self.assertFalse(complete.escalated)
         self.assertTrue(complete.draft_quality)
+
+    async def test_escalation_pending_carries_decision_deadline(self):
+        """Contract v1.3: decision_deadline lets a UI render a countdown
+        and later distinguish an explicit decline from a timeout."""
+
+        state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.0)
+
+        async def decline(request_id):
+            return "declined"
+
+        events = await self._collect(state, _fake_stream_empty, wait_for_approval=decline)
+        pending_event = next(e for e in events if e.event == "escalation_pending")
+        self.assertIsNotNone(pending_event.decision_deadline)
+
+    async def test_auto_escalate_decision_deadline_is_none(self):
+        """No pause happens on the auto-escalate path - nothing to wait
+        for, so decision_deadline must stay null, not a guessed value."""
+
+        state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.50)
+        events = await self._collect(state, _fake_stream_empty)
+        pending_event = next(e for e in events if e.event == "escalation_pending")
+        self.assertIsNone(pending_event.decision_deadline)
+
+    async def test_escalation_timeout_auto_declines_and_writes_ledger_row(self):
+        """No wait_for_approval injected - exercises the real
+        asyncio.wait(timeout=...) path in _await_approval with a very
+        short configured timeout, rather than a fake."""
+
+        state = self._make_state(
+            with_premium=True, escalation_cost_cap_usd=0.0, escalation_approval_timeout_seconds=0.05
+        )
+        events = await self._collect(state, _fake_stream_empty)
+        event_names = [e.event for e in events]
+        self.assertIn("escalation_pending", event_names)
+        self.assertNotIn("escalating", event_names)
+        complete = events[-1]
+        self.assertFalse(complete.escalated)
+        self.assertTrue(complete.draft_quality)
+
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "False")
+        self.assertEqual(rows[0]["escalation_approved"], "False")
+
+    async def test_escalation_pending_approved_writes_ledger_row(self):
+        state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.0)
+
+        async def approve(request_id):
+            return "approved"
+
+        await self._collect(state, _fake_stream_empty, wait_for_approval=approve)
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "True")
+        self.assertEqual(rows[0]["escalation_approved"], "True")
+
+    async def test_escalation_pending_declined_writes_ledger_row(self):
+        state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.0)
+
+        async def decline(request_id):
+            return "declined"
+
+        await self._collect(state, _fake_stream_empty, wait_for_approval=decline)
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "False")
+        self.assertEqual(rows[0]["escalation_approved"], "False")
+
+    async def test_cancel_during_escalation_pending_yields_cancelled(self):
+        """Brew 40: cancelling while paused on escalation_pending must
+        actually interrupt the wait - previously cancel_flags was never
+        checked by _await_approval at all, so a cancel during the pause
+        had no effect until the wait resolved some other way. No
+        wait_for_approval is injected here - this exercises the real
+        cancel-race inside _await_approval, not the test-only seam."""
+
+        state = self._make_state(
+            with_premium=True, escalation_cost_cap_usd=0.0, escalation_approval_timeout_seconds=30.0
+        )
+        request_id = "cancel-during-pause"
+        events = []
+        async for event in run_order(
+            state,
+            prompt="Implement a function.",
+            request_id=request_id,
+            stream_order_fn=_fake_stream_empty,
+        ):
+            events.append(event)
+            if event.event == "escalation_pending":
+                state.cancel_flags[request_id].set()
+
+        event_names = [e.event for e in events]
+        self.assertIn("cancelled", event_names)
+        self.assertNotIn("escalating", event_names)
+        self.assertNotIn("complete", event_names)
+
+    async def test_force_escalation_env_var_off_by_default(self):
+        """The demo-only force_escalation flag must never be on unless
+        the environment variable is explicitly set in the test/process -
+        a normal healthy generation must not escalate."""
+
+        self.assertNotIn("COFFEE_ROUTER_FORCE_ESCALATION", os.environ)
+        state = self._make_state()
+        events = await self._collect(state, _fake_stream_healthy)
+        event_names = [e.event for e in events]
+        self.assertNotIn("escalation_pending", event_names)
+
+    async def test_force_escalation_env_var_forces_escalation_path(self):
+        # Short timeout: no wait_for_approval is injected below, so
+        # without this the real 10-minute default would apply and the
+        # test would hang waiting out settings.escalation_approval_timeout_seconds.
+        state = self._make_state(
+            with_premium=True, escalation_cost_cap_usd=0.0, escalation_approval_timeout_seconds=0.05
+        )
+        os.environ["COFFEE_ROUTER_FORCE_ESCALATION"] = "1"
+        try:
+            events = await self._collect(state, _fake_stream_healthy)
+        finally:
+            os.environ.pop("COFFEE_ROUTER_FORCE_ESCALATION", None)
+        event_names = [e.event for e in events]
+        self.assertIn(
+            "escalation_pending", event_names, "force_escalation should force even a healthy stream to escalate"
+        )
 
     async def test_no_raw_model_id_in_any_yielded_event(self):
         state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.0)
@@ -686,6 +820,15 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
         loop = asyncio.get_event_loop()
         future = loop.create_future()
         self.state.pending_escalations["req-123"] = future
+        self.state.pending_escalation_context["req-123"] = EscalationContext(
+            request_id="req-123",
+            session_id=None,
+            reason="truncated",
+            est_cost_usd=0.5,
+            premium_bean_alias="Reserve Blend",
+            started_at="2026-07-12T20:00:00+00:00",
+            decision_deadline="2026-07-12T20:10:00+00:00",
+        )
 
         transport = httpx.ASGITransport(app=self.app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -703,6 +846,169 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
                 "/v1/approve_escalation", json={"request_id": "nonexistent", "approve": True}
             )
         self.assertEqual(response.status_code, 404)
+
+    async def test_double_click_approve_second_call_gets_already_resolved(self):
+        """Brew 40 Section 3.6: a duplicate/rapid second click must not
+        crash, silently no-op, or double-escalate - it gets a clear
+        already_resolved response."""
+
+        loop = asyncio.get_event_loop()
+        future = loop.create_future()
+        self.state.pending_escalations["req-dup"] = future
+        self.state.pending_escalation_context["req-dup"] = EscalationContext(
+            request_id="req-dup",
+            session_id=None,
+            reason="truncated",
+            est_cost_usd=0.5,
+            premium_bean_alias="Reserve Blend",
+            started_at="2026-07-12T20:00:00+00:00",
+            decision_deadline="2026-07-12T20:10:00+00:00",
+        )
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            first = await client.post("/v1/approve_escalation", json={"request_id": "req-dup", "approve": True})
+            second = await client.post("/v1/approve_escalation", json={"request_id": "req-dup", "approve": True})
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()["status"], "acknowledged")
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json()["status"], "already_resolved")
+        self.assertEqual(await future, "approved")
+
+    async def test_late_approval_after_timeout_gets_already_resolved_timed_out(self):
+        """A decision arriving after the timeout already fired must not
+        be a bare 404 - the caller deserves to know it's too late, not
+        that the request_id is unrecognized."""
+
+        self.state.pending_escalation_context["req-late"] = EscalationContext(
+            request_id="req-late",
+            session_id=None,
+            reason="empty",
+            est_cost_usd=0.5,
+            premium_bean_alias="Reserve Blend",
+            started_at="2026-07-12T20:00:00+00:00",
+            decision_deadline="2026-07-12T20:10:00+00:00",
+            resolved=True,
+            resolution="timed_out",
+        )
+        # No entry in pending_escalations - _await_approval already popped
+        # it once the timeout fired, same as the real flow.
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/v1/approve_escalation", json={"request_id": "req-late", "approve": True}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"request_id": "req-late", "status": "already_resolved", "resolution": "timed_out"})
+
+    async def test_pending_escalation_endpoint_404_when_none_pending(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            create_response = await client.post("/v1/sessions", json={"project": "project-a"})
+            session_id = create_response.json()["id"]
+            response = await client.get(f"/v1/sessions/{session_id}/pending_escalation")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_pending_escalation_endpoint_unknown_session_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/v1/sessions/nonexistent-session/pending_escalation")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_reload_recovery_returns_context_while_genuinely_paused(self):
+        """Brew 40 Section 3.5: spawns the background task the same way
+        the real /v1/order endpoint does (not a shortcut), drains events
+        until escalation_pending confirms the pause is real, then checks
+        the recovery endpoint sees it - and no longer does once resolved."""
+
+        self.state.settings = self.state.settings.model_copy(
+            update={"escalation_cost_cap_usd": 0.0}
+        )
+        session_id = self.state.session_store.create_session("project-a")
+
+        hold = asyncio.Event()
+
+        async def block_until_released(request_id):
+            await hold.wait()
+            return "declined"
+
+        queue: "asyncio.Queue" = asyncio.Queue()
+        task = asyncio.create_task(
+            _run_order_and_publish(
+                self.state,
+                queue,
+                prompt="Implement a function.",
+                stream_order_fn=_fake_stream_empty,
+                session_id=session_id,
+                wait_for_approval=block_until_released,
+            )
+        )
+
+        seen_pending = False
+        while not seen_pending:
+            event = await asyncio.wait_for(queue.get(), timeout=5)
+            if event is not None and event.event == "escalation_pending":
+                seen_pending = True
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get(f"/v1/sessions/{session_id}/pending_escalation")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["premium_bean_alias"], "Reserve Blend")
+        self.assertIn("decision_deadline", body)
+
+        hold.set()
+        while True:
+            event = await asyncio.wait_for(queue.get(), timeout=5)
+            if event is None:
+                break
+        await task
+
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            after = await client.get(f"/v1/sessions/{session_id}/pending_escalation")
+        self.assertEqual(after.status_code, 404)
+
+    async def test_order_endpoint_emits_heartbeat_during_a_long_pause(self):
+        """Requirement 4: the SSE stream must survive the wait - a
+        heartbeat keeps an otherwise-idle connection alive."""
+
+        self.state.settings = self.state.settings.model_copy(
+            update={
+                "escalation_cost_cap_usd": 0.0,
+                "sse_heartbeat_interval_seconds": 0.05,
+                "escalation_approval_timeout_seconds": 5.0,
+            }
+        )
+        self.state.stream_order_fn = _fake_stream_empty
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with client.stream("POST", "/v1/order", json={"prompt": "Implement a function."}) as response:
+                events = []
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    payload = json.loads(line[len("data: "):])
+                    events.append(payload)
+                    if payload["event"] == "heartbeat":
+                        # Cancel so the test doesn't wait out the full
+                        # approval timeout once we've proven a heartbeat
+                        # arrived during the pause.
+                        await client.post("/v1/cancel", json={"request_id": payload["request_id"]})
+
+        event_names = [e["event"] for e in events]
+        self.assertIn("heartbeat", event_names)
+        self.assertIn("escalation_pending", event_names)
+        heartbeat_index = event_names.index("heartbeat")
+        pending_index = event_names.index("escalation_pending")
+        self.assertGreater(
+            heartbeat_index, pending_index, "heartbeat should arrive during the pause, after escalation_pending"
+        )
 
     async def test_retry_unknown_request_id_404(self):
         transport = httpx.ASGITransport(app=self.app)

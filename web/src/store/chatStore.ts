@@ -10,6 +10,13 @@ import {
   reduceEventIntoMessage,
 } from "@/lib/chat";
 
+// Brew 40: how often/how long a recovered (no-live-stream) escalation
+// card polls GET /v1/sessions/{id}/messages for the eventual result once
+// a decision is sent - see docs/design/escalation-approval-ui-design.md
+// Section 3.5's explicit "polling, not live reattachment" scope call.
+const RECOVERED_ESCALATION_POLL_INTERVAL_MS = 2000;
+const RECOVERED_ESCALATION_POLL_MAX_ATTEMPTS = 30;
+
 const DEFAULT_PROJECT = "default";
 
 interface SendPromptOptions {
@@ -41,6 +48,17 @@ interface ChatState {
   cancelActive: () => Promise<void>;
   rate: (requestId: string, rating: Rating) => Promise<void>;
   rebrew: (message: ChatMessage, beanAliasOverride?: string) => Promise<void>;
+  // Brew 40 (docs/design/escalation-approval-ui-design.md): sends a
+  // decision for a pending escalation - works for both the live path
+  // (the open SSE stream picks up the resulting escalating/complete
+  // events itself) and a reload-recovered card (which has no live
+  // stream, so this also starts polling for the eventual result).
+  approveEscalation: (requestId: string, approve: boolean) => Promise<void>;
+  // Checks GET /v1/sessions/{id}/pending_escalation and, if one is open,
+  // appends a synthetic in-progress assistant message so the approval
+  // card renders even though this client never saw the live
+  // escalation_pending event. No-ops if nothing is pending.
+  recoverPendingEscalation: (sessionId: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -81,8 +99,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Session history has no attachment persistence yet (non-goal -
       // docs/design/attachments-design.md Section 11).
       attachments: [],
+      pendingEscalationRecovered: false,
     }));
     set((state) => ({ messages: { ...state.messages, [sessionId]: messages } }));
+
+    await get().recoverPendingEscalation(sessionId);
   },
 
   startNewSession: () => {
@@ -170,7 +191,80 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // File objects are gone by the time a re-brew happens).
     await get().sendPrompt(priorUserMessage.content, { beanAliasOverride });
   },
+
+  approveEscalation: async (requestId: string, approve: boolean) => {
+    await api.approveEscalation(requestId, approve);
+
+    const sessionId = get().activeSessionId;
+    if (sessionId === null) return;
+
+    const message = (get().messages[sessionId] ?? []).find((m) => m.requestId === requestId);
+    if (message?.pendingEscalationRecovered) {
+      await pollForRecoveredResult(set, get, sessionId, requestId);
+    }
+    // Live path: nothing else to do here - the already-open SSE stream
+    // (started by the original sendPrompt call) receives the resulting
+    // escalating/complete/cancelled event on its own and updates the
+    // message through the normal reduceEventIntoMessage path.
+  },
+
+  recoverPendingEscalation: async (sessionId: string) => {
+    const pending = await api.getPendingEscalation(sessionId).catch(() => null);
+    if (pending === null) return;
+    // Don't clobber a card already being tracked (e.g. recoverPendingEscalation
+    // called twice for the same session).
+    if ((get().messages[sessionId] ?? []).some((m) => m.requestId === pending.request_id)) return;
+
+    const message: ChatMessage = {
+      ...newAssistantMessage(pending.request_id),
+      escalation: {
+        reason: pending.reason,
+        estCostUsd: pending.est_cost_usd,
+        premiumBeanAlias: pending.premium_bean_alias,
+        decisionDeadline: pending.decision_deadline,
+      },
+      latestEvent: {
+        event: "escalation_pending",
+        request_id: pending.request_id,
+        ts: pending.started_at,
+        reason: pending.reason,
+        est_cost_usd: pending.est_cost_usd,
+        premium_bean_alias: pending.premium_bean_alias,
+        decision_deadline: pending.decision_deadline,
+      },
+      pendingEscalationRecovered: true,
+    };
+    appendMessage(set, sessionId, message);
+  },
 }));
+
+async function pollForRecoveredResult(
+  set: (fn: (state: ChatState) => Partial<ChatState>) => void,
+  get: () => ChatState,
+  sessionId: string,
+  requestId: string
+): Promise<void> {
+  for (let attempt = 0; attempt < RECOVERED_ESCALATION_POLL_MAX_ATTEMPTS; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, RECOVERED_ESCALATION_POLL_INTERVAL_MS));
+
+    const stored = await api.getSessionMessages(sessionId).catch(() => null);
+    if (stored === null) continue;
+    const assistantRow = stored.find((m) => m.role === "assistant" && m.request_id === requestId);
+    if (assistantRow === undefined) continue;
+
+    updateMessage(set, sessionId, {
+      ...(get().messages[sessionId] ?? []).find((m) => m.requestId === requestId)!,
+      content: assistantRow.content,
+      isStreaming: false,
+      beanAlias: assistantRow.bean_alias,
+      costUsd: assistantRow.cost_usd,
+      latencyMs: assistantRow.latency_ms,
+      escalated: assistantRow.escalated ?? false,
+      draftQuality: assistantRow.draft_quality ?? false,
+    });
+    return;
+  }
+}
 
 function findPriorUserMessage(messages: ChatMessage[], assistantMessageId: string): ChatMessage | null {
   const index = messages.findIndex((m) => m.id === assistantMessageId);

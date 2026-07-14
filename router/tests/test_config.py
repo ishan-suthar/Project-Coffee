@@ -11,10 +11,14 @@ class SettingsTests(unittest.TestCase):
         self.assertGreater(settings.escalation_cost_cap_usd, 0)
         self.assertGreater(settings.generating_tick_tokens, 0)
         self.assertFalse(settings.classifier_model_fallback_enabled)
+        self.assertGreater(settings.escalation_approval_timeout_seconds, 0)
+        self.assertGreater(settings.sse_heartbeat_interval_seconds, 0)
 
     def test_defaults_when_field_missing(self):
         settings = Settings(**{})
         self.assertEqual(settings.escalation_cost_cap_usd, 0.50)
+        self.assertEqual(settings.escalation_approval_timeout_seconds, 600.0)
+        self.assertEqual(settings.sse_heartbeat_interval_seconds, 15.0)
 
 
 class StartupSafetyTests(unittest.TestCase):
