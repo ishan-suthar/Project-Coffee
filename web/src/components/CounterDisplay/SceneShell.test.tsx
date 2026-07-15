@@ -178,4 +178,65 @@ describe("SceneShell", () => {
     );
     expect(screen.getByTestId("scene-caption")).toHaveTextContent("Ready when you are");
   });
+
+  it("the panel is hidden below the lg breakpoint (hidden lg:flex) with a text-only mobile fallback", () => {
+    render(
+      <SceneShell
+        event={null}
+        sessionCostUsd={0}
+        beanAlias={null}
+        complexity={null}
+        hasVisibleContent={false}
+        reducedMotion={false}
+      />
+    );
+    // jsdom has no real viewport/media-query layout engine, so this is a
+    // regression guard on the responsive classes themselves - the
+    // authoritative "actually invisible below 1024px" check lives in the
+    // Playwright e2e suite, which can set a real viewport.
+    expect(screen.getByTestId("scene-shell")).toHaveClass("hidden", "lg:flex");
+    expect(screen.getByTestId("scene-mobile-status")).toHaveClass("lg:hidden");
+    expect(screen.getByTestId("scene-caption-mobile")).toHaveTextContent("Ready when you are");
+  });
+
+  it("collapsing narrows the panel to a thin strip instead of collapsing its height", () => {
+    render(
+      <SceneShell
+        event={null}
+        sessionCostUsd={2.5}
+        beanAlias={null}
+        complexity={null}
+        hasVisibleContent={false}
+        reducedMotion={false}
+      />
+    );
+    expect(screen.getByTestId("scene-shell")).toHaveClass("w-[32%]");
+    fireEvent.click(screen.getByTestId("scene-collapse-toggle"));
+    expect(screen.getByTestId("scene-shell")).toHaveClass("w-12");
+    expect(screen.getByTestId("tips-jar-total")).toHaveTextContent("$2.5000");
+    expect(screen.queryByTestId("scene-caption")).not.toBeInTheDocument();
+  });
+
+  it("the chevron points left (collapse) while expanded and flips to point right (expand) once collapsed", async () => {
+    render(
+      <SceneShell
+        event={null}
+        sessionCostUsd={0}
+        beanAlias={null}
+        complexity={null}
+        hasVisibleContent={false}
+        reducedMotion={false}
+      />
+    );
+    await waitFor(() => expect(preferences.getPreferences).toHaveBeenCalled());
+
+    // The base chevron_collapse.svg icon points left ("<") - unrotated
+    // while expanded means the visible action (collapse) reads left;
+    // rotate-180 while collapsed flips it to point right ("expand").
+    const toggle = screen.getByTestId("scene-collapse-toggle");
+    expect(toggle).not.toHaveClass("rotate-180");
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveClass("rotate-180");
+  });
 });

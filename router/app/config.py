@@ -52,6 +52,10 @@ class Settings(BaseModel):
     min_rating_sample_size: int = 5
     policy_roastery_weight: float = 0.6
     escalation_rate_flag_threshold: float = 0.3
+    history_max_messages: int = 20
+    history_max_chars: int = 24_000
+    attachment_max_stored_chars: int = 50_000
+    classifier_long_history_turns: int = 10
 
     @classmethod
     def from_yaml(cls, path: Path = DEFAULT_SETTINGS_PATH) -> "Settings":

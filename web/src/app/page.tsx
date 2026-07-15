@@ -28,17 +28,19 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col">
-      <CounterDisplay
-        event={latestEvent}
-        sessionCostUsd={sessionCostUsd}
-        beanAlias={beanAlias}
-        complexity={complexity}
-        hasVisibleContent={hasVisibleContent}
-      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <ResponseSection />
+          <div className="flex flex-1 overflow-hidden">
+            <ResponseSection />
+            <CounterDisplay
+              event={latestEvent}
+              sessionCostUsd={sessionCostUsd}
+              beanAlias={beanAlias}
+              complexity={complexity}
+              hasVisibleContent={hasVisibleContent}
+            />
+          </div>
           <OrderBox />
         </div>
       </div>

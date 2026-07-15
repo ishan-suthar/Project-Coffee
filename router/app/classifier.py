@@ -18,6 +18,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, List, Literal, Optional, Sequence
 
+DEFAULT_LONG_HISTORY_TURNS_THRESHOLD = 10
+
 Complexity = Literal["espresso_shot", "cold_brew"]
 
 QUESTION_WORDS = (
@@ -195,6 +197,9 @@ def _score_rule(rule: TaskTypeRule, lowered_text: str, is_question: bool, has_co
 def classify_heuristic(
     text: str,
     attachments: Optional[Sequence[Attachment]] = None,
+    *,
+    history_turn_count: int = 0,
+    long_history_turns_threshold: int = DEFAULT_LONG_HISTORY_TURNS_THRESHOLD,
 ) -> ClassificationResult:
     attachments = attachments or []
     lowered = text.lower()
@@ -222,7 +227,13 @@ def classify_heuristic(
         second_score = scored[1][1] if len(scored) > 1 else 0.0
         confidence = min(1.0, 0.5 + (best_score - second_score) * 0.15)
 
-    complexity = _classify_complexity(text, has_code_fence, attachments)
+    complexity = _classify_complexity(
+        text,
+        has_code_fence,
+        attachments,
+        history_turn_count=history_turn_count,
+        long_history_turns_threshold=long_history_turns_threshold,
+    )
     needs_vision = any(a.content_type.startswith("image/") for a in attachments)
 
     return ClassificationResult(
@@ -234,26 +245,74 @@ def classify_heuristic(
     )
 
 
-def _classify_complexity(
-    text: str,
-    has_code_fence: bool,
-    attachments: Sequence[Attachment],
-) -> Complexity:
-    lowered = text.lower()
-    code_fence_lines = text.count("\n") if has_code_fence else 0
+@dataclass(frozen=True)
+class ComplexityContext:
+    """Bundles everything a complexity signal might check - see
+    COMPLEXITY_SIGNALS below. history_turn_count is 0 whenever
+    remember_chat is off or this is a session's first turn (main.py only
+    ever passes a real count when history was actually assembled), so
+    history never influences complexity when the feature is unused."""
 
-    if len(text) > 1500:
-        return "cold_brew"
-    if code_fence_lines > 80:
-        return "cold_brew"
+    text: str
+    has_code_fence: bool
+    code_fence_lines: int
+    attachments: Sequence[Attachment]
+    history_turn_count: int = 0
+    long_history_turns_threshold: int = DEFAULT_LONG_HISTORY_TURNS_THRESHOLD
+
+
+@dataclass(frozen=True)
+class ComplexitySignal:
+    name: str
+    check: Callable[["ComplexityContext"], bool]
+
+
+# The data table this module's own docstring already promised
+# ("TASK_TYPE_RULES, COMPLEXITY_SIGNALS") but never actually built until
+# Brew 46 - see docs/design/conversation-memory-design.md. First match
+# wins, same short-circuit order/semantics the previous sequential `if`
+# chain had; "long_history" is the only new signal (Brew 46).
+COMPLEXITY_SIGNALS: List[ComplexitySignal] = [
+    ComplexitySignal("long_text", lambda c: len(c.text) > 1500),
+    ComplexitySignal("large_code_fence", lambda c: c.code_fence_lines > 80),
     # Brew 38 (docs/design/attachments-design.md Section 7, Decision 3):
     # any attachment at all pushes toward cold_brew - simple and
     # predictable rather than a size/kind-dependent table. Refine with
     # real usage data later if this proves too blunt.
-    if len(attachments) > 0:
-        return "cold_brew"
-    if any(keyword in lowered for keyword in MULTI_STEP_KEYWORDS):
-        return "cold_brew"
+    ComplexitySignal("has_attachments", lambda c: len(c.attachments) > 0),
+    ComplexitySignal(
+        "multi_step_keywords",
+        lambda c: any(keyword in c.text.lower() for keyword in MULTI_STEP_KEYWORDS),
+    ),
+    # Brew 46 (docs/design/conversation-memory-design.md "Classifier"
+    # section): a long carried-along conversation is real generation work
+    # too, but only counts when remember_chat actually assembled history.
+    ComplexitySignal(
+        "long_history",
+        lambda c: c.history_turn_count >= c.long_history_turns_threshold,
+    ),
+]
+
+
+def _classify_complexity(
+    text: str,
+    has_code_fence: bool,
+    attachments: Sequence[Attachment],
+    *,
+    history_turn_count: int = 0,
+    long_history_turns_threshold: int = DEFAULT_LONG_HISTORY_TURNS_THRESHOLD,
+) -> Complexity:
+    context = ComplexityContext(
+        text=text,
+        has_code_fence=has_code_fence,
+        code_fence_lines=text.count("\n") if has_code_fence else 0,
+        attachments=attachments,
+        history_turn_count=history_turn_count,
+        long_history_turns_threshold=long_history_turns_threshold,
+    )
+    for signal in COMPLEXITY_SIGNALS:
+        if signal.check(context):
+            return "cold_brew"
     return "espresso_shot"
 
 
@@ -264,15 +323,26 @@ def classify(
     model_fallback_enabled: bool = False,
     model_fallback_confidence_threshold: float = 0.4,
     model_classify_fn: Optional[Callable[[str], ClassificationResult]] = None,
+    history_turn_count: int = 0,
+    long_history_turns_threshold: int = DEFAULT_LONG_HISTORY_TURNS_THRESHOLD,
 ) -> ClassificationResult:
     """Classify a request. Heuristic first, optional cheap-model fallback.
 
     model_classify_fn is caller-supplied so this module never performs a
     network call itself - tests inject a fake, main.py wires a real one
     only when settings.classifier_model_fallback_enabled is true.
+
+    history_turn_count (Brew 46) is 0 unless the caller has remember_chat
+    on and already assembled history for this request - see
+    docs/design/conversation-memory-design.md.
     """
 
-    result = classify_heuristic(text, attachments)
+    result = classify_heuristic(
+        text,
+        attachments,
+        history_turn_count=history_turn_count,
+        long_history_turns_threshold=long_history_turns_threshold,
+    )
     if (
         model_fallback_enabled
         and model_classify_fn is not None

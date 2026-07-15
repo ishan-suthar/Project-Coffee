@@ -16,6 +16,8 @@ from __future__ import annotations
 import asyncio
 import base64
 import difflib
+import json
+import logging
 import os
 import time
 import uuid
@@ -40,6 +42,7 @@ from router.app.escalation import (
     decide_escalation,
     resolve_pending_escalation,
 )
+from router.app.history import EMPTY_HISTORY_RESULT, assemble_history, pair_turns
 from router.app.events import (
     BaseEvent,
     CancelledEvent,
@@ -97,6 +100,8 @@ from router.app.uploads import (
 from tools.generate_policy import DEFAULT_TASTING_NOTES, build_policy, parse_tasting_notes, render_policy_yaml
 
 DEFAULT_PROJECT = "default"
+
+logger = logging.getLogger(__name__)
 
 # Test/demo-only: forces every generation through the escalation path
 # regardless of its real content, so the approval-gate UI can be
@@ -240,14 +245,16 @@ async def _consume_stream(
     request_id: str,
     cancel_event: Optional[asyncio.Event] = None,
     image_data_urls: Optional[List[str]] = None,
+    history_messages: Optional[List[Dict[str, str]]] = None,
 ) -> AsyncIterator[Any]:
     """Wrap a raw OpenRouter stream, emitting periodic `generating` ticks
     (with the incremental text_delta since the last tick - contract v1.1)
     per settings.generating_tick_tokens / generating_tick_seconds, and
     yield a final ("__final__", text, tokens_out, finish_reason, usage)
     sentinel tuple once the stream ends, or a ("__cancelled__",) sentinel
-    if cancel_event is set mid-stream. image_data_urls (Brew 38) is passed
-    straight through to stream_order_fn - see router/app/openrouter_client.py."""
+    if cancel_event is set mid-stream. image_data_urls (Brew 38) and
+    history_messages (Brew 46) are passed straight through to
+    stream_order_fn - see router/app/openrouter_client.py."""
 
     accumulated_text = ""
     tokens_out = 0
@@ -257,7 +264,9 @@ async def _consume_stream(
     tokens_since_tick = 0
     text_since_tick = ""
 
-    async for chunk in stream_order_fn(model_id, prompt, image_data_urls=image_data_urls):
+    async for chunk in stream_order_fn(
+        model_id, prompt, image_data_urls=image_data_urls, history_messages=history_messages
+    ):
         if cancel_event is not None and cancel_event.is_set():
             yield ("__cancelled__",)
             return
@@ -319,6 +328,7 @@ async def run_order(
     session_id: Optional[str] = None,
     bean_alias_override: Optional[str] = None,
     use_pantry: bool = False,
+    remember_chat: bool = False,
     stream_order_fn: StreamOrderFn = stream_order,
     wait_for_approval: Optional[Callable[[str], "asyncio.Future[str]"]] = None,
 ) -> AsyncIterator[BaseEvent]:
@@ -348,6 +358,7 @@ async def run_order(
             session_id=session_id,
             bean_alias_override=bean_alias_override,
             use_pantry=use_pantry,
+            remember_chat=remember_chat,
             stream_order_fn=stream_order_fn,
             wait_for_approval=wait_for_approval,
             cancel_event=cancel_event,
@@ -380,6 +391,7 @@ async def _run_order_body(
     session_id: Optional[str],
     bean_alias_override: Optional[str],
     use_pantry: bool = False,
+    remember_chat: bool = False,
     stream_order_fn: StreamOrderFn,
     wait_for_approval: Optional[Callable[[str], "asyncio.Future[str]"]],
     cancel_event: asyncio.Event,
@@ -410,10 +422,25 @@ async def _run_order_body(
 
     pantry_chunks = _retrieve_pantry_chunks(state, prompt) if use_pantry else []
 
+    # Brew 46 (docs/design/conversation-memory-design.md): fetched once,
+    # early - the classifier needs a turn count for its long_history
+    # signal, and the windowed history payload is assembled later (once
+    # outbound_text's real char length is known, for the "reserve the
+    # current prompt first" budget). remember_chat is resolved
+    # server-side by the /v1/order handler and never accepted from the
+    # client on this request itself.
+    prior_turns = (
+        pair_turns(state.session_store.get_messages(session_id))
+        if remember_chat and session_id is not None and state.session_store is not None
+        else []
+    )
+
     classification = classify(
         prompt,
         resolved_attachments,
         model_fallback_enabled=state.settings.classifier_model_fallback_enabled,
+        history_turn_count=len(prior_turns),
+        long_history_turns_threshold=state.settings.classifier_long_history_turns,
     )
 
     if bean_alias_override is not None:
@@ -475,6 +502,17 @@ async def _run_order_body(
     )
     pantry_sources = _distinct_pantry_sources(pantry_chunks)
 
+    history_result = (
+        assemble_history(
+            prior_turns,
+            current_prompt_chars=len(outbound_text),
+            max_messages=state.settings.history_max_messages,
+            max_chars=state.settings.history_max_chars,
+        )
+        if remember_chat
+        else EMPTY_HISTORY_RESULT
+    )
+
     try:
         final_text = ""
         tokens_out = 0
@@ -487,6 +525,7 @@ async def _run_order_body(
             request_id=request_id,
             cancel_event=cancel_event,
             image_data_urls=image_data_urls,
+            history_messages=history_result.messages or None,
         ):
             if isinstance(item, tuple) and item[0] == "__cancelled__":
                 yield CancelledEvent(request_id=request_id, reason="client_cancel_request")
@@ -553,7 +592,13 @@ async def _run_order_body(
         elif decision.outcome == "auto_escalate":
             yield EscalatingEvent(request_id=request_id, bean_alias=premium_bean.alias)
             async for item in _run_escalation(
-                state, request_id, premium_bean, outbound_text, stream_order_fn, image_data_urls
+                state,
+                request_id,
+                premium_bean,
+                outbound_text,
+                stream_order_fn,
+                image_data_urls,
+                history_result.messages or None,
             ):
                 if isinstance(item, tuple) and item[0] == "__escalation_final__":
                     _, final_text, tokens_out, _spare = item
@@ -592,7 +637,13 @@ async def _run_order_body(
                 context.resolution = "approved"
                 yield EscalatingEvent(request_id=request_id, bean_alias=premium_bean.alias)
                 async for item in _run_escalation(
-                    state, request_id, premium_bean, outbound_text, stream_order_fn, image_data_urls
+                    state,
+                    request_id,
+                    premium_bean,
+                    outbound_text,
+                    stream_order_fn,
+                    image_data_urls,
+                    history_result.messages or None,
                 ):
                     if isinstance(item, tuple) and item[0] == "__escalation_final__":
                         _, final_text, tokens_out, _spare = item
@@ -618,6 +669,8 @@ async def _run_order_body(
         escalated=escalated,
         draft_quality=draft_quality,
         pantry_sources=pantry_sources,
+        history_turns=history_result.turns_included if remember_chat else None,
+        history_tokens_est=history_result.tokens_est if remember_chat else None,
     )
 
     state.request_records[request_id] = RequestRecord(
@@ -633,6 +686,14 @@ async def _run_order_body(
 
     attachment_count = len(upload_records)
     attachment_tokens_est = _estimate_attachment_tokens(upload_records)
+
+    logger.info(
+        "request_id=%s remember_chat=%s history_turns=%d history_tokens_est=%d",
+        request_id,
+        remember_chat,
+        history_result.turns_included,
+        history_result.tokens_est,
+    )
 
     state.ledger.append(
         LedgerRow(
@@ -651,12 +712,21 @@ async def _run_order_body(
             ),
             attachment_count=attachment_count,
             attachment_tokens_est=attachment_tokens_est,
+            remember_chat=remember_chat,
+            history_turns=history_result.turns_included if remember_chat else 0,
+            history_tokens_est=history_result.tokens_est if remember_chat else None,
         )
     )
 
     if session_id is not None and state.session_store is not None:
         state.session_store.add_message(
-            session_id, request_id=request_id, role="user", content=prompt
+            session_id,
+            request_id=request_id,
+            role="user",
+            content=prompt,
+            attachments_json=_build_attachments_json(
+                upload_records, attachment_max_stored_chars=state.settings.attachment_max_stored_chars
+            ),
         )
         state.session_store.add_message(
             session_id,
@@ -675,12 +745,13 @@ async def _run_order_body(
 
 
 async def _run_escalation(
-    state, request_id, premium_bean, prompt, stream_order_fn, image_data_urls=None
+    state, request_id, premium_bean, prompt, stream_order_fn, image_data_urls=None, history_messages=None
 ):
     """Async generator: relays `generating` ticks from the premium re-run,
     then yields a ("__escalation_final__", text, tokens_out) sentinel.
     image_data_urls (Brew 38) is resent so an escalation re-run still
-    includes any attached images."""
+    includes any attached images. history_messages (Brew 46) is resent
+    too - an escalation re-run is still the same conversational turn."""
 
     final_text = ""
     tokens_out = 0
@@ -691,6 +762,7 @@ async def _run_escalation(
         settings=state.settings,
         request_id=request_id,
         image_data_urls=image_data_urls,
+        history_messages=history_messages,
     ):
         if isinstance(item, tuple) and item[0] == "__final__":
             _, final_text, tokens_out, _finish_reason, _usage = item
@@ -823,6 +895,34 @@ def _build_outbound_content(
 
     outbound_text = "\n\n".join(text_parts)
     return outbound_text, (image_data_urls or None)
+
+
+def _build_attachments_json(
+    upload_records: List[UploadRecord], *, attachment_max_stored_chars: int
+) -> Optional[str]:
+    """Brew 46 (docs/design/conversation-memory-design.md Section 3): what
+    survives past this request into sessions.db, for a later turn to
+    reattach. Images get metadata only (filename/kind/content_type) -
+    never base64 bytes, since they are never resent on a later turn
+    (router/app/history.py's IMAGE_HISTORY_NOTE covers that turn instead)
+    - persisting bytes that will never be reused would be pure bloat.
+    PDF/text attachments get their extracted text, capped independently
+    of max_inline_text_chars (that setting bounds what's inlined into
+    *this* request; this one bounds what's durably stored for *future*
+    requests)."""
+
+    if not upload_records:
+        return None
+
+    attachments = []
+    for record in upload_records:
+        entry = {"filename": record.filename, "kind": record.kind, "content_type": record.content_type}
+        if record.kind != "image":
+            entry["extracted_text"] = truncate_inline_text(
+                record.extracted_text or "", max_inline_text_chars=attachment_max_stored_chars
+            )
+        attachments.append(entry)
+    return json.dumps(attachments)
 
 
 def _estimate_attachment_tokens(upload_records: List[UploadRecord]) -> Optional[int]:
@@ -985,8 +1085,14 @@ class RenameProjectRequest(BaseModel):
     name: str
 
 
-class RenameSessionRequest(BaseModel):
-    title: str
+class UpdateSessionRequest(BaseModel):
+    """PATCH /v1/sessions/{id} - extended in Brew 46 to also carry the
+    remember_chat toggle (docs/design/conversation-memory-design.md
+    Section 1), rather than adding a second endpoint. At least one field
+    must be given; both may be given together."""
+
+    title: Optional[str] = None
+    remember_chat: Optional[bool] = None
 
 
 VALID_RATINGS = {"good", "needed_fixing", "failed"}
@@ -1057,10 +1163,20 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
     async def order(body: OrderRequest, current_user: UserRecord = Depends(get_current_user)):
         state = app.state.coffee
         store = state.session_store
-        if body.session_id is not None and store is not None and not store.session_exists(
-            body.session_id, user_id=current_user.id
-        ):
-            raise HTTPException(status_code=404, detail="Unknown session_id.")
+        # Brew 46: remember_chat is resolved here, server-side, from the
+        # session row itself - OrderRequest has no remember_chat field, so
+        # it can never drift between what the UI shows and what actually
+        # gets sent/billed (docs/design/conversation-memory-design.md
+        # Section 1). This single get_session() call also replaces the
+        # old session_exists() 404 check.
+        remember_chat = False
+        if body.session_id is not None:
+            if store is None:
+                raise HTTPException(status_code=404, detail="Unknown session_id.")
+            session_record = store.get_session(body.session_id, user_id=current_user.id)
+            if session_record is None:
+                raise HTTPException(status_code=404, detail="Unknown session_id.")
+            remember_chat = session_record.remember_chat
         if body.request_id is not None and body.request_id in state.cancel_flags:
             raise HTTPException(
                 status_code=409, detail=f"request_id {body.request_id!r} is already in flight."
@@ -1082,6 +1198,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
                 session_id=body.session_id,
                 bean_alias_override=body.bean_alias_override,
                 use_pantry=body.use_pantry,
+                remember_chat=remember_chat,
                 stream_order_fn=state.stream_order_fn,
             )
         )
@@ -1324,7 +1441,12 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         if body.project_id is not None and store.get_project(body.project_id, user_id=current_user.id) is None:
             raise HTTPException(status_code=404, detail="Unknown project_id.")
         session_id = store.create_session(body.project, user_id=current_user.id, project_id=body.project_id)
-        return {"id": session_id, "project": body.project, "project_id": body.project_id}
+        return {
+            "id": session_id,
+            "project": body.project,
+            "project_id": body.project_id,
+            "remember_chat": True,
+        }
 
     @app.get("/v1/sessions")
     async def list_sessions(
@@ -1356,6 +1478,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
                 "created_at": s.created_at,
                 "updated_at": s.updated_at,
                 "cost_total_usd": s.cost_total_usd,
+                "remember_chat": s.remember_chat,
             }
             for s in store.list_sessions(
                 user_id=current_user.id, project_id=real_project_id, all_projects=all_projects
@@ -1386,27 +1509,43 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
                 "draft_quality": m.draft_quality,
                 "rating": m.rating,
                 "created_at": m.created_at,
+                "has_attachments": m.has_attachments,
             }
             for m in store.get_messages(session_id)
         ]
 
     @app.patch("/v1/sessions/{session_id}")
-    async def rename_session(
+    async def update_session(
         session_id: str,
-        body: RenameSessionRequest,
+        body: UpdateSessionRequest,
         current_user: UserRecord = Depends(get_current_user),
     ):
         """Brew 43 (docs/design/auth-projects-chat-management-design.md
         Section 5.1): an explicit human rename - always overwrites the
         title, unlike set_title_if_default()'s first-message auto-title,
-        which deliberately never does."""
+        which deliberately never does. Extended in Brew 46
+        (docs/design/conversation-memory-design.md Section 1) to also
+        carry the remember_chat toggle - flipping it never deletes
+        anything, it only changes whether the *next* request assembles
+        history."""
+
+        if body.title is None and body.remember_chat is None:
+            raise HTTPException(status_code=422, detail="Provide title and/or remember_chat.")
 
         store = app.state.coffee.session_store
         if store is None:
             raise HTTPException(status_code=503, detail="Session storage is not configured.")
-        if not store.rename_session(session_id, body.title, user_id=current_user.id):
-            raise HTTPException(status_code=404, detail="Unknown session_id.")
-        return {"id": session_id, "title": body.title[:TITLE_MAX_CHARS]}
+
+        response: Dict[str, Any] = {"id": session_id}
+        if body.title is not None:
+            if not store.rename_session(session_id, body.title, user_id=current_user.id):
+                raise HTTPException(status_code=404, detail="Unknown session_id.")
+            response["title"] = body.title[:TITLE_MAX_CHARS]
+        if body.remember_chat is not None:
+            if not store.set_remember_chat(session_id, body.remember_chat, user_id=current_user.id):
+                raise HTTPException(status_code=404, detail="Unknown session_id.")
+            response["remember_chat"] = body.remember_chat
+        return response
 
     @app.delete("/v1/sessions/{session_id}")
     async def delete_session(session_id: str, current_user: UserRecord = Depends(get_current_user)):

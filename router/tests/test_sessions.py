@@ -298,5 +298,73 @@ class ChatManagementTests(unittest.TestCase):
         self.assertTrue(self.store.session_exists(session_id, user_id=self.alice_id))
 
 
+class RememberChatAndAttachmentPersistenceTests(unittest.TestCase):
+    """Brew 46 - docs/design/conversation-memory-design.md Section 1/3."""
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.alice_id = self.store.create_user("alice", "hash", "Alice")
+        self.bob_id = self.store.create_user("bob", "hash", "Bob")
+
+    def test_new_session_defaults_remember_chat_true(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertTrue(self.store.list_sessions(user_id=self.alice_id)[0].remember_chat)
+        self.assertTrue(self.store.get_session(session_id, user_id=self.alice_id).remember_chat)
+
+    def test_set_remember_chat_flips_it(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertTrue(self.store.set_remember_chat(session_id, False, user_id=self.alice_id))
+        self.assertFalse(self.store.get_session(session_id, user_id=self.alice_id).remember_chat)
+
+        self.assertTrue(self.store.set_remember_chat(session_id, True, user_id=self.alice_id))
+        self.assertTrue(self.store.get_session(session_id, user_id=self.alice_id).remember_chat)
+
+    def test_set_remember_chat_does_not_touch_stored_messages(self):
+        """Flipping the toggle never deletes anything (Section 1)."""
+
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.store.add_message(session_id, request_id="r1", role="user", content="Hello")
+        self.store.set_remember_chat(session_id, False, user_id=self.alice_id)
+        self.assertEqual(len(self.store.get_messages(session_id)), 1)
+
+    def test_set_remember_chat_wrong_user_fails(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertFalse(self.store.set_remember_chat(session_id, False, user_id=self.bob_id))
+
+    def test_get_session_unknown_id_returns_none(self):
+        self.assertIsNone(self.store.get_session("no-such-session", user_id=self.alice_id))
+
+    def test_get_session_soft_deleted_returns_none(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.store.soft_delete_session(session_id, user_id=self.alice_id)
+        self.assertIsNone(self.store.get_session(session_id, user_id=self.alice_id))
+
+    def test_get_session_wrong_user_returns_none(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertIsNone(self.store.get_session(session_id, user_id=self.bob_id))
+
+    def test_add_message_persists_attachments_json(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.store.add_message(
+            session_id,
+            request_id="r1",
+            role="user",
+            content="What does this say?",
+            attachments_json='[{"filename": "a.pdf", "kind": "pdf"}]',
+        )
+        message = self.store.get_messages(session_id)[0]
+        self.assertTrue(message.has_attachments)
+        self.assertIn("a.pdf", message.attachments_json)
+
+    def test_message_with_no_attachments_has_attachments_false(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.store.add_message(session_id, request_id="r1", role="user", content="Hello")
+        message = self.store.get_messages(session_id)[0]
+        self.assertFalse(message.has_attachments)
+        self.assertIsNone(message.attachments_json)
+
+
 if __name__ == "__main__":
     unittest.main()

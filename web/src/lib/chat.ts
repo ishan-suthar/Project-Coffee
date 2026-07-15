@@ -52,6 +52,19 @@ export interface ChatMessage {
   // nothing matched - PantrySourceChips renders only when this is a
   // non-empty array, so a message never claims sources it didn't get.
   pantrySources: string[] | null;
+  // Brew 46 (docs/design/conversation-memory-design.md Section 1): mirrors
+  // contract v1.5's history_turns/history_tokens_est - both null when the
+  // session's remember_chat was false, real numbers (including a real 0)
+  // otherwise. Promoted onto dedicated fields from latestEvent, same
+  // pattern as costUsd/latencyMs below.
+  historyTurnsIncluded: number | null;
+  historyTokensEst: number | null;
+  // Brew 46: whether this turn had an attachment - true for a live user
+  // message with attachments, or a historical message the router reports
+  // has_attachments for. Used only to detect "ask the user to turn on
+  // Remember chat" - the attachment's own content is never re-fetched
+  // for a historical message (attachments stays [] there).
+  hasAttachments: boolean;
 }
 
 export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent): ChatMessage {
@@ -98,6 +111,8 @@ export function reduceEventIntoMessage(message: ChatMessage, event: RouterEvent)
         escalated: event.escalated,
         draftQuality: event.draft_quality,
         pantrySources: event.pantry_sources,
+        historyTurnsIncluded: event.history_turns,
+        historyTokensEst: event.history_tokens_est,
       };
     case "error":
       return {
@@ -137,6 +152,9 @@ export function newAssistantMessage(requestId: string): ChatMessage {
     attachments: [],
     pendingEscalationRecovered: false,
     pantrySources: null,
+    historyTurnsIncluded: null,
+    historyTokensEst: null,
+    hasAttachments: false,
   };
 }
 
@@ -165,5 +183,8 @@ export function newUserMessage(
     attachments,
     pendingEscalationRecovered: false,
     pantrySources: null,
+    historyTurnsIncluded: null,
+    historyTokensEst: null,
+    hasAttachments: attachments.length > 0,
   };
 }

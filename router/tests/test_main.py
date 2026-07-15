@@ -22,7 +22,7 @@ from router.app.main import (
     create_app,
     run_order,
 )
-from router.app.openrouter_client import StreamChunk
+from router.app.openrouter_client import OpenRouterClientError, StreamChunk
 from router.app.preferences import PreferenceStore
 from router.app.routing import RoutingPolicy
 from router.app.sessions import SessionStore, UserRecord
@@ -230,8 +230,9 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         escalation_approval_timeout_seconds=600.0,
         pantry_index_path=None,
         pantry_top_k=5,
+        registry=None,
     ):
-        registry = _make_bean_registry(with_premium=with_premium)
+        registry = registry or _make_bean_registry(with_premium=with_premium)
         policy = RoutingPolicy.from_yaml(self.policy_path, bean_registry=registry)
         settings = Settings(
             escalation_cost_cap_usd=escalation_cost_cap_usd,
@@ -585,6 +586,207 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         # No session was ever created, so nothing to list - just confirm no crash
         # and the store remains empty for an arbitrary project name.
         self.assertEqual(state.session_store.list_sessions("project-a"), [])
+
+    # --- Brew 46: conversation memory (docs/design/conversation-memory-design.md) --
+
+    async def test_remember_chat_false_sends_no_history(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+        await self._collect(state, _fake_stream_healthy, session_id=session_id)  # turn 1
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=False)
+        self.assertIsNone(captured["history_messages"])
+
+    async def test_remember_chat_true_sends_prior_turn_as_history(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+        await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=True)
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=True)
+        self.assertIsNotNone(captured["history_messages"])
+        self.assertEqual(captured["history_messages"][0]["role"], "user")
+        self.assertEqual(captured["history_messages"][0]["content"], "Implement a function.")
+        self.assertEqual(captured["history_messages"][1]["role"], "assistant")
+
+    async def test_first_message_in_session_has_no_history_and_does_not_break(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+
+        events = await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=True)
+        complete = events[-1]
+        self.assertEqual(complete.history_turns, 0)
+        self.assertEqual(complete.history_tokens_est, 0)
+
+    async def test_complete_event_history_fields_none_when_remember_chat_false(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+        events = await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=False)
+        complete = events[-1]
+        self.assertIsNone(complete.history_turns)
+        self.assertIsNone(complete.history_tokens_est)
+
+    async def test_errored_prior_turn_is_never_persisted_so_never_sent_as_history(self):
+        """The router already never persists a failed turn (see
+        _run_order_body's early-return-before-add_message on any
+        ErrorEvent/CancelledEvent path) - confirms that holds end to end
+        through history assembly, not just in isolation."""
+
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+
+        async def _erroring_stream(model_id, prompt, **_kwargs):
+            raise OpenRouterClientError("boom")
+            yield  # pragma: no cover - never reached, makes this a generator
+
+        await self._collect(state, _erroring_stream, session_id=session_id, remember_chat=True)
+        self.assertEqual(state.session_store.get_messages(session_id), [])
+
+        # A second, healthy request in the same session sees zero history -
+        # nothing was ever stored for the errored first attempt.
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=True)
+        self.assertIsNone(captured["history_messages"])
+
+    async def test_history_max_messages_drops_oldest_whole_turns(self):
+        state = self._make_state(with_session_store=True)
+        state.settings.history_max_messages = 2  # 1 turn
+        session_id = state.session_store.create_session("project-a")
+
+        for _ in range(3):
+            await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=True)
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=True)
+        self.assertEqual(len(captured["history_messages"]), 2)
+
+    async def test_oversized_current_prompt_sends_with_no_history_and_logs_warning(self):
+        state = self._make_state(with_session_store=True)
+        state.settings.history_max_chars = 10  # trivially small
+        session_id = state.session_store.create_session("project-a")
+        await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=True)
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        with self.assertLogs("router.app.history", level="WARNING"):
+            await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=True)
+        self.assertIsNone(captured["history_messages"])
+
+    async def test_ledger_row_records_remember_chat_and_history_fields(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+        await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=False)
+        await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=True)
+
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["remember_chat"], "False")
+        self.assertEqual(rows[1]["remember_chat"], "True")
+        self.assertEqual(rows[1]["history_turns"], "1")
+
+    async def test_ledger_row_remember_chat_false_has_no_history_tokens(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+        await self._collect(state, _fake_stream_healthy, session_id=session_id, remember_chat=False)
+
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["remember_chat"], "False")
+        self.assertEqual(rows[0]["history_turns"], "0")
+        self.assertEqual(rows[0]["history_tokens_est"], "unknown")
+
+    async def test_attachment_text_persisted_and_reattached_on_a_later_turn(self):
+        state = self._make_state(with_session_store=True)
+        session_id = state.session_store.create_session("project-a")
+        attachment_id = self._register_upload(
+            state,
+            "req-pdf",
+            "notes.pdf",
+            "application/pdf",
+            "pdf",
+            extracted_text="The quarterly revenue was $4.2 million.",
+        )
+        await self._collect(
+            state,
+            _fake_stream_healthy,
+            session_id=session_id,
+            remember_chat=True,
+            request_id="req-pdf",
+            attachment_ids=[attachment_id],
+        )
+
+        message = state.session_store.get_messages(session_id)[0]
+        self.assertTrue(message.has_attachments)
+        self.assertIn("$4.2 million", message.attachments_json)
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=True)
+        self.assertIn("$4.2 million", captured["history_messages"][0]["content"])
+        self.assertIn("notes.pdf", captured["history_messages"][0]["content"])
+
+    async def test_image_attachment_never_resent_on_a_later_turn(self):
+        state = self._make_state(with_session_store=True, registry=_make_bean_registry_with_vision())
+        session_id = state.session_store.create_session("project-a")
+        attachment_id = self._register_upload(
+            state, "req-img", "photo.png", "image/png", "image", file_bytes=b"\x89PNG fake bytes"
+        )
+        await self._collect(
+            state,
+            _fake_stream_healthy,
+            session_id=session_id,
+            remember_chat=True,
+            request_id="req-img",
+            attachment_ids=[attachment_id],
+        )
+
+        captured = {}
+
+        async def _capturing_stream(model_id, prompt, **kwargs):
+            captured["history_messages"] = kwargs.get("history_messages")
+            captured["image_data_urls"] = kwargs.get("image_data_urls")
+            async for chunk in _fake_stream_healthy(model_id, prompt, **kwargs):
+                yield chunk
+
+        await self._collect(state, _capturing_stream, session_id=session_id, remember_chat=True)
+        self.assertIsNone(captured["image_data_urls"])  # no image resent on this later turn
+        self.assertNotIn("base64", captured["history_messages"][0]["content"])
+        self.assertIn(
+            "not included in this conversation history", captured["history_messages"][0]["content"]
+        )
 
     async def test_cancel_mid_stream_yields_cancelled_not_complete(self):
         state = self._make_state()
@@ -1821,6 +2023,65 @@ class ChatManagementEndpointTests(unittest.IsolatedAsyncioTestCase):
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch("/v1/sessions/nonexistent-id", json={"title": "x"})
         self.assertEqual(response.status_code, 404)
+
+    async def test_new_session_defaults_remember_chat_true(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            created = (await client.post("/v1/sessions", json={})).json()
+            self.assertTrue(created["remember_chat"])
+            listed = (await client.get("/v1/sessions")).json()
+        self.assertTrue(listed[0]["remember_chat"])
+
+    async def test_patch_remember_chat_flips_it(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id = (await client.post("/v1/sessions", json={})).json()["id"]
+
+            response = await client.patch(f"/v1/sessions/{session_id}", json={"remember_chat": False})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["remember_chat"], False)
+
+            listed = (await client.get("/v1/sessions")).json()
+        self.assertFalse(listed[0]["remember_chat"])
+
+    async def test_patch_can_set_title_and_remember_chat_together(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id = (await client.post("/v1/sessions", json={})).json()["id"]
+            response = await client.patch(
+                f"/v1/sessions/{session_id}", json={"title": "Renamed", "remember_chat": False}
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["title"], "Renamed")
+        self.assertEqual(response.json()["remember_chat"], False)
+
+    async def test_patch_with_neither_field_is_422(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id = (await client.post("/v1/sessions", json={})).json()["id"]
+            response = await client.patch(f"/v1/sessions/{session_id}", json={})
+        self.assertEqual(response.status_code, 422)
+
+    async def test_patch_remember_chat_unknown_session_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.patch("/v1/sessions/nonexistent-id", json={"remember_chat": False})
+        self.assertEqual(response.status_code, 404)
+
+    async def test_messages_endpoint_reports_has_attachments(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id = (await client.post("/v1/sessions", json={})).json()["id"]
+        self.state.session_store.add_message(
+            session_id,
+            request_id="r1",
+            role="user",
+            content="hi",
+            attachments_json='[{"filename": "a.pdf"}]',
+        )
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            messages = (await client.get(f"/v1/sessions/{session_id}/messages")).json()
+        self.assertTrue(messages[0]["has_attachments"])
 
     async def test_delete_session_excludes_from_list(self):
         transport = httpx.ASGITransport(app=self.app)

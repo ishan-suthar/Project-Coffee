@@ -70,3 +70,57 @@ describe("MessageBubble escalation approval card visibility", () => {
     expect(screen.queryByTestId("recovered-escalation-note")).not.toBeInTheDocument();
   });
 });
+
+describe("MessageBubble width and markdown formatting", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.listBeans).mockResolvedValue([]);
+  });
+
+  it("user message is right-aligned with a 75% max width, no assistant width cap", () => {
+    render(
+      <MessageBubble
+        message={{ ...newAssistantMessage("req-1"), role: "user", content: "hi", isStreaming: false }}
+      />
+    );
+    expect(screen.getByTestId("user-message")).toHaveClass("ml-auto", "max-w-[75%]");
+  });
+
+  it("assistant message has no bubble background and spans the full width", () => {
+    render(<MessageBubble message={{ ...newAssistantMessage("req-1"), isStreaming: false }} />);
+    const bubble = screen.getByTestId("assistant-message");
+    expect(bubble).toHaveClass("w-full", "border-l-2", "border-crema-amber");
+    expect(bubble.className).not.toMatch(/bg-cream|rounded-lg|max-w-2xl/);
+  });
+
+  it("renders a Markdown table with borders and a styled header row", () => {
+    render(
+      <MessageBubble
+        message={{
+          ...newAssistantMessage("req-1"),
+          isStreaming: false,
+          content: "| A | B |\n| --- | --- |\n| 1 | 2 |",
+        }}
+      />
+    );
+    expect(screen.getByRole("table")).toHaveClass("border-collapse", "border");
+    expect(screen.getByRole("columnheader", { name: "A" })).toHaveClass("bg-latte");
+    expect(screen.getByRole("cell", { name: "1" })).toBeInTheDocument();
+  });
+
+  it("renders Markdown lists, headings, and bold/italic text", () => {
+    render(
+      <MessageBubble
+        message={{
+          ...newAssistantMessage("req-1"),
+          isStreaming: false,
+          content: "## Heading\n\n- one\n- two\n\n**bold** and *italic*",
+        }}
+      />
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "Heading" })).toBeInTheDocument();
+    expect(screen.getByText("one").closest("ul")).toHaveClass("list-disc");
+    expect(screen.getByText("bold").tagName).toBe("STRONG");
+    expect(screen.getByText("italic").tagName).toBe("EM");
+  });
+});

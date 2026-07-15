@@ -76,6 +76,30 @@ class ComplexityTests(unittest.TestCase):
         result = classify_heuristic("Fix this typo.", attachments=None)
         self.assertEqual(result.complexity, "espresso_shot")
 
+    def test_long_history_pushes_to_cold_brew(self):
+        """Brew 46 (docs/design/conversation-memory-design.md): the new
+        COMPLEXITY_SIGNALS entry - only meaningful when the caller passes
+        a real history_turn_count (remember_chat was on)."""
+
+        result = classify_heuristic(
+            "Fix this typo.", history_turn_count=10, long_history_turns_threshold=10
+        )
+        self.assertEqual(result.complexity, "cold_brew")
+
+    def test_short_history_stays_espresso_shot(self):
+        result = classify_heuristic(
+            "Fix this typo.", history_turn_count=3, long_history_turns_threshold=10
+        )
+        self.assertEqual(result.complexity, "espresso_shot")
+
+    def test_history_turn_count_defaults_to_zero_no_effect(self):
+        """A caller that never passes history_turn_count (remember_chat
+        off, or every call site before Brew 46) sees no change from this
+        signal - the default must be inert."""
+
+        result = classify_heuristic("Fix this typo.")
+        self.assertEqual(result.complexity, "espresso_shot")
+
 
 class VisionTests(unittest.TestCase):
     def test_image_attachment_sets_needs_vision(self):

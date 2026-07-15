@@ -27,7 +27,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   if (message.role === "user") {
     return (
-      <div className="ml-auto max-w-2xl rounded-lg bg-latte px-4 py-2 text-espresso" data-testid="user-message">
+      <div className="ml-auto max-w-[75%] rounded-lg bg-latte px-4 py-2 text-espresso" data-testid="user-message">
         <AttachmentGallery attachments={message.attachments} />
         {message.content}
       </div>
@@ -35,14 +35,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   }
 
   return (
-    <div className="mr-auto max-w-2xl rounded-lg border border-caramel bg-cream px-4 py-3" data-testid="assistant-message">
+    <div className="w-full border-l-2 border-crema-amber py-3 pl-4" data-testid="assistant-message">
       {message.pendingEscalationRecovered && (
         <p className="mb-1 text-xs italic text-medium-roast" data-testid="recovered-escalation-note">
           Recovered after a reload - the original message text isn&apos;t available.
         </p>
       )}
       <MessageHeader message={message} />
-      <div className="prose prose-sm mt-2 max-w-none text-espresso">
+      <div className="mt-2 text-espresso">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -52,6 +52,66 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 return <code className="rounded bg-latte px-1 font-mono">{children}</code>;
               }
               return <CodeBlock className={className}>{children}</CodeBlock>;
+            },
+            table({ children }) {
+              return (
+                <div className="my-2 overflow-x-auto">
+                  <table className="w-full border-collapse border border-caramel text-sm">{children}</table>
+                </div>
+              );
+            },
+            th({ children }) {
+              return <th className="border border-caramel bg-latte px-3 py-2 text-left font-semibold">{children}</th>;
+            },
+            td({ children }) {
+              return <td className="border border-caramel px-3 py-2">{children}</td>;
+            },
+            ul({ children }) {
+              return <ul className="my-2 list-disc space-y-1 pl-6">{children}</ul>;
+            },
+            ol({ children }) {
+              return <ol className="my-2 list-decimal space-y-1 pl-6">{children}</ol>;
+            },
+            h1({ children }) {
+              return <h1 className="mb-2 mt-4 text-xl font-bold">{children}</h1>;
+            },
+            h2({ children }) {
+              return <h2 className="mb-2 mt-3 text-lg font-semibold">{children}</h2>;
+            },
+            h3({ children }) {
+              return <h3 className="mb-1 mt-2 text-base font-semibold">{children}</h3>;
+            },
+            h4({ children }) {
+              return <h4 className="mb-1 mt-2 text-sm font-semibold">{children}</h4>;
+            },
+            h5({ children }) {
+              return <h5 className="mb-1 mt-2 text-sm font-semibold">{children}</h5>;
+            },
+            h6({ children }) {
+              return <h6 className="mb-1 mt-2 text-sm font-semibold">{children}</h6>;
+            },
+            p({ children }) {
+              return <p className="my-2 leading-[1.7]">{children}</p>;
+            },
+            blockquote({ children }) {
+              return (
+                <blockquote className="my-2 border-l-2 border-caramel pl-3 italic text-medium-roast">
+                  {children}
+                </blockquote>
+              );
+            },
+            a({ children, href }) {
+              return (
+                <a href={href} className="text-crema-amber underline hover:opacity-80" target="_blank" rel="noreferrer">
+                  {children}
+                </a>
+              );
+            },
+            strong({ children }) {
+              return <strong className="font-semibold">{children}</strong>;
+            },
+            em({ children }) {
+              return <em className="italic">{children}</em>;
             },
           }}
         >

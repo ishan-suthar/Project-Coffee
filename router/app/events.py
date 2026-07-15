@@ -104,6 +104,14 @@ class CompleteEvent(BaseEvent):
     # matched - never an empty-but-claimed list. See docs/design/
     # memory-and-pantry-design.md Section 4.2.
     pantry_sources: Optional[List[str]] = None
+    # Added in contract version 1.5 (Brew 46): how much conversation
+    # history rode along on this request (router/app/history.py). Both
+    # None when the session's remember_chat was false - deliberately not
+    # 0, so a UI can tell "toggle is off" apart from "toggle is on but
+    # this was turn one" (a real 0). See docs/design/
+    # conversation-memory-design.md Section 4.
+    history_turns: Optional[int] = None
+    history_tokens_est: Optional[int] = None
 
 
 class ErrorEvent(BaseEvent):

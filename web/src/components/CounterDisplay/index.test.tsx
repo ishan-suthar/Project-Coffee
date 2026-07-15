@@ -104,6 +104,8 @@ describe("statusTextFor - event-to-text mapping table", () => {
       escalated: false,
       draft_quality: false,
       pantry_sources: null,
+      history_turns: null,
+      history_tokens_est: null,
     };
     expect(statusTextFor(event)).toBe("Order up");
   });

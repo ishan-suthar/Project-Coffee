@@ -79,6 +79,7 @@ describe("chatStore escalation actions", () => {
             draft_quality: true,
             rating: null,
             created_at: "2026-07-12T20:20:00Z",
+            has_attachments: false,
           },
         ]);
 

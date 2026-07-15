@@ -204,6 +204,85 @@ class StreamOrderTests(unittest.IsolatedAsyncioTestCase):
         content = payload["messages"][0]["content"]
         self.assertEqual(len(content), 3)  # 1 text part + 2 image parts
 
+    async def test_no_history_messages_sends_byte_for_byte_the_same_single_message_payload(self):
+        """Brew 46 (docs/design/conversation-memory-design.md): the
+        remember_chat=False path must be indistinguishable from every
+        call before this Brew existed."""
+
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        async for _ in stream_order("vendor/model:free", "hi", api_key="k", http_client=client):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(payload["messages"], [{"role": "user", "content": "hi"}])
+
+    async def test_history_messages_are_prepended_oldest_first(self):
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        history = [
+            {"role": "user", "content": "earlier question"},
+            {"role": "assistant", "content": "earlier answer"},
+        ]
+        async for _ in stream_order(
+            "vendor/model:free", "follow-up", api_key="k", http_client=client, history_messages=history
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(
+            payload["messages"],
+            [
+                {"role": "user", "content": "earlier question"},
+                {"role": "assistant", "content": "earlier answer"},
+                {"role": "user", "content": "follow-up"},
+            ],
+        )
+
+    async def test_history_messages_with_images_keeps_current_message_multimodal(self):
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        history = [{"role": "user", "content": "earlier"}, {"role": "assistant", "content": "reply"}]
+        data_url = "data:image/png;base64,iVBORw0KGgo="
+        async for _ in stream_order(
+            "vendor/vision-model:free",
+            "what is this",
+            api_key="k",
+            http_client=client,
+            image_data_urls=[data_url],
+            history_messages=history,
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(len(payload["messages"]), 3)
+        self.assertEqual(payload["messages"][0], {"role": "user", "content": "earlier"})
+        self.assertIsInstance(payload["messages"][2]["content"], list)
+
 
 if __name__ == "__main__":
     unittest.main()

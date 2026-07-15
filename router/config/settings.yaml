@@ -65,3 +65,11 @@ pantry_top_k: 5  # number of top-ranked chunks injected per request
 min_rating_sample_size: 5  # a (task_type, Bean) pair needs at least this many real ratings before they influence ranking
 policy_roastery_weight: 0.6  # Roastery Cup Test evidence's share of the blended score once ratings clear the threshold; ratings get (1 - this)
 escalation_rate_flag_threshold: 0.3  # task_types with a higher real escalation rate are flagged (advisory only) in the policy rebuild diff
+
+# Conversation memory / "Remember chat" (Brew 46). See router/app/history.py,
+# router/app/sessions.py's remember_chat column, and docs/design/
+# conversation-memory-design.md.
+history_max_messages: 20  # role-tagged messages (10 turns), not 20 turns - oldest whole turns are dropped first
+history_max_chars: 24000  # sum of included historical turns' chars (user + assistant + reattached attachment text); never trims the current prompt itself
+attachment_max_stored_chars: 50000  # cap on extracted PDF/text attachment content persisted per attachment, truncated with a clear marker
+classifier_long_history_turns: 10  # history_turn_count at/above this pushes complexity to cold_brew - only checked when remember_chat assembled real history

@@ -97,4 +97,10 @@ describe("MessageHeader", () => {
     render(<MessageHeader message={completedMessage({ escalation: null })} />);
     expect(screen.queryByTestId("escalation-marker")).not.toBeInTheDocument();
   });
+
+  it("renders the badge row on one line, small and muted", () => {
+    render(<MessageHeader message={completedMessage()} />);
+    expect(screen.getByTestId("message-header")).toHaveClass("flex-nowrap", "text-[11px]");
+    expect(screen.getByTestId("bean-alias-badge")).toHaveClass("text-medium-roast");
+  });
 });

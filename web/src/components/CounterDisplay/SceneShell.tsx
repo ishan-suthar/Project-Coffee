@@ -90,66 +90,90 @@ export function SceneShell({
   const isBrewing = sceneState === 4;
 
   return (
-    <div
-      className="relative border-b border-caramel bg-latte"
-      data-testid="scene-shell"
-      data-collapsed={collapsed}
-    >
-      <div className="flex items-center justify-between px-4 py-2">
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand the Coffee Counter scene" : "Collapse the Coffee Counter scene"}
-          data-testid="scene-collapse-toggle"
-          className={`text-espresso transition-transform ${collapsed ? "rotate-180" : ""}`}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- static local icon */}
-          <img src="/assets/icons/chevron_collapse.svg" alt="" className="h-4 w-4" aria-hidden="true" />
-        </button>
-
-        <span data-testid="scene-caption" className="text-sm text-espresso">
+    <>
+      {/* Below the lg breakpoint the panel is hidden entirely (Requirement:
+          barista panel hides below 1024px) - a plain text-only status line
+          takes its place, with no scene/chevron/Tips Jar/animation, the
+          same "no motion attempted" spirit as the reduced-motion fallback. */}
+      <div
+        className="border-b border-caramel bg-latte px-4 py-2 lg:hidden"
+        data-testid="scene-mobile-status"
+      >
+        <span data-testid="scene-caption-mobile" className="text-sm text-espresso">
           {caption}
         </span>
+      </div>
 
-        {collapsed ? (
-          <span
-            data-testid="tips-jar-total"
-            className="font-mono text-sm tabular-nums text-medium-roast"
-            title="Tips Jar - running cost for the active message"
+      <div
+        className={`relative hidden flex-col border-l border-caramel bg-latte transition-[width] duration-200 ease-out lg:flex ${
+          collapsed ? "w-12" : "w-[32%]"
+        }`}
+        data-testid="scene-shell"
+        data-collapsed={collapsed}
+      >
+        <div className="flex items-center justify-between px-2 py-2">
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Expand the Coffee Counter scene" : "Collapse the Coffee Counter scene"}
+            data-testid="scene-collapse-toggle"
+            className={`text-espresso transition-transform ${collapsed ? "rotate-180" : ""}`}
           >
-            ${sessionCostUsd.toFixed(4)}
-          </span>
-        ) : (
-          <TipsJar sessionCostUsd={sessionCostUsd} event={event} />
+            {/* eslint-disable-next-line @next/next/no-img-element -- static local icon */}
+            <img src="/assets/icons/chevron_collapse.svg" alt="" className="h-4 w-4" aria-hidden="true" />
+          </button>
+
+          {!collapsed && (
+            <span data-testid="scene-caption" className="text-sm text-espresso">
+              {caption}
+            </span>
+          )}
+        </div>
+
+        {collapsed && (
+          <div className="flex flex-1 flex-col items-center justify-between py-2">
+            {isBrewing && (
+              // eslint-disable-next-line @next/next/no-img-element -- static local icon
+              <img
+                src="/assets/icons/steam.svg"
+                alt=""
+                data-testid="scene-collapsed-steam"
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
+            )}
+            <span
+              data-testid="tips-jar-total"
+              className="font-mono text-sm tabular-nums text-medium-roast [writing-mode:vertical-rl]"
+              title="Tips Jar - running cost for the active message"
+            >
+              ${sessionCostUsd.toFixed(4)}
+            </span>
+          </div>
         )}
-      </div>
 
-      {collapsed && isBrewing && (
-        // eslint-disable-next-line @next/next/no-img-element -- static local icon
-        <img
-          src="/assets/icons/steam.svg"
-          alt=""
-          data-testid="scene-collapsed-steam"
-          className="absolute left-1/2 top-1 h-4 w-4 -translate-x-1/2"
-          aria-hidden="true"
-        />
-      )}
-
-      <div className={collapsed ? "h-0 overflow-hidden" : "h-32"} data-testid="scene-body">
-        <BaristaScene
-          sceneState={sceneState}
-          jarBooleans={jarBooleans}
-          machine={machine}
-          reducedMotion={reducedMotion}
-          paused={collapsed}
-        />
-        {!collapsed && (
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-cream"
-            aria-hidden="true"
+        <div className={collapsed ? "h-0 overflow-hidden" : "relative flex-1 overflow-hidden"} data-testid="scene-body">
+          <BaristaScene
+            sceneState={sceneState}
+            jarBooleans={jarBooleans}
+            machine={machine}
+            reducedMotion={reducedMotion}
+            paused={collapsed}
           />
+          {!collapsed && (
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-latte to-transparent"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+
+        {!collapsed && (
+          <div className="border-t border-caramel px-2 py-2">
+            <TipsJar sessionCostUsd={sessionCostUsd} event={event} />
+          </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

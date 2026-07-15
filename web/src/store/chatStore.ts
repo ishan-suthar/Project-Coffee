@@ -79,6 +79,12 @@ interface ChatState {
   deleteProject: (projectId: number) => Promise<void>;
   renameSession: (sessionId: string, title: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+
+  // Brew 46 (docs/design/conversation-memory-design.md Section 1):
+  // optimistic - flips the local sessions array immediately, then
+  // reverts on a failed PATCH so the UI never shows a state the router
+  // didn't actually persist.
+  setRememberChat: (sessionId: string, rememberChat: boolean) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -119,13 +125,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       escalation: null,
       rating: m.rating,
       errorMessage: null,
-      // Session history has no attachment persistence yet (non-goal -
-      // docs/design/attachments-design.md Section 11).
+      // Session history re-displays no attachment content (the router
+      // only reports has_attachments, a cheap boolean, not the extracted
+      // text/original file - see docs/design/conversation-memory-design.md
+      // Section 3) - attachments stays [] for a loaded-from-history
+      // message, hasAttachments carries the boolean the toggle hint needs.
       attachments: [],
       pendingEscalationRecovered: false,
       // Session history has no Pantry-source persistence either (same
       // reasoning as attachments above - SessionStore doesn't store it).
       pantrySources: null,
+      historyTurnsIncluded: null,
+      historyTokensEst: null,
+      hasAttachments: m.has_attachments,
     }));
     set((state) => ({ messages: { ...state.messages, [sessionId]: messages } }));
 
@@ -315,6 +327,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ activeSessionId: null });
     }
     await get().loadSessions();
+  },
+
+  setRememberChat: async (sessionId: string, rememberChat: boolean) => {
+    const previous = get().sessions.find((s) => s.id === sessionId)?.remember_chat;
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === sessionId ? { ...s, remember_chat: rememberChat } : s
+      ),
+    }));
+    try {
+      await api.setRememberChat(sessionId, rememberChat);
+    } catch (err) {
+      if (previous !== undefined) {
+        set((state) => ({
+          sessions: state.sessions.map((s) =>
+            s.id === sessionId ? { ...s, remember_chat: previous } : s
+          ),
+        }));
+      }
+      throw err;
+    }
   },
 }));
 

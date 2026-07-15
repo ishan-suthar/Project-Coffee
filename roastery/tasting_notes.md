@@ -25,6 +25,9 @@ Use model scorecards to record model performance.
 | 2026-07-09 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router) | Brew 36B live demo - one real `/v1/order` request, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct classification (explain/espresso_shot), correct alias-only routing, 65 output tokens, 1733ms latency, not escalated, not draft | Full transcript below |
 | 2026-07-10 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router + new Coffee Counter Chat UI) | Brew 37B live demo - one real `/v1/order` request through the actual browser UI, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct status-line sequence, correct alias-only rendering, session persisted with auto-set title, 70 output tokens, 2405ms latency, not escalated, not draft, zero raw model ID leaks in rendered page | Full narrative below |
 | 2026-07-15 | No remote Bean; real `router/` auth/projects/chat-management endpoints, verified via `curl` | Brew 43B live demo - two real users created and logged in, cross-user isolation verified directly against the real API (not `/v1/order`) | COMPLETE - real 404-not-403 ownership checks, real 401 on missing token, real logout token invalidation, all confirmed; not a Bean quality comparison, no scores to record | Full narrative below |
+| 2026-07-15 | No remote Bean; `web/` frontend only (Vitest + real-Chromium Playwright), no `router/` changes | Brew 44 verification - response layout/Markdown formatting fix and barista-panel-to-right restructure | COMPLETE PER AUTOMATED SUITE (179 Vitest + 6 Playwright e2e, `tsc`/`eslint`/`next build` clean) - no manual visual/screenshot check performed, no browser/screenshot tool was available this session; not a Bean quality comparison, no scores to record | Full narrative below |
+| 2026-07-15 | No remote Bean; `web/` frontend/SVG asset work only, no `router/` changes | Brew 45 verification - vertical Coffee Counter scene placeholder art (scene_bg, barista_static, collapse chevron) for the Brew 44 right-side panel | COMPLETE PER AUTOMATED SUITE (180 Vitest + 6 Playwright e2e, `tsc`/`eslint`/`next build` clean, 14.9 KB/300 KB asset budget) - no manual visual/screenshot check performed, no browser/screenshot tool was available this session; not a Bean quality comparison, no scores to record | Full narrative below |
+| 2026-07-15 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router), four real `/v1/order` calls | Brew 46 live demo - real PDF upload, cross-turn recall with no re-upload, toggle flipped OFF mid-session, real Ledger row for both states | COMPLETE - correct cross-turn recall from persisted attachment text with the toggle ON, correct memory loss confirmed with the toggle OFF, real Ledger row shows `remember_chat=False`/`history_tokens_est=unknown`; single-Bean functional verification, not a Bean quality comparison, no scores to record | Full narrative below |
 
 ## Cup Test Notes
 
@@ -3004,3 +3007,230 @@ commit (`0255a63`) outside this Brew's numbering, which now causes 2
 pre-existing `test_routing.py` assertions (written when no
 vision-capable Bean existed) to fail - a real, currently-unaddressed
 test/config drift, not something this Brew introduced or fixed.
+
+### 2026-07-15 - Brew 44: Response Layout, Markdown Formatting, and Barista Panel Restructure Verification
+
+Scope: pure frontend UI work (no `router/` changes, no `/v1/order`
+calls) - not a Bean quality comparison, so no scores are recorded here.
+This note documents what the automated verification actually found,
+including one genuine root-cause finding and one honest coverage gap.
+
+Root-cause finding: the reported "content formatting is poor (no
+tables, mixed-up structure)" traced to a real, specific bug rather than
+a vague styling gap - `MessageBubble.tsx` applied Tailwind's `prose
+prose-sm` classes, but `@tailwindcss/typography` was never installed
+(confirmed absent from `web/package.json` and `web/src/app/globals.css`,
+which has no `@plugin` directive). `prose` was a complete no-op, so
+every Markdown element rendered with zero styling. Fixed by replacing
+the inert wrapper with 12 explicit `ReactMarkdown` `components`
+overrides styled with the existing coffee-palette tokens, confirmed via
+real rendered-DOM assertions in `MessageBubble.test.tsx` (table
+borders/header background, list indentation, heading levels, bold/
+italic tag names - not just "no error thrown").
+
+Automated verification:
+
+- 179 Vitest/RTL tests (11 new/changed this Brew), all passing.
+- `npx tsc --noEmit` clean.
+- `eslint` clean except 2 pre-existing unrelated `<img>` warnings
+  (`AttachmentChip.tsx`, `AttachmentGallery.tsx` - not touched this
+  Brew).
+- `next build` clean.
+- 6/6 Playwright e2e tests passing (`--workers=1`), including two new
+  tests that set real viewports (900px and 1280px via
+  `page.setViewportSize`) to verify the barista panel's actual
+  visibility - this is the authoritative check for the "hides below
+  1024px" requirement, since jsdom (Vitest's environment) cannot
+  evaluate real CSS media queries; the Vitest-side test is only a
+  regression guard on the responsive class names themselves.
+
+One real bug caught and fixed during implementation, not just at test
+time: the first version of the `SceneShell.tsx` rewrite unmounted
+`BaristaScene` entirely while the panel was collapsed. The existing
+"passes paused=true to BaristaScene while collapsed" test (predating
+this Brew) failed because the mocked component never rendered at all,
+correctly catching that collapsing must keep `BaristaScene` mounted
+with `paused=true` inside a zero-height container - matching both the
+pre-Brew-44 behavior and Rive's real pause/resume lifecycle. Fixed by
+restructuring the collapsed/expanded branches so `BaristaScene` always
+renders.
+
+Honest coverage gap: no manual visual/screenshot check of the rendered
+page was performed. No browser/screenshot tool was available in this
+session, so the claims about visual appearance (bubble spacing, table
+borders actually looking right, the portrait SVG rendering sensibly at
+real panel proportions) rest entirely on the Playwright e2e suite's DOM
+and visibility assertions plus the Vitest class-presence checks - real
+browser coverage (Chromium via Playwright), but not a human eyeball
+pass. Flagged explicitly in `brew-log/active_context.md`'s "Next
+actions" rather than silently treated as done.
+
+Cost and token evidence:
+
+- No remote Bean call anywhere in this Brew's implementation or
+  verification. `$0.00`, no Ledger rows generated.
+
+### 2026-07-15 - Brew 45: Vertical Coffee Counter Scene Assets Verification
+
+Scope: pure SVG/frontend asset work (no `router/` changes, no model
+calls) - not a Bean quality comparison, so no scores are recorded here.
+This note documents what the automated verification actually found,
+including one real layout collision caught and fixed, and one
+deliberate no-op decision explained rather than left looking like an
+oversight.
+
+What changed and why: Brew 44 moved the barista scene from a full-width
+horizontal strip to a ~300px-wide, full-height right-side panel, but
+only reworked the panel *container* and the flat fallback illustration
+(`barista_static.svg`). The other reference assets in
+`web/public/assets/counter/` (`scene_bg.svg`, the four jar files,
+`tips_jar.svg`, `cup_finished.svg`) and the collapse chevron icon still
+assumed the old horizontal composition. This Brew closed that gap.
+
+Real finding during implementation: the first placement of the cup in
+the redrawn `barista_static.svg` (mid-panel, per the request) was set
+directly above the machine at `x=113-147, y=572-596`, which genuinely
+overlaps the machine's foot/spout element (`x=115-125, y=580-598`) in
+both axes - not a hypothetical risk, an actual coordinate collision
+computed from the two elements' real bounding boxes. Fixed by moving
+the cup beside the machine instead (`x=190, y=540`), clear of both the
+machine body and the counter below it.
+
+Deliberate no-op, documented rather than silently skipped: the four
+jar files, `tips_jar.svg`, and `cup_finished.svg` were left visually
+unchanged. Each is a single self-contained icon (a jar or a cup) that
+was never landscape-shaped to begin with - "stack vertically" and "sits
+at the bottom" are instructions about where these icons sit *within*
+the composed scene, not about their own internal artwork. The asset
+README's new "Vertical/portrait layout" section states this reasoning
+explicitly so a future reader (human or agent) doesn't mistake it for
+an incomplete pass.
+
+Automated verification:
+
+- 180 Vitest/RTL tests (1 new - a chevron-rotation-direction test),
+  all passing.
+- `npx tsc --noEmit` clean.
+- `eslint` clean except the same 2 pre-existing unrelated `<img>`
+  warnings from Brew 44 (not touched this Brew).
+- `next build` clean.
+- 6/6 Playwright e2e tests passing (`--workers=1`) - a stale `next
+  start` process from an earlier manual verification run was still
+  listening on port 3100 and had to be killed before Playwright's own
+  `webServer` could bind it; not a code defect.
+- Asset budget: 14.9 KB / 300 KB (`node scripts/checkAssetBudget.mjs`),
+  comfortably under budget after the `scene_bg.svg`/`barista_static.svg`
+  rewrites and the chevron redraw.
+
+Chevron logic check: `SceneShell.tsx`'s existing `rotate-180`-on-collapse
+CSS class toggle was verified to need **zero code changes** - only the
+underlying `chevron_collapse.svg` artwork changed (vertical "v" to
+horizontal "<"), and the same rotation logic that used to flip
+down<->up now correctly flips left<->right, satisfying "points right
+(expand) or left (collapse)" for free. Confirmed via a new test
+asserting the `rotate-180` class is absent while expanded and present
+while collapsed.
+
+Honest coverage gap, same as Brew 44: no manual visual/screenshot check
+of the rendered scene was performed. No browser/screenshot tool was
+available in this session either, so the claims about the new vertical
+composition actually looking right (jars evenly stacked, barista
+centered, no visual overlap beyond what was caught via coordinate math)
+rest on the Playwright e2e suite's DOM/visibility assertions and the
+`object-contain` CSS already verified in Brew 44, not a human eyeball
+pass. Flagged explicitly in `brew-log/active_context.md`'s "Next
+actions" alongside Brew 44's identical gap.
+
+Cost and token evidence:
+
+- No remote Bean call anywhere in this Brew's implementation or
+  verification. `$0.00`, no Ledger rows generated.
+
+### 2026-07-15 - Brew 46: Conversation Memory Live Demo
+
+Scope: real, human-approved calls through the actual running Coffee
+Core Router against real OpenRouter, covering both new Brew 46
+features for the first time - cross-turn conversation history and
+attachment persistence, gated by the new `remember_chat` toggle. A
+single Bean was used throughout (House Blend) for functional
+verification of the memory mechanism itself, not a quality comparison
+across Beans - no scores are recorded here.
+
+Preconditions:
+
+- Full test suite green first: 412 `router/tests/` (47 new/changed -
+  15 in the new `test_history.py`, plus additive tests across
+  `test_classifier.py`, `test_openrouter_client.py`, `test_sessions.py`,
+  `test_main.py`; 410 passing, the same 2 pre-existing failures from an
+  external vision-Bean config commit unrelated to this Brew), 187
+  Vitest/RTL tests (7 new - `RememberChatToggle.test.tsx`). `tsc`,
+  `eslint`, `next build`, and 6/6 Playwright e2e all clean.
+- `OPENROUTER_API_KEY` already present in the shell environment; never
+  pasted into chat or written to a file.
+- A demo user (`demo46`) created directly via `hash_password()`/
+  `create_user()` (piped `getpass` still hangs on Windows, the same
+  finding from Brew 43's live demo) - removed afterward, along with its
+  session and messages, so no demo data was left in the real database.
+- Since `reportlab` is not installed in this environment, the demo PDF
+  was hand-crafted with raw PDF content-stream syntax rather than
+  generated by a library. `pypdf.PdfReader` was used directly first to
+  confirm it actually extracted the intended text ("The quarterly
+  revenue was $4.2 million and grew 12 percent year over year.") before
+  using it in the live demo - a minor xref warning was logged but
+  extraction succeeded correctly.
+
+Commands (router started fresh with current code):
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765
+```
+
+Driven via direct `curl` calls against the real router - the frontend
+toggle UI is covered by its own Vitest suite (optimistic update +
+rollback), so this demo focuses on proving the actual memory mechanism
+end to end against the real API contract.
+
+Observed behavior:
+
+- `POST /v1/upload` with the hand-crafted PDF returned
+  `extracted_text_chars: 74`, confirming the router's own extraction
+  pipeline (not just my standalone `pypdf` check) saw the same text.
+- `POST /v1/order` (toggle ON, the new-session default) with the
+  attachment correctly answered "the quarterly revenue was **$4.2
+  million**" - `complete` carried `history_turns: 1` (a real prior
+  attempt in the same session, from before the attachment_id was
+  correctly passed on the first try - a genuine mistake made and caught
+  live, not scripted around) and `history_tokens_est: 52`.
+- A genuine follow-up with **`attachment_ids: []`** (no re-upload) -
+  "And what was the year-over-year growth percentage mentioned in that
+  file?" - was correctly answered "**grew 12 percent year over year**"
+  purely from the reattached stored text, with `complete` carrying
+  `history_turns: 2`, `history_tokens_est: 121`. This is the core claim
+  of Brew 46 verified for real, not simulated: attachment content
+  survived past the request that uploaded it.
+- `PATCH /v1/sessions/{id}` with `{"remember_chat": false}` returned
+  `{"remember_chat": false}` immediately.
+- A further follow-up - "What was the revenue growth percentage
+  again?" - correctly got "I don't have access to our previous
+  conversation history or the specific data you're referring to" from
+  the model, and `complete` carried `history_turns: null`,
+  `history_tokens_est: null` (not a real `0` - the toggle-off
+  signature, distinguishable from "turn one").
+- The real `ledger/router_requests.csv` file was read directly
+  afterward: the toggle-OFF row shows `remember_chat=False`,
+  `history_turns=0`, `history_tokens_est=unknown` - matching the CSV's
+  existing "unknown means N/A, never a fabricated zero" convention,
+  and directly answering "what did Remember Chat cost me" from the
+  Ledger alone, as the original request asked for.
+
+Cost and token evidence:
+
+- Four real calls, all `$0.00` (free-tier Bean). Real token counts from
+  the Ledger: req-1 13 in/75 out, req-2 13 in/72 out, req-3 18 in/37
+  out, req-4 11 in/94 out.
+
+Cleanup: the demo user and its session/messages were removed directly
+from `router/data/sessions.db` afterward; `git status` confirmed
+`router/data/` stayed untracked/ignored throughout, and the
+hand-crafted demo PDF (scratchpad-only, never part of the repo) was
+deleted.

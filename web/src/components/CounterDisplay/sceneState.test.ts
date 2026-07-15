@@ -56,6 +56,8 @@ function eventOf(event: RouterEvent["event"]): RouterEvent {
         escalated: false,
         draft_quality: false,
         pantry_sources: null,
+        history_turns: null,
+        history_tokens_est: null,
       };
     case "error":
       return { event, request_id: REQUEST_ID, ts: TS, error_type: "provider_error", message: "x", retryable: true };

@@ -181,3 +181,22 @@ test("no token cookie redirects to /login, and a successful login redirects back
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("scene-caption")).toHaveText("Ready when you are");
 });
+
+test("the barista panel hides below the 1024px breakpoint, replaced by a text-only status line", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await page.goto("/");
+
+  await expect(page.getByTestId("scene-shell")).toBeHidden();
+  await expect(page.getByTestId("scene-mobile-status")).toBeVisible();
+  await expect(page.getByTestId("scene-caption-mobile")).toHaveText("Ready when you are");
+});
+
+test("the barista panel is visible at desktop widths, hiding the mobile fallback", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  await expect(page.getByTestId("scene-shell")).toBeVisible();
+  await expect(page.getByTestId("scene-mobile-status")).toBeHidden();
+});

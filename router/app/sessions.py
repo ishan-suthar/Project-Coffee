@@ -87,6 +87,21 @@ SESSIONS_NEW_COLUMNS = {
     "user_id": "INTEGER REFERENCES users(id)",
     "project_id": "INTEGER REFERENCES projects(id)",
     "deleted_at": "TEXT",
+    # Brew 46 (docs/design/conversation-memory-design.md Section 1): per-
+    # session, user-controlled conversation memory. DEFAULT 1 applies to
+    # every existing row the moment this column is added, satisfying
+    # "a session created before this migration defaults to TRUE" with no
+    # separate backfill step.
+    "remember_chat": "INTEGER NOT NULL DEFAULT 1",
+}
+
+# Brew 46 (docs/design/conversation-memory-design.md Section 3): extracted
+# attachment content (never raw image bytes - see the design doc's Open
+# Question 3 resolution), persisted alongside the user message it belongs
+# to so it survives past the request that uploaded it. Same incremental-
+# migration pattern as SESSIONS_NEW_COLUMNS, applied to `messages` instead.
+MESSAGES_NEW_COLUMNS = {
+    "attachments_json": "TEXT",
 }
 
 
@@ -116,6 +131,18 @@ class SessionSummary:
     updated_at: str
     cost_total_usd: float
     project_id: Optional[int] = None
+    remember_chat: bool = True
+
+
+@dataclass(frozen=True)
+class SessionRecord:
+    """A lighter-weight session lookup than SessionSummary - no cost-total
+    JOIN/aggregation, just enough for /v1/order to resolve remember_chat
+    server-side before assembling history (docs/design/
+    conversation-memory-design.md Section 1)."""
+
+    id: str
+    remember_chat: bool
 
 
 @dataclass(frozen=True)
@@ -134,6 +161,15 @@ class MessageRecord:
     draft_quality: Optional[bool]
     rating: Optional[str]
     created_at: str
+    # Brew 46: raw JSON text of persisted attachment content (None if this
+    # message had no attachments) - see attachments_json() below for the
+    # parsed form and has_attachments for the cheap boolean the frontend
+    # needs without shipping extracted text back over the wire.
+    attachments_json: Optional[str] = None
+
+    @property
+    def has_attachments(self) -> bool:
+        return self.attachments_json is not None
 
 
 @dataclass(frozen=True)
@@ -191,10 +227,15 @@ class SessionStore:
             self._migrate_schema(conn)
 
     def _migrate_schema(self, conn: sqlite3.Connection) -> None:
-        existing_cols = {row["name"] for row in conn.execute("PRAGMA table_info(sessions)").fetchall()}
-        for col_name, col_def in SESSIONS_NEW_COLUMNS.items():
+        self._migrate_table_columns(conn, "sessions", SESSIONS_NEW_COLUMNS)
+        self._migrate_table_columns(conn, "messages", MESSAGES_NEW_COLUMNS)
+
+    @staticmethod
+    def _migrate_table_columns(conn: sqlite3.Connection, table: str, new_columns: dict) -> None:
+        existing_cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        for col_name, col_def in new_columns.items():
             if col_name not in existing_cols:
-                conn.execute(f"ALTER TABLE sessions ADD COLUMN {col_name} {col_def}")
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}")
 
     # --- Sessions -----------------------------------------------------
 
@@ -255,6 +296,7 @@ class SessionStore:
             rows = conn.execute(
                 f"""
                 SELECT s.id, s.project, s.title, s.created_at, s.updated_at, s.project_id,
+                       s.remember_chat,
                        COALESCE(SUM(m.cost_usd), 0.0) AS cost_total_usd
                 FROM sessions s
                 LEFT JOIN messages m ON m.session_id = s.id
@@ -273,9 +315,50 @@ class SessionStore:
                 updated_at=row["updated_at"],
                 cost_total_usd=row["cost_total_usd"],
                 project_id=row["project_id"],
+                remember_chat=bool(row["remember_chat"]),
             )
             for row in rows
         ]
+
+    def get_session(self, session_id: str, *, user_id: Optional[int] = None) -> Optional[SessionRecord]:
+        """Brew 46 (docs/design/conversation-memory-design.md Section 1):
+        the single lookup /v1/order needs to both confirm the session
+        exists/is owned by user_id (replacing session_exists() at that
+        call site) and resolve remember_chat, in one query instead of
+        two. Returns None for a missing, soft-deleted, or
+        not-owned-by-user_id session - same "never distinguish these"
+        convention as session_exists()."""
+
+        clauses = ["id = ?", "deleted_at IS NULL"]
+        params: list = [session_id]
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        with self._connect() as conn:
+            row = conn.execute(
+                f"SELECT id, remember_chat FROM sessions WHERE {' AND '.join(clauses)}", params
+            ).fetchone()
+        if row is None:
+            return None
+        return SessionRecord(id=row["id"], remember_chat=bool(row["remember_chat"]))
+
+    def set_remember_chat(self, session_id: str, remember_chat: bool, *, user_id: Optional[int] = None) -> bool:
+        """PATCH /v1/sessions/{id}'s remember_chat field (Section 1) -
+        flipping this never deletes anything; OFF just stops history
+        assembly, ON resumes with whatever is already stored. Returns
+        True if a row was updated."""
+
+        where_clauses = ["id = ?", "deleted_at IS NULL"]
+        where_params: list = [session_id]
+        if user_id is not None:
+            where_clauses.append("user_id = ?")
+            where_params.append(user_id)
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"UPDATE sessions SET remember_chat = ? WHERE {' AND '.join(where_clauses)}",
+                [int(remember_chat), *where_params],
+            )
+            return cursor.rowcount > 0
 
     def get_messages(self, session_id: str) -> List[MessageRecord]:
         with self._connect() as conn:
@@ -311,6 +394,7 @@ class SessionStore:
         latency_ms: Optional[int] = None,
         escalated: Optional[bool] = None,
         draft_quality: Optional[bool] = None,
+        attachments_json: Optional[str] = None,
     ) -> str:
         message_id = str(uuid.uuid4())
         now = _iso_now()
@@ -320,8 +404,8 @@ class SessionStore:
                 INSERT INTO messages (
                     id, session_id, request_id, role, content, bean_alias,
                     task_type, complexity, cost_usd, latency_ms, escalated,
-                    draft_quality, rating, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+                    draft_quality, rating, created_at, attachments_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
                 """,
                 (
                     message_id,
@@ -337,6 +421,7 @@ class SessionStore:
                     None if escalated is None else int(escalated),
                     None if draft_quality is None else int(draft_quality),
                     now,
+                    attachments_json,
                 ),
             )
             conn.execute(
@@ -548,6 +633,7 @@ def _row_to_message(row: sqlite3.Row) -> MessageRecord:
         draft_quality=None if row["draft_quality"] is None else bool(row["draft_quality"]),
         rating=row["rating"],
         created_at=row["created_at"],
+        attachments_json=row["attachments_json"],
     )
 
 

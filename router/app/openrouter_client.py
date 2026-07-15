@@ -43,6 +43,7 @@ async def stream_order(
     timeout_seconds: int = 60,
     http_client: Optional[httpx.AsyncClient] = None,
     image_data_urls: Optional[List[str]] = None,
+    history_messages: Optional[List[Dict[str, str]]] = None,
 ) -> AsyncIterator[StreamChunk]:
     """Stream one prompt to one OpenRouter model.
 
@@ -59,6 +60,13 @@ async def stream_order(
     array form; when absent (every non-image request, and every call
     before Brew 38), content stays the plain string - fully backward
     compatible.
+
+    history_messages (Brew 46): oldest-first {"role", "content"} dicts
+    prepended before the final (current) message, built by
+    router/app/history.py only when the session's remember_chat is true.
+    None (the default, and every call before Brew 46) sends exactly the
+    single-message payload as before - see docs/design/
+    conversation-memory-design.md.
     """
 
     resolved_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
@@ -71,9 +79,12 @@ async def stream_order(
             {"type": "image_url", "image_url": {"url": url}} for url in image_data_urls
         ]
 
+    messages: List[Dict[str, Any]] = list(history_messages or [])
+    messages.append({"role": "user", "content": content})
+
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": content}],
+        "messages": messages,
         "stream": True,
         "usage": {"include": True},
     }

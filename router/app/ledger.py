@@ -39,6 +39,11 @@ CSV_HEADER = [
     "rating",
     "attachment_count",
     "attachment_tokens_est",
+    # Brew 46 (docs/design/conversation-memory-design.md Section 4): makes
+    # "what did Remember Chat cost me" answerable from the Ledger alone.
+    "remember_chat",
+    "history_turns",
+    "history_tokens_est",
 ]
 
 
@@ -58,6 +63,9 @@ class LedgerRow:
     rating: str = ""
     attachment_count: int = 0
     attachment_tokens_est: Optional[int] = None  # None means "unknown" (e.g. image tokens)
+    remember_chat: bool = False
+    history_turns: int = 0
+    history_tokens_est: Optional[int] = None  # None means remember_chat was false (not a real 0)
 
     def to_csv_values(self) -> list:
         return [
@@ -75,6 +83,9 @@ class LedgerRow:
             self.rating,
             self.attachment_count,
             _unknown_if_none(self.attachment_tokens_est),
+            self.remember_chat,
+            self.history_turns,
+            _unknown_if_none(self.history_tokens_est),
         ]
 
 

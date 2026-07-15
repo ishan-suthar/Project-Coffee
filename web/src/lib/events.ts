@@ -71,6 +71,13 @@ export interface CompleteEvent extends BaseEvent {
   // context - not a model self-report. null when the request didn't set
   // use_pantry, or no chunks matched - never an empty-but-claimed array.
   pantry_sources: string[] | null;
+  // Added in contract v1.5 (Brew 46): how much conversation history rode
+  // along on this request. Both null when the session's remember_chat
+  // was false - deliberately not 0, so the UI can tell "toggle is off"
+  // apart from "toggle is on but this was turn one" (a real 0). See
+  // docs/design/conversation-memory-design.md Section 4.
+  history_turns: number | null;
+  history_tokens_est: number | null;
 }
 
 export interface ErrorEvent extends BaseEvent {
@@ -126,6 +133,10 @@ export interface SessionSummary {
   created_at: string;
   updated_at: string;
   cost_total_usd: number;
+  // Brew 46 (docs/design/conversation-memory-design.md Section 1):
+  // per-session, user-controlled conversation memory. Defaults true for
+  // every new session.
+  remember_chat: boolean;
 }
 
 export interface StoredMessage {
@@ -142,6 +153,11 @@ export interface StoredMessage {
   draft_quality: boolean | null;
   rating: Rating | null;
   created_at: string;
+  // Brew 46: cheap boolean only - the router doesn't ship extracted
+  // attachment text back over this endpoint, just whether this message
+  // had one, so the "Turn on Remember chat to ask follow-ups about your
+  // attachments" hint can detect the case without a heavier payload.
+  has_attachments: boolean;
 }
 
 export type Rating = "good" | "needed_fixing" | "failed";

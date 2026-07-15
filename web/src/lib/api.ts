@@ -171,6 +171,17 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await deleteRequest(`/v1/sessions/${sessionId}`);
 }
 
+/** PATCH /v1/sessions/{id} (Brew 46) - flips the session's remember_chat
+ * toggle. Never deletes anything; OFF just stops history assembly on the
+ * *next* request, ON resumes with whatever is already stored. See
+ * docs/design/conversation-memory-design.md Section 1. */
+export async function setRememberChat(
+  sessionId: string,
+  rememberChat: boolean
+): Promise<{ id: string; remember_chat: boolean }> {
+  return patchJSON(`/v1/sessions/${sessionId}`, { remember_chat: rememberChat });
+}
+
 export interface ProjectSummary {
   id: number;
   name: string;

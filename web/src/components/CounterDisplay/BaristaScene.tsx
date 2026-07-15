@@ -110,7 +110,7 @@ export function BaristaScene({ sceneState, jarBooleans, machine, reducedMotion, 
   const showRive = !reducedMotion && loadState === "loaded";
 
   return (
-    <div data-testid="barista-scene" className="relative h-32 w-full overflow-hidden">
+    <div data-testid="barista-scene" className="relative h-full w-full overflow-hidden">
       {showRive ? (
         <RiveComponent data-testid="barista-scene-rive" className="h-full w-full" />
       ) : (

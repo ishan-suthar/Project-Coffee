@@ -198,7 +198,7 @@ export function OrderBox() {
 
   return (
     <div
-      className="border-t border-caramel bg-latte p-3"
+      className="border-t border-caramel bg-latte p-3 shadow-inner"
       data-testid="order-box"
       onDragOver={handleDragOver}
       onDrop={handleDrop}

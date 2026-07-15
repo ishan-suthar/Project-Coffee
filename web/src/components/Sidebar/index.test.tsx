@@ -35,6 +35,7 @@ describe("Sidebar - Close out this session", () => {
           created_at: "2026-07-14T00:00:00Z",
           updated_at: "2026-07-14T00:00:00Z",
           cost_total_usd: 0,
+          remember_chat: true,
         },
       ],
       sessionsLoaded: true,

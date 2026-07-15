@@ -17,11 +17,11 @@ export function MessageHeader({ message }: MessageHeaderProps) {
   const [escalationExpanded, setEscalationExpanded] = useState(false);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="message-header">
+    <div className="flex flex-nowrap items-center gap-2 text-[11px]" data-testid="message-header">
       {message.beanAlias && (
         <span
           data-testid="bean-alias-badge"
-          className="rounded-full border border-caramel bg-latte px-2 py-0.5 font-mono tabular-nums text-espresso"
+          className="rounded-full border border-caramel bg-latte px-2 py-0.5 font-mono tabular-nums text-medium-roast"
         >
           {message.beanAlias}
         </span>
