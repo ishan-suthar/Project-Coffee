@@ -24,12 +24,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from router.app.aliases import BeanRegistry
+from router.app.auth import InvalidCredentialsError, get_current_user, login as auth_login
 from router.app.classifier import Attachment as ClassifierAttachment
 from router.app.classifier import classify
 from router.app.config import Settings, assert_no_key_like_strings, load_router_config_paths
@@ -72,7 +73,13 @@ from router.app.pantry import (
 from router.app.pantry import connect as pantry_connect
 from router.app.preferences import PreferenceStore
 from router.app.routing import DEFAULT_ROUTING_POLICY_PATH, NoVisionBeanError, RoutingError, RoutingPolicy
-from router.app.sessions import SessionStore
+from router.app.sessions import (
+    TITLE_MAX_CHARS,
+    ProjectRecord,
+    SessionStore,
+    UserRecord,
+    UsernameTakenError,
+)
 from router.app.uploads import (
     DEFAULT_UPLOADS_ROOT,
     PdfExtractionError,
@@ -952,11 +959,34 @@ class CancelRequest(BaseModel):
 
 class CreateSessionRequest(BaseModel):
     project: str = DEFAULT_PROJECT
+    # Brew 43 (docs/design/auth-projects-chat-management-design.md
+    # Section 4.1): the real projects table's id. None means "default"
+    # (no project) - the old free-form `project` string above is kept
+    # only for the pre-Brew-43 SessionStore call shape, never read by
+    # the new project system.
+    project_id: Optional[int] = None
 
 
 class SetPreferenceRequest(BaseModel):
     key: str
     value: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class CreateProjectRequest(BaseModel):
+    name: str
+
+
+class RenameProjectRequest(BaseModel):
+    name: str
+
+
+class RenameSessionRequest(BaseModel):
+    title: str
 
 
 VALID_RATINGS = {"good", "needed_fixing", "failed"}
@@ -988,16 +1018,47 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000"],
-        allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
+    @app.post("/v1/login")
+    async def login_endpoint(body: LoginRequest):
+        """Brew 43 (docs/design/auth-projects-chat-management-design.md
+        Section 3.1). The only unauthenticated /v1/* endpoint - every
+        other endpoint requires Depends(get_current_user). Never reveals
+        whether a wrong username or a wrong password caused the
+        failure."""
+
+        state = app.state.coffee
+        try:
+            token, user = auth_login(state.session_store, body.username, body.password)
+        except InvalidCredentialsError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        return {
+            "token": token,
+            "user": {"id": user.id, "username": user.username, "display_name": user.display_name},
+        }
+
+    @app.post("/v1/logout")
+    async def logout_endpoint(
+        authorization: Optional[str] = Header(default=None),
+        current_user: UserRecord = Depends(get_current_user),
+    ):
+        state = app.state.coffee
+        # get_current_user already validated this header is well-formed
+        # and the token is live - re-parsing here just to know which
+        # token row to delete.
+        token = authorization[len("Bearer "):]
+        state.session_store.delete_token(token)
+        return {"status": "logged_out"}
+
     @app.post("/v1/order")
-    async def order(body: OrderRequest):
+    async def order(body: OrderRequest, current_user: UserRecord = Depends(get_current_user)):
         state = app.state.coffee
         store = state.session_store
         if body.session_id is not None and store is not None and not store.session_exists(
-            body.session_id
+            body.session_id, user_id=current_user.id
         ):
             raise HTTPException(status_code=404, detail="Unknown session_id.")
         if body.request_id is not None and body.request_id in state.cancel_flags:
@@ -1040,7 +1101,11 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         )
 
     @app.post("/v1/upload", response_model=UploadResponse)
-    async def upload(request_id: str = Form(...), file: UploadFile = File(...)):
+    async def upload(
+        request_id: str = Form(...),
+        file: UploadFile = File(...),
+        current_user: UserRecord = Depends(get_current_user),
+    ):
         state = app.state.coffee
         sweep_stale_uploads(uploads_root=state.uploads_root, ttl_seconds=state.settings.upload_ttl_seconds)
 
@@ -1095,7 +1160,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         )
 
     @app.post("/v1/retry")
-    async def retry(body: RetryRequest):
+    async def retry(body: RetryRequest, current_user: UserRecord = Depends(get_current_user)):
         record = app.state.coffee.request_records.get(body.request_id)
         if record is None:
             raise HTTPException(status_code=404, detail="Unknown request_id.")
@@ -1131,7 +1196,9 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return StreamingResponse(sse_stream(_retry_events()), media_type="text/event-stream")
 
     @app.post("/v1/approve_escalation")
-    async def approve_escalation(body: ApproveEscalationRequest):
+    async def approve_escalation(
+        body: ApproveEscalationRequest, current_user: UserRecord = Depends(get_current_user)
+    ):
         state = app.state.coffee
         context = state.pending_escalation_context.get(body.request_id)
         if context is None:
@@ -1160,10 +1227,12 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"request_id": body.request_id, "approve": body.approve, "status": "acknowledged"}
 
     @app.get("/v1/sessions/{session_id}/pending_escalation")
-    async def get_pending_escalation(session_id: str):
+    async def get_pending_escalation(
+        session_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         state = app.state.coffee
         store = state.session_store
-        if store is not None and not store.session_exists(session_id):
+        if store is not None and not store.session_exists(session_id, user_id=current_user.id):
             raise HTTPException(status_code=404, detail="Unknown session_id.")
 
         for context in state.pending_escalation_context.values():
@@ -1179,7 +1248,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         raise HTTPException(status_code=404, detail="No pending escalation for this session_id.")
 
     @app.post("/v1/cancel")
-    async def cancel(body: CancelRequest):
+    async def cancel(body: CancelRequest, current_user: UserRecord = Depends(get_current_user)):
         cancel_event = app.state.coffee.cancel_flags.get(body.request_id)
         if cancel_event is None:
             raise HTTPException(
@@ -1189,7 +1258,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"request_id": body.request_id, "status": "cancel_requested"}
 
     @app.post("/v1/rate")
-    async def rate(body: RateRequest):
+    async def rate(body: RateRequest, current_user: UserRecord = Depends(get_current_user)):
         if body.rating not in VALID_RATINGS:
             raise HTTPException(
                 status_code=422,
@@ -1205,14 +1274,14 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"request_id": body.request_id, "rating": body.rating, "status": "recorded"}
 
     @app.get("/v1/beans")
-    async def beans():
+    async def beans(current_user: UserRecord = Depends(get_current_user)):
         return [
             {"alias": bean.alias, "role": bean.role, "available": bean.is_available}
             for bean in app.state.coffee.bean_registry.all_beans()
         ]
 
     @app.get("/v1/pantry/file")
-    async def pantry_file(path: str):
+    async def pantry_file(path: str, current_user: UserRecord = Depends(get_current_user)):
         """Serves raw file content for the citation chip file viewer
         (docs/design/memory-and-pantry-design.md Section 4.3). Read-only,
         scoped to knowledge/ only via resolve_pantry_file_path() - never
@@ -1229,14 +1298,16 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"path": path, "content": content}
 
     @app.get("/v1/preferences")
-    async def get_preferences():
+    async def get_preferences(current_user: UserRecord = Depends(get_current_user)):
         store = app.state.coffee.preference_store
         if store is None:
             raise HTTPException(status_code=503, detail="Preference storage is not configured.")
         return store.get_all()
 
     @app.post("/v1/preferences")
-    async def set_preference(body: SetPreferenceRequest):
+    async def set_preference(
+        body: SetPreferenceRequest, current_user: UserRecord = Depends(get_current_user)
+    ):
         store = app.state.coffee.preference_store
         if store is None:
             raise HTTPException(status_code=503, detail="Preference storage is not configured.")
@@ -1244,36 +1315,61 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"key": body.key, "value": body.value, "status": "saved"}
 
     @app.post("/v1/sessions")
-    async def create_session(body: CreateSessionRequest):
+    async def create_session(
+        body: CreateSessionRequest, current_user: UserRecord = Depends(get_current_user)
+    ):
         store = app.state.coffee.session_store
         if store is None:
             raise HTTPException(status_code=503, detail="Session storage is not configured.")
-        session_id = store.create_session(body.project)
-        return {"id": session_id, "project": body.project}
+        if body.project_id is not None and store.get_project(body.project_id, user_id=current_user.id) is None:
+            raise HTTPException(status_code=404, detail="Unknown project_id.")
+        session_id = store.create_session(body.project, user_id=current_user.id, project_id=body.project_id)
+        return {"id": session_id, "project": body.project, "project_id": body.project_id}
 
     @app.get("/v1/sessions")
-    async def list_sessions(project: str = DEFAULT_PROJECT):
+    async def list_sessions(
+        project_id: Optional[str] = None, current_user: UserRecord = Depends(get_current_user)
+    ):
+        """Brew 43 (docs/design/auth-projects-chat-management-design.md
+        Section 4.1): project_id is a query string, not an int, so it can
+        carry the literal sentinel "all" ("All chats") alongside a real
+        numeric id; omitted or "default" means project_id IS NULL."""
+
         store = app.state.coffee.session_store
         if store is None:
             raise HTTPException(status_code=503, detail="Session storage is not configured.")
+
+        all_projects = project_id == "all"
+        real_project_id: Optional[int] = None
+        if not all_projects and project_id not in (None, "default"):
+            try:
+                real_project_id = int(project_id)
+            except ValueError:
+                raise HTTPException(status_code=422, detail="project_id must be an integer, 'default', or 'all'.")
+
         return [
             {
                 "id": s.id,
                 "project": s.project,
+                "project_id": s.project_id,
                 "title": s.title,
                 "created_at": s.created_at,
                 "updated_at": s.updated_at,
                 "cost_total_usd": s.cost_total_usd,
             }
-            for s in store.list_sessions(project)
+            for s in store.list_sessions(
+                user_id=current_user.id, project_id=real_project_id, all_projects=all_projects
+            )
         ]
 
     @app.get("/v1/sessions/{session_id}/messages")
-    async def session_messages(session_id: str):
+    async def session_messages(
+        session_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         store = app.state.coffee.session_store
         if store is None:
             raise HTTPException(status_code=503, detail="Session storage is not configured.")
-        if not store.session_exists(session_id):
+        if not store.session_exists(session_id, user_id=current_user.id):
             raise HTTPException(status_code=404, detail="Unknown session_id.")
         return [
             {
@@ -1294,8 +1390,40 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
             for m in store.get_messages(session_id)
         ]
 
+    @app.patch("/v1/sessions/{session_id}")
+    async def rename_session(
+        session_id: str,
+        body: RenameSessionRequest,
+        current_user: UserRecord = Depends(get_current_user),
+    ):
+        """Brew 43 (docs/design/auth-projects-chat-management-design.md
+        Section 5.1): an explicit human rename - always overwrites the
+        title, unlike set_title_if_default()'s first-message auto-title,
+        which deliberately never does."""
+
+        store = app.state.coffee.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        if not store.rename_session(session_id, body.title, user_id=current_user.id):
+            raise HTTPException(status_code=404, detail="Unknown session_id.")
+        return {"id": session_id, "title": body.title[:TITLE_MAX_CHARS]}
+
+    @app.delete("/v1/sessions/{session_id}")
+    async def delete_session(session_id: str, current_user: UserRecord = Depends(get_current_user)):
+        """Soft delete (Section 5.1) - sets deleted_at, excluded from
+        every existing query rather than physically removed."""
+
+        store = app.state.coffee.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        if not store.soft_delete_session(session_id, user_id=current_user.id):
+            raise HTTPException(status_code=404, detail="Unknown session_id.")
+        return {"id": session_id, "status": "deleted"}
+
     @app.post("/v1/sessions/{session_id}/memory_proposal")
-    async def create_memory_proposal(session_id: str):
+    async def create_memory_proposal(
+        session_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         """Brew 41 (docs/design/memory-and-pantry-design.md Section 3.1):
         a plain blocking request/response, not SSE - one bounded model
         call, no multi-minute human-wait phase to justify Brew 40's
@@ -1307,7 +1435,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         store = state.session_store
         if store is None:
             raise HTTPException(status_code=503, detail="Session storage is not configured.")
-        if not store.session_exists(session_id):
+        if not store.session_exists(session_id, user_id=current_user.id):
             raise HTTPException(status_code=404, detail="Unknown session_id.")
 
         try:
@@ -1333,7 +1461,9 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         }
 
     @app.post("/v1/memory_proposals/{proposal_id}/approve")
-    async def approve_memory_proposal_endpoint(proposal_id: str):
+    async def approve_memory_proposal_endpoint(
+        proposal_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         state = app.state.coffee
         proposal = state.memory_proposals.get(proposal_id)
         if proposal is None:
@@ -1363,7 +1493,9 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"proposal_id": proposal_id, "status": "approved"}
 
     @app.post("/v1/memory_proposals/{proposal_id}/discard")
-    async def discard_memory_proposal_endpoint(proposal_id: str):
+    async def discard_memory_proposal_endpoint(
+        proposal_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         state = app.state.coffee
         if proposal_id not in state.memory_proposals:
             raise HTTPException(status_code=404, detail="Unknown proposal_id.")
@@ -1371,7 +1503,7 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"proposal_id": proposal_id, "status": "discarded"}
 
     @app.post("/v1/policy/rebuild_preview")
-    async def policy_rebuild_preview():
+    async def policy_rebuild_preview(current_user: UserRecord = Depends(get_current_user)):
         """Brew 42 (docs/design/learning-loop-and-release-design.md
         Section 3.2): computes a proposed router/config/routing_policy.yaml
         rebuild (Roastery Cup Test evidence blended with real accumulated
@@ -1429,7 +1561,9 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         }
 
     @app.post("/v1/policy/rebuild_apply/{proposal_id}")
-    async def policy_rebuild_apply(proposal_id: str):
+    async def policy_rebuild_apply(
+        proposal_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         state = app.state.coffee
         proposal = state.policy_rebuild_proposals.get(proposal_id)
         if proposal is None:
@@ -1461,12 +1595,67 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         return {"proposal_id": proposal_id, "status": "applied"}
 
     @app.post("/v1/policy/rebuild_discard/{proposal_id}")
-    async def policy_rebuild_discard(proposal_id: str):
+    async def policy_rebuild_discard(
+        proposal_id: str, current_user: UserRecord = Depends(get_current_user)
+    ):
         state = app.state.coffee
         if proposal_id not in state.policy_rebuild_proposals:
             raise HTTPException(status_code=404, detail="Unknown proposal_id.")
         state.policy_rebuild_proposals.pop(proposal_id, None)
         return {"proposal_id": proposal_id, "status": "discarded"}
+
+    @app.post("/v1/projects")
+    async def create_project(
+        body: CreateProjectRequest, current_user: UserRecord = Depends(get_current_user)
+    ):
+        store = app.state.coffee.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        project = store.create_project(current_user.id, body.name)
+        return {
+            "id": project.id,
+            "name": project.name,
+            "created_at": project.created_at,
+            "updated_at": project.updated_at,
+        }
+
+    @app.get("/v1/projects")
+    async def list_projects(current_user: UserRecord = Depends(get_current_user)):
+        store = app.state.coffee.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        return [
+            {"id": p.id, "name": p.name, "created_at": p.created_at, "updated_at": p.updated_at}
+            for p in store.list_projects(current_user.id)
+        ]
+
+    @app.patch("/v1/projects/{project_id}")
+    async def rename_project(
+        project_id: int,
+        body: RenameProjectRequest,
+        current_user: UserRecord = Depends(get_current_user),
+    ):
+        store = app.state.coffee.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        if not store.rename_project(project_id, body.name, user_id=current_user.id):
+            raise HTTPException(status_code=404, detail="Unknown project_id.")
+        return {"id": project_id, "name": body.name}
+
+    @app.delete("/v1/projects/{project_id}")
+    async def delete_project(
+        project_id: int, current_user: UserRecord = Depends(get_current_user)
+    ):
+        """Deletes the project and moves its sessions to project_id NULL
+        ("default") - never deletes the sessions themselves (docs/design/
+        auth-projects-chat-management-design.md Section 4.1)."""
+
+        store = app.state.coffee.session_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Session storage is not configured.")
+        if not store.delete_project(project_id, user_id=current_user.id):
+            raise HTTPException(status_code=404, detail="Unknown project_id.")
+        return {"id": project_id, "status": "deleted"}
 
     return app
 

@@ -116,6 +116,12 @@ export interface Bean {
 export interface SessionSummary {
   id: string;
   project: string;
+  // Brew 43 (docs/design/auth-projects-chat-management-design.md
+  // Section 4.1): the real projects table's id. null means "default"
+  // (no project) - the legacy `project` string above is no longer a
+  // real scoping mechanism on the client, kept only because the router
+  // still returns it.
+  project_id: number | null;
   title: string;
   created_at: string;
   updated_at: string;

@@ -1,8 +1,9 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from router.app.sessions import SessionStore
+from router.app.sessions import SessionStore, UsernameTakenError
 
 
 class SessionStoreTests(unittest.TestCase):
@@ -143,6 +144,158 @@ class SessionStoreTests(unittest.TestCase):
         sessions = self.store.list_sessions("project-a")
         self.assertEqual(sessions[0].id, first)
         self.assertEqual(sessions[1].id, second)
+
+
+class UserAndTokenTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+
+    def test_create_user_and_get_by_username(self):
+        user_id = self.store.create_user("alice", "hashed-password", "Alice")
+        user = self.store.get_user_by_username("alice")
+        self.assertEqual(user.id, user_id)
+        self.assertEqual(user.display_name, "Alice")
+
+    def test_create_user_duplicate_username_raises(self):
+        self.store.create_user("alice", "hash1", "Alice")
+        with self.assertRaises(UsernameTakenError):
+            self.store.create_user("alice", "hash2", "Alice Again")
+
+    def test_get_user_by_username_unknown_returns_none(self):
+        self.assertIsNone(self.store.get_user_by_username("nobody"))
+
+    def test_delete_user_removes_and_returns_true(self):
+        self.store.create_user("alice", "hash", "Alice")
+        self.assertTrue(self.store.delete_user("alice"))
+        self.assertIsNone(self.store.get_user_by_username("alice"))
+
+    def test_delete_user_unknown_returns_false(self):
+        self.assertFalse(self.store.delete_user("nobody"))
+
+    def test_list_users_ordered_by_created_at(self):
+        self.store.create_user("alice", "hash", "Alice")
+        self.store.create_user("bob", "hash", "Bob")
+        usernames = [u.username for u in self.store.list_users()]
+        self.assertEqual(usernames, ["alice", "bob"])
+
+    def test_token_round_trips_to_user(self):
+        user_id = self.store.create_user("alice", "hash", "Alice")
+        future = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+        self.store.create_token("tok-1", user_id, future)
+        user = self.store.get_user_for_token("tok-1")
+        self.assertEqual(user.username, "alice")
+
+    def test_expired_token_returns_none(self):
+        user_id = self.store.create_user("alice", "hash", "Alice")
+        past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        self.store.create_token("tok-expired", user_id, past)
+        self.assertIsNone(self.store.get_user_for_token("tok-expired"))
+
+
+class ProjectTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.alice_id = self.store.create_user("alice", "hash", "Alice")
+        self.bob_id = self.store.create_user("bob", "hash", "Bob")
+
+    def test_create_and_list_projects(self):
+        self.store.create_project(self.alice_id, "Recipes")
+        projects = self.store.list_projects(self.alice_id)
+        self.assertEqual(len(projects), 1)
+        self.assertEqual(projects[0].name, "Recipes")
+
+    def test_projects_scoped_by_user(self):
+        self.store.create_project(self.alice_id, "Alice's project")
+        self.store.create_project(self.bob_id, "Bob's project")
+        self.assertEqual(len(self.store.list_projects(self.alice_id)), 1)
+        self.assertEqual(len(self.store.list_projects(self.bob_id)), 1)
+
+    def test_rename_project(self):
+        project = self.store.create_project(self.alice_id, "Old name")
+        self.assertTrue(self.store.rename_project(project.id, "New name", user_id=self.alice_id))
+        self.assertEqual(self.store.get_project(project.id).name, "New name")
+
+    def test_rename_project_wrong_user_fails(self):
+        project = self.store.create_project(self.alice_id, "Alice's project")
+        self.assertFalse(self.store.rename_project(project.id, "Hijacked", user_id=self.bob_id))
+        self.assertEqual(self.store.get_project(project.id).name, "Alice's project")
+
+    def test_delete_project_moves_sessions_to_default_not_deleting_them(self):
+        project = self.store.create_project(self.alice_id, "Temp project")
+        session_id = self.store.create_session(user_id=self.alice_id, project_id=project.id)
+
+        self.assertTrue(self.store.delete_project(project.id, user_id=self.alice_id))
+
+        self.assertIsNone(self.store.get_project(project.id))
+        # The session still exists and is now unscoped ("default").
+        default_sessions = self.store.list_sessions(user_id=self.alice_id, project_id=None)
+        self.assertEqual({s.id for s in default_sessions}, {session_id})
+
+    def test_delete_project_wrong_user_fails_and_keeps_sessions_scoped(self):
+        project = self.store.create_project(self.alice_id, "Alice's project")
+        session_id = self.store.create_session(user_id=self.alice_id, project_id=project.id)
+
+        self.assertFalse(self.store.delete_project(project.id, user_id=self.bob_id))
+
+        scoped_sessions = self.store.list_sessions(user_id=self.alice_id, project_id=project.id)
+        self.assertEqual({s.id for s in scoped_sessions}, {session_id})
+
+    def test_list_sessions_all_projects_ignores_project_filter(self):
+        default_session = self.store.create_session(user_id=self.alice_id)
+        project = self.store.create_project(self.alice_id, "A project")
+        project_session = self.store.create_session(user_id=self.alice_id, project_id=project.id)
+
+        all_sessions = self.store.list_sessions(user_id=self.alice_id, all_projects=True)
+        self.assertEqual({s.id for s in all_sessions}, {default_session, project_session})
+
+
+class ChatManagementTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.alice_id = self.store.create_user("alice", "hash", "Alice")
+        self.bob_id = self.store.create_user("bob", "hash", "Bob")
+
+    def test_rename_session_overwrites_even_a_non_default_title(self):
+        """Unlike set_title_if_default(), an explicit rename always
+        overwrites - docs/design/auth-projects-chat-management-design.md
+        Section 5.1."""
+
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.store.set_title_if_default(session_id, "Auto title from first message")
+        self.assertTrue(self.store.rename_session(session_id, "Explicit rename", user_id=self.alice_id))
+        self.assertEqual(self.store.list_sessions(user_id=self.alice_id)[0].title, "Explicit rename")
+
+    def test_rename_session_wrong_user_fails(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertFalse(self.store.rename_session(session_id, "Hijacked", user_id=self.bob_id))
+
+    def test_soft_delete_excludes_from_list_and_exists(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertTrue(self.store.soft_delete_session(session_id, user_id=self.alice_id))
+
+        self.assertEqual(self.store.list_sessions(user_id=self.alice_id), [])
+        self.assertFalse(self.store.session_exists(session_id, user_id=self.alice_id))
+
+    def test_soft_delete_does_not_remove_the_row_or_its_messages(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.store.add_message(session_id, request_id="r1", role="user", content="Hello")
+        self.store.soft_delete_session(session_id, user_id=self.alice_id)
+
+        # get_messages() has no deleted_at filter - the row and its
+        # messages still physically exist, just excluded from listing/
+        # existence checks.
+        self.assertEqual(len(self.store.get_messages(session_id)), 1)
+
+    def test_soft_delete_wrong_user_fails(self):
+        session_id = self.store.create_session(user_id=self.alice_id)
+        self.assertFalse(self.store.soft_delete_session(session_id, user_id=self.bob_id))
+        self.assertTrue(self.store.session_exists(session_id, user_id=self.alice_id))
 
 
 if __name__ == "__main__":

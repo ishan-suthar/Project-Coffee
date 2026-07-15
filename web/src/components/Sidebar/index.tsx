@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useChatStore } from "@/store/chatStore";
 import { formatRelativeTime } from "@/lib/relativeTime";
 import { SessionMenu } from "@/components/Sidebar/SessionMenu";
+import { ProjectSelector } from "@/components/Sidebar/ProjectSelector";
 import { MemoryProposalPanel } from "@/components/MemoryProposal/MemoryProposalPanel";
 import { SettingsPanel } from "@/components/Settings/SettingsPanel";
+import * as api from "@/lib/api";
+import { getStoredUser } from "@/lib/authFetch";
 
 /**
  * Sessions grouped by project, collapsible to an icon rail. Fetched AFTER
@@ -16,16 +20,21 @@ import { SettingsPanel } from "@/components/Settings/SettingsPanel";
  * session data.
  */
 export function Sidebar() {
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [closeOutSessionId, setCloseOutSessionId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const sessions = useChatStore((s) => s.sessions);
   const sessionsLoaded = useChatStore((s) => s.sessionsLoaded);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
-  const project = useChatStore((s) => s.project);
   const loadSessions = useChatStore((s) => s.loadSessions);
   const selectSession = useChatStore((s) => s.selectSession);
   const startNewSession = useChatStore((s) => s.startNewSession);
+  const renameSession = useChatStore((s) => s.renameSession);
+  const deleteSession = useChatStore((s) => s.deleteSession);
 
   useEffect(() => {
     // One-shot read of a UI preference on mount, not a synchronization
@@ -34,6 +43,7 @@ export function Sidebar() {
     const stored = window.localStorage.getItem("coffee-counter-sidebar-collapsed");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored === "true") setCollapsed(true);
+    setDisplayName(getStoredUser()?.display_name ?? null);
   }, []);
 
   useEffect(() => {
@@ -49,6 +59,23 @@ export function Sidebar() {
       window.localStorage.setItem("coffee-counter-sidebar-collapsed", String(next));
       return next;
     });
+  }
+
+  async function handleSignOut() {
+    await api.logout();
+    router.push("/login");
+  }
+
+  function startRename(sessionId: string, currentTitle: string) {
+    setRenamingSessionId(sessionId);
+    setRenameValue(currentTitle);
+  }
+
+  function commitRename() {
+    if (renamingSessionId === null) return;
+    const title = renameValue.trim();
+    if (title.length > 0) renameSession(renamingSessionId, title);
+    setRenamingSessionId(null);
   }
 
   if (collapsed) {
@@ -69,7 +96,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-64 flex-col border-r border-caramel bg-latte">
       <div className="flex items-center justify-between border-b border-caramel px-3 py-2">
-        <span className="text-sm font-medium text-espresso">{project}</span>
+        <ProjectSelector />
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -111,20 +138,53 @@ export function Sidebar() {
               session.id === activeSessionId ? "bg-crema-amber/20" : "hover:bg-cream"
             }`}
           >
-            <button
-              type="button"
-              onClick={() => selectSession(session.id)}
-              className="flex min-w-0 flex-1 flex-col px-2 py-2 text-left"
-            >
-              <span className="truncate text-sm text-espresso">{session.title}</span>
-              <span className="flex items-center justify-between text-xs text-medium-roast">
-                <span>{formatRelativeTime(session.updated_at)}</span>
-                <span className="font-mono tabular-nums">${session.cost_total_usd.toFixed(4)}</span>
-              </span>
-            </button>
-            <SessionMenu onCloseOutSession={() => setCloseOutSessionId(session.id)} />
+            {renamingSessionId === session.id ? (
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") setRenamingSessionId(null);
+                }}
+                data-testid="session-rename-input"
+                className="min-w-0 flex-1 rounded border border-caramel bg-cream px-2 py-2 text-sm text-espresso outline-none"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => selectSession(session.id)}
+                className="flex min-w-0 flex-1 flex-col px-2 py-2 text-left"
+              >
+                <span className="truncate text-sm text-espresso">{session.title}</span>
+                <span className="flex items-center justify-between text-xs text-medium-roast">
+                  <span>{formatRelativeTime(session.updated_at)}</span>
+                  <span className="font-mono tabular-nums">${session.cost_total_usd.toFixed(4)}</span>
+                </span>
+              </button>
+            )}
+            <SessionMenu
+              onCloseOutSession={() => setCloseOutSessionId(session.id)}
+              onRename={() => startRename(session.id, session.title)}
+              onDelete={() => deleteSession(session.id)}
+            />
           </div>
         ))}
+      </div>
+
+      <div className="flex items-center justify-between border-t border-caramel px-3 py-2">
+        <span className="truncate text-xs text-medium-roast" data-testid="signed-in-as">
+          {displayName ?? ""}
+        </span>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          data-testid="sign-out-button"
+          className="rounded border border-caramel px-2 py-1 text-xs text-medium-roast transition hover:bg-cream"
+        >
+          Sign out
+        </button>
       </div>
 
       {closeOutSessionId && (

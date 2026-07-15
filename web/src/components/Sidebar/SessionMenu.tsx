@@ -4,16 +4,25 @@ import { useState } from "react";
 
 interface SessionMenuProps {
   onCloseOutSession: () => void;
+  onRename: () => void;
+  onDelete: () => void;
 }
 
-/** Per-session "..." menu (Brew 41) - the first per-session action of its
- * kind, so this is a new small affordance rather than an extension of
- * the existing plain session button (docs/design/
- * memory-and-pantry-design.md Section 2, Gap 3). Stops click propagation
- * so opening the menu (or clicking an item in it) never also selects the
- * session underneath it. */
-export function SessionMenu({ onCloseOutSession }: SessionMenuProps) {
+/** Per-session "..." menu (Brew 41, extended Brew 43 with Rename/Delete -
+ * docs/design/auth-projects-chat-management-design.md Section 5.2).
+ * Delete uses an inline second-click "Confirm delete" state rather than
+ * a full-screen dialog - lower friction, consistent with the delete
+ * being a soft delete under the hood (Question 4, approved). Stops
+ * click propagation so opening the menu (or clicking an item in it)
+ * never also selects the session underneath it. */
+export function SessionMenu({ onCloseOutSession, onRename, onDelete }: SessionMenuProps) {
   const [open, setOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  function close() {
+    setOpen(false);
+    setConfirmingDelete(false);
+  }
 
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -34,7 +43,7 @@ export function SessionMenu({ onCloseOutSession }: SessionMenuProps) {
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              close();
               onCloseOutSession();
             }}
             data-testid="close-out-session-item"
@@ -42,6 +51,39 @@ export function SessionMenu({ onCloseOutSession }: SessionMenuProps) {
           >
             Close out this session
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              onRename();
+            }}
+            data-testid="rename-session-item"
+            className="block w-full px-3 py-2 text-left text-xs text-espresso transition hover:bg-latte"
+          >
+            Rename
+          </button>
+          {confirmingDelete ? (
+            <button
+              type="button"
+              onClick={() => {
+                close();
+                onDelete();
+              }}
+              data-testid="confirm-delete-session-item"
+              className="block w-full px-3 py-2 text-left text-xs text-crema-amber transition hover:bg-latte"
+            >
+              Confirm delete
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              data-testid="delete-session-item"
+              className="block w-full px-3 py-2 text-left text-xs text-espresso transition hover:bg-latte"
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
     </div>

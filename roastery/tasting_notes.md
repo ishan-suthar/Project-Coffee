@@ -24,6 +24,7 @@ Use model scorecards to record model performance.
 | 2026-07-09 | No remote Bean; local standard-library gate repair | Gate repair - executed PLAN-spill-guard-token-log-fix.md and PLAN-root-test-discovery-fix.md | COMPLETE WITH ONE MID-EXECUTION FIX - Spill Guard parity restored; root test-suite gate now collects 252 tests instead of 0; the plan's own prescribed script content had to be corrected during execution | Workflow evidence below |
 | 2026-07-09 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router) | Brew 36B live demo - one real `/v1/order` request, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct classification (explain/espresso_shot), correct alias-only routing, 65 output tokens, 1733ms latency, not escalated, not draft | Full transcript below |
 | 2026-07-10 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router + new Coffee Counter Chat UI) | Brew 37B live demo - one real `/v1/order` request through the actual browser UI, prompt "Explain what a Python decorator is in two sentences." | COMPLETE - correct status-line sequence, correct alias-only rendering, session persisted with auto-set title, 70 output tokens, 2405ms latency, not escalated, not draft, zero raw model ID leaks in rendered page | Full narrative below |
+| 2026-07-15 | No remote Bean; real `router/` auth/projects/chat-management endpoints, verified via `curl` | Brew 43B live demo - two real users created and logged in, cross-user isolation verified directly against the real API (not `/v1/order`) | COMPLETE - real 404-not-403 ownership checks, real 401 on missing token, real logout token invalidation, all confirmed; not a Bean quality comparison, no scores to record | Full narrative below |
 
 ## Cup Test Notes
 
@@ -2930,3 +2931,76 @@ Cost and token evidence:
   `0636e173-2230-42aa-971a-15967adce9c4` (House Blend) and
   `ae25dec9-fd83-4dc6-90a8-9ab0322b97e5` (Second Pour), both `task_type=code`,
   in `ledger/router_requests.csv`.
+
+### 2026-07-15 - Brew 43B: Simple Auth, Projects, and Chat Management Live Demo
+
+Scope: this Brew is pure infrastructure (username/password auth,
+per-user projects, session rename/soft-delete) - there is no model
+routing or generation question to compare, so this is not a Cup Test.
+Per this project's discipline against fabricating comparisons that
+were never run, this note records what the live demo actually did:
+real cross-user isolation checks against the real, running router,
+driven directly via `curl`, not through `/v1/order`.
+
+Preconditions:
+
+- Full test suite green first: 365 `router/tests/` (51 new/changed -
+  18 `test_auth.py`, 33 `test_sessions.py` additions across
+  `UserAndTokenTests`/`ProjectTests`/`ChatManagementTests`, plus
+  `test_main.py` updates for the new `Depends(get_current_user)` wiring
+  on every endpoint), 168 Vitest/RTL tests (33 new - `authFetch.test.ts`,
+  `ProjectSelector.test.tsx`, `login/page.test.tsx`, `proxy.test.ts`,
+  plus `Sidebar`/`SessionMenu` updates), 4 Playwright e2e tests. `npx
+  tsc --noEmit`, `eslint`, and `next build` all clean. 628 tests
+  repo-wide except 2 pre-existing `test_routing.py` failures, confirmed
+  caused by an external Bean-config commit (`0255a63`) outside this
+  Brew's diff, not by this Brew's changes.
+- Router started fresh with current code:
+  `python -m uvicorn router.app.main:app --port 8765`.
+
+Commands and observed behavior:
+
+- Two real users created directly against the real `router/data/sessions.db`
+  via `hash_password()` + `store.create_user()` (the interactive
+  `manage_users.py add` CLI hangs on piped stdin on Windows - confirmed
+  live, diagnosed as `getpass.getpass()` reading from the console
+  directly rather than falling back to stdin like Unix does when stdin
+  isn't a tty; not treated as a bug, since the CLI's interactive design
+  is correct for its real use case of a human at a real terminal).
+- `POST /v1/login` for both `alice` and `bob` returned real 64-char hex
+  bearer tokens.
+- `GET /v1/projects` and `GET /v1/sessions?project_id=all` with alice's
+  token returned only alice's data; with bob's token, only bob's -
+  confirmed empty/disjoint, not merely "different," since both users
+  started with zero sessions.
+- Alice created a real session and project; a cross-user read attempt
+  (`GET /v1/sessions/{alice_session_id}` with bob's token) correctly
+  returned `404`, not `403` - confirmed a client can never learn "this
+  exists but isn't yours" from the status code alone.
+- A cross-user `PATCH /v1/projects/{alice_project_id}` rename attempt
+  with bob's token also correctly returned `404`.
+- A request to any `/v1/*` endpoint with no `Authorization` header
+  correctly returned `401` with a clear message.
+- Alice's own session was renamed (`PATCH`) and soft-deleted (`DELETE`)
+  successfully, then confirmed absent from a subsequent
+  `GET /v1/sessions` for alice - and confirmed the underlying row still
+  existed in the database (soft delete, not physical delete), matching
+  the design doc.
+- `POST /v1/logout` invalidated alice's token; a subsequent request
+  with the same token correctly returned `401`.
+- Both demo users were removed afterward via `manage_users.py remove`;
+  `git status` confirmed `router/data/` stayed untracked throughout, so
+  no demo credentials or data were left in a committed file.
+
+Cost and token evidence:
+
+- No remote Bean call in this Brew's implementation or live demo - the
+  entire demo was pure REST API verification against local
+  infrastructure. `$0.00`, no Ledger rows generated.
+
+Finding worth flagging for a future Brew: `router/config/beans.yaml`
+gained a real premium/vision Bean (`Reserve Blend`) in a separate
+commit (`0255a63`) outside this Brew's numbering, which now causes 2
+pre-existing `test_routing.py` assertions (written when no
+vision-capable Bean existed) to fail - a real, currently-unaddressed
+test/config drift, not something this Brew introduced or fixed.

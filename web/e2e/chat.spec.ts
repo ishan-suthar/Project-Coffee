@@ -60,7 +60,17 @@ function sseBody(): string {
   return events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, context, baseURL }) => {
+  // Brew 43 (docs/design/auth-projects-chat-management-design.md): every
+  // router call now requires a Bearer token, and Next.js middleware
+  // redirects to /login when the token cookie is absent - seed a fake
+  // token the same way a real login would, on this frontend's own
+  // origin (not the router's), matching how authFetch's plain
+  // JS-readable cookie actually works.
+  await context.addCookies([
+    { name: "coffee_counter_token", value: "e2e-test-token", url: baseURL },
+  ]);
+
   await page.route(`${ROUTER_ORIGIN}/v1/sessions?**`, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
@@ -70,8 +80,12 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ id: "test-session-id", project: "default" }),
+      body: JSON.stringify({ id: "test-session-id", project: "default", project_id: null }),
     });
+  });
+
+  await page.route(`${ROUTER_ORIGIN}/v1/projects`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
 
   await page.route(`${ROUTER_ORIGIN}/v1/beans`, async (route) => {
@@ -90,7 +104,7 @@ test.beforeEach(async ({ page }) => {
 test("send a prompt, see the stream, see the bean badge and cost", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByTestId("counter-display-status")).toHaveText("Ready when you are");
+  await expect(page.getByTestId("scene-caption")).toHaveText("Ready when you are");
 
   const textarea = page.getByPlaceholder(/Place your order/);
   await textarea.fill("Explain what a Python decorator is.");
@@ -108,7 +122,7 @@ test("send a prompt, see the stream, see the bean badge and cost", async ({ page
   await expect(page.getByTestId("cost-pill")).toHaveText("$0.0000");
 
   // Status line returned to "Order up" after complete.
-  await expect(page.getByTestId("counter-display-status")).toHaveText("Order up");
+  await expect(page.getByTestId("scene-caption")).toHaveText("Order up");
 });
 
 test("Shift+Enter inserts a newline instead of sending", async ({ page }) => {
@@ -135,4 +149,35 @@ test("raw model IDs never appear anywhere in the rendered page", async ({ page }
   for (const rawId of RAW_MODEL_IDS) {
     expect(pageText).not.toContain(rawId);
   }
+});
+
+test("no token cookie redirects to /login, and a successful login redirects back to /", async ({
+  page,
+  context,
+}) => {
+  // Override this file's beforeEach seeded cookie - this test is
+  // specifically about the no-token/login path.
+  await context.clearCookies();
+
+  await page.route(`${ROUTER_ORIGIN}/v1/login`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        token: "e2e-login-token",
+        user: { id: 1, username: "alice", display_name: "Alice" },
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByText("Sign in to Coffee Counter")).toBeVisible();
+
+  await page.getByLabel("Username").fill("alice");
+  await page.getByLabel("Password").fill("hunter2");
+  await page.getByRole("button", { name: /sign in/i }).click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId("scene-caption")).toHaveText("Ready when you are");
 });

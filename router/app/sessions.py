@@ -1,11 +1,11 @@
-"""SQLite session/message storage for the Coffee Core Router.
+"""SQLite session/message/user/project storage for the Coffee Core Router.
 
-Sessions group messages by a client-supplied `project` string (not a
-rebuild of Fleet's multi-root logic - see docs/design/
-coffee-counter-chat-ui-design.md Section 3.1). The database file is user
-runtime data (chat history), not source, and lives under router/data/,
-which is Spill Guard-ignored (see .gitignore/.cursorignore/
-.cursorindexingignore).
+Sessions group messages by an optional project (Brew 43 - a real
+`projects` table with a foreign key, not the free-form `project` string
+this file used before; see docs/design/auth-projects-chat-management-design.md
+Section 4). The database file is user runtime data (chat history,
+credentials), not source, and lives under router/data/, which is Spill
+Guard-ignored (see .gitignore/.cursorignore/.cursorindexingignore).
 """
 
 from __future__ import annotations
@@ -49,7 +49,45 @@ CREATE TABLE IF NOT EXISTS messages (
     rating TEXT,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tokens (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
+
+# Brew 43 (docs/design/auth-projects-chat-management-design.md Section 3.1,
+# Gap 4): columns added to the pre-existing `sessions` table. SQLite's
+# `CREATE TABLE IF NOT EXISTS` above never adds columns to an
+# already-existing table, so these are applied via `ALTER TABLE ... ADD
+# COLUMN` in `_migrate_schema()`, guarded by `PRAGMA table_info` so it is
+# safe to run on every startup. The old `project` TEXT column is left in
+# place, unused by any new code path - not worth the risk of a
+# destructive rename/migration for a column that has only ever held the
+# literal string "default" in every real row to date.
+SESSIONS_NEW_COLUMNS = {
+    "user_id": "INTEGER REFERENCES users(id)",
+    "project_id": "INTEGER REFERENCES projects(id)",
+    "deleted_at": "TEXT",
+}
 
 
 def _iso_now() -> str:
@@ -77,6 +115,7 @@ class SessionSummary:
     created_at: str
     updated_at: str
     cost_total_usd: float
+    project_id: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -97,10 +136,34 @@ class MessageRecord:
     created_at: str
 
 
+@dataclass(frozen=True)
+class UserRecord:
+    id: int
+    username: str
+    password_hash: str
+    display_name: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ProjectRecord:
+    id: int
+    user_id: int
+    name: str
+    created_at: str
+    updated_at: str
+
+
+class UsernameTakenError(Exception):
+    """Raised by create_user() when the username already exists."""
+
+
 class SessionStore:
     """Thin wrapper around a SQLite file. One connection per call, opened
-    and closed per method - the router is single-process/single-user
-    (Brew 36 non-goal), so no connection pool is needed."""
+    and closed per method - the router is single-process/single-user-
+    process (Brew 36 non-goal - "single-user" there meant single OS
+    process, not single human; Brew 43 adds real multiple human users
+    within that one process), so no connection pool is needed."""
 
     def __init__(self, db_path: Path = DEFAULT_DB_PATH):
         self.db_path = db_path
@@ -125,31 +188,81 @@ class SessionStore:
     def _init_schema(self) -> None:
         with self._connect() as conn:
             conn.executescript(SCHEMA)
+            self._migrate_schema(conn)
 
-    def create_session(self, project: str, title: str = "New session") -> str:
+    def _migrate_schema(self, conn: sqlite3.Connection) -> None:
+        existing_cols = {row["name"] for row in conn.execute("PRAGMA table_info(sessions)").fetchall()}
+        for col_name, col_def in SESSIONS_NEW_COLUMNS.items():
+            if col_name not in existing_cols:
+                conn.execute(f"ALTER TABLE sessions ADD COLUMN {col_name} {col_def}")
+
+    # --- Sessions -----------------------------------------------------
+
+    def create_session(
+        self,
+        project: str = "default",
+        title: str = "New session",
+        *,
+        user_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+    ) -> str:
         session_id = str(uuid.uuid4())
         now = _iso_now()
         with self._connect() as conn:
             conn.execute(
-                "INSERT INTO sessions (id, project, title, created_at, updated_at, updated_seq) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (session_id, project, title[:TITLE_MAX_CHARS], now, now, _seq_now()),
+                "INSERT INTO sessions (id, project, title, created_at, updated_at, updated_seq, user_id, project_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (session_id, project, title[:TITLE_MAX_CHARS], now, now, _seq_now(), user_id, project_id),
             )
         return session_id
 
-    def list_sessions(self, project: str) -> List[SessionSummary]:
+    def list_sessions(
+        self,
+        project: Optional[str] = None,
+        *,
+        user_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        all_projects: bool = False,
+    ) -> List[SessionSummary]:
+        """project (legacy, positional-optional) filters on the old
+        free-form `project` TEXT column exactly as before Brew 43 - kept
+        for old direct-Python-call sites that predate the real `projects`
+        table. When `project` is given, it is the *only* filter besides
+        `deleted_at`/`user_id` (project_id/all_projects are ignored) -
+        the two filtering systems are deliberately not mixed. New code
+        should pass `project=None` (the default) and use
+        project_id/all_projects instead. user_id is an optional filter -
+        omitted means unscoped, matching pre-Brew-43 behavior for tests/
+        fixtures that don't care about auth."""
+
+        clauses = ["s.deleted_at IS NULL"]
+        params: list = []
+        if user_id is not None:
+            clauses.append("s.user_id = ?")
+            params.append(user_id)
+        if project is not None:
+            clauses.append("s.project = ?")
+            params.append(project)
+        elif not all_projects:
+            if project_id is not None:
+                clauses.append("s.project_id = ?")
+                params.append(project_id)
+            else:
+                clauses.append("s.project_id IS NULL")
+        where_sql = " AND ".join(clauses)
+
         with self._connect() as conn:
             rows = conn.execute(
-                """
-                SELECT s.id, s.project, s.title, s.created_at, s.updated_at,
+                f"""
+                SELECT s.id, s.project, s.title, s.created_at, s.updated_at, s.project_id,
                        COALESCE(SUM(m.cost_usd), 0.0) AS cost_total_usd
                 FROM sessions s
                 LEFT JOIN messages m ON m.session_id = s.id
-                WHERE s.project = ?
+                WHERE {where_sql}
                 GROUP BY s.id
                 ORDER BY s.updated_seq DESC
                 """,
-                (project,),
+                params,
             ).fetchall()
         return [
             SessionSummary(
@@ -159,6 +272,7 @@ class SessionStore:
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
                 cost_total_usd=row["cost_total_usd"],
+                project_id=row["project_id"],
             )
             for row in rows
         ]
@@ -171,10 +285,15 @@ class SessionStore:
             ).fetchall()
         return [_row_to_message(row) for row in rows]
 
-    def session_exists(self, session_id: str) -> bool:
+    def session_exists(self, session_id: str, *, user_id: Optional[int] = None) -> bool:
+        clauses = ["id = ?", "deleted_at IS NULL"]
+        params: list = [session_id]
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(user_id)
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT 1 FROM sessions WHERE id = ?", (session_id,)
+                f"SELECT 1 FROM sessions WHERE {' AND '.join(clauses)}", params
             ).fetchone()
         return row is not None
 
@@ -229,13 +348,50 @@ class SessionStore:
     def set_title_if_default(self, session_id: str, title: str) -> None:
         """Set a session's title from its first user message, but only if
         it still has the default placeholder title (never overwrite a
-        title once set)."""
+        title once set). Distinct from rename_session() (Brew 43), which
+        is an explicit human request and always overwrites."""
 
         with self._connect() as conn:
             conn.execute(
                 "UPDATE sessions SET title = ? WHERE id = ? AND title = 'New session'",
                 (title[:TITLE_MAX_CHARS], session_id),
             )
+
+    def rename_session(self, session_id: str, title: str, *, user_id: Optional[int] = None) -> bool:
+        """Explicit human rename (Brew 43, PATCH /v1/sessions/{id}) -
+        always overwrites, unlike set_title_if_default(). Returns True if
+        a row was updated (exists, not soft-deleted, and owned by
+        user_id when given)."""
+
+        where_clauses = ["id = ?", "deleted_at IS NULL"]
+        where_params: list = [session_id]
+        if user_id is not None:
+            where_clauses.append("user_id = ?")
+            where_params.append(user_id)
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"UPDATE sessions SET title = ? WHERE {' AND '.join(where_clauses)}",
+                [title[:TITLE_MAX_CHARS], *where_params],
+            )
+            return cursor.rowcount > 0
+
+    def soft_delete_session(self, session_id: str, *, user_id: Optional[int] = None) -> bool:
+        """Brew 43: sets deleted_at instead of removing the row - every
+        query in this class already filters `deleted_at IS NULL`, so a
+        soft-deleted session becomes invisible everywhere without a
+        data-loss risk. Returns True if a row was updated."""
+
+        where_clauses = ["id = ?", "deleted_at IS NULL"]
+        where_params: list = [session_id]
+        if user_id is not None:
+            where_clauses.append("user_id = ?")
+            where_params.append(user_id)
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"UPDATE sessions SET deleted_at = ? WHERE {' AND '.join(where_clauses)}",
+                [_iso_now(), *where_params],
+            )
+            return cursor.rowcount > 0
 
     def update_message_rating(self, request_id: str, rating: str) -> bool:
         """Returns True if a message row was updated, False if request_id
@@ -246,6 +402,134 @@ class SessionStore:
                 "UPDATE messages SET rating = ? WHERE request_id = ?", (rating, request_id)
             )
             return cursor.rowcount > 0
+
+    # --- Users and tokens (Brew 43) ------------------------------------
+
+    def create_user(self, username: str, password_hash: str, display_name: str) -> int:
+        now = _iso_now()
+        with self._connect() as conn:
+            try:
+                cursor = conn.execute(
+                    "INSERT INTO users (username, password_hash, display_name, created_at) "
+                    "VALUES (?, ?, ?, ?)",
+                    (username, password_hash, display_name, now),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise UsernameTakenError(f"Username {username!r} is already taken.") from exc
+            return cursor.lastrowid
+
+    def get_user_by_username(self, username: str) -> Optional[UserRecord]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        return _row_to_user(row) if row is not None else None
+
+    def get_user_by_id(self, user_id: int) -> Optional[UserRecord]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return _row_to_user(row) if row is not None else None
+
+    def list_users(self) -> List[UserRecord]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM users ORDER BY created_at ASC").fetchall()
+        return [_row_to_user(row) for row in rows]
+
+    def delete_user(self, username: str) -> bool:
+        with self._connect() as conn:
+            cursor = conn.execute("DELETE FROM users WHERE username = ?", (username,))
+            return cursor.rowcount > 0
+
+    def create_token(self, token: str, user_id: int, expires_at: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+                (token, user_id, _iso_now(), expires_at),
+            )
+
+    def get_user_for_token(self, token: str) -> Optional[UserRecord]:
+        """Returns None for a missing OR expired token - callers never
+        need to distinguish the two (both mean "not authenticated").
+        Expired tokens are simply filtered at lookup time, not swept by
+        a background job - matching this repo's consistent "no new
+        background infrastructure" discipline."""
+
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT u.* FROM tokens t
+                JOIN users u ON u.id = t.user_id
+                WHERE t.token = ? AND t.expires_at > ?
+                """,
+                (token, _iso_now()),
+            ).fetchone()
+        return _row_to_user(row) if row is not None else None
+
+    def delete_token(self, token: str) -> bool:
+        with self._connect() as conn:
+            cursor = conn.execute("DELETE FROM tokens WHERE token = ?", (token,))
+            return cursor.rowcount > 0
+
+    # --- Projects (Brew 43) --------------------------------------------
+
+    def create_project(self, user_id: int, name: str) -> ProjectRecord:
+        now = _iso_now()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO projects (user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                (user_id, name, now, now),
+            )
+            project_id = cursor.lastrowid
+        return ProjectRecord(id=project_id, user_id=user_id, name=name, created_at=now, updated_at=now)
+
+    def list_projects(self, user_id: int) -> List[ProjectRecord]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM projects WHERE user_id = ? ORDER BY created_at ASC", (user_id,)
+            ).fetchall()
+        return [_row_to_project(row) for row in rows]
+
+    def get_project(self, project_id: int, *, user_id: Optional[int] = None) -> Optional[ProjectRecord]:
+        clauses = ["id = ?"]
+        params: list = [project_id]
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        with self._connect() as conn:
+            row = conn.execute(
+                f"SELECT * FROM projects WHERE {' AND '.join(clauses)}", params
+            ).fetchone()
+        return _row_to_project(row) if row is not None else None
+
+    def rename_project(self, project_id: int, name: str, *, user_id: Optional[int] = None) -> bool:
+        clauses = ["id = ?"]
+        params: list = [project_id]
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"UPDATE projects SET name = ?, updated_at = ? WHERE {' AND '.join(clauses)}",
+                [name, _iso_now(), *params],
+            )
+            return cursor.rowcount > 0
+
+    def delete_project(self, project_id: int, *, user_id: Optional[int] = None) -> bool:
+        """Deletes the project row and, in the same connection/transaction,
+        moves its sessions to project_id NULL ("default") - never deletes
+        the sessions themselves (docs/design/auth-projects-chat-management-design.md
+        Section 4.1)."""
+
+        clauses = ["id = ?"]
+        params: list = [project_id]
+        if user_id is not None:
+            clauses.append("user_id = ?")
+            params.append(user_id)
+        with self._connect() as conn:
+            cursor = conn.execute(f"SELECT id FROM projects WHERE {' AND '.join(clauses)}", params)
+            if cursor.fetchone() is None:
+                return False
+            conn.execute("UPDATE sessions SET project_id = NULL WHERE project_id = ?", (project_id,))
+            conn.execute(f"DELETE FROM projects WHERE {' AND '.join(clauses)}", params)
+            return True
 
 
 def _row_to_message(row: sqlite3.Row) -> MessageRecord:
@@ -264,4 +548,24 @@ def _row_to_message(row: sqlite3.Row) -> MessageRecord:
         draft_quality=None if row["draft_quality"] is None else bool(row["draft_quality"]),
         rating=row["rating"],
         created_at=row["created_at"],
+    )
+
+
+def _row_to_user(row: sqlite3.Row) -> UserRecord:
+    return UserRecord(
+        id=row["id"],
+        username=row["username"],
+        password_hash=row["password_hash"],
+        display_name=row["display_name"],
+        created_at=row["created_at"],
+    )
+
+
+def _row_to_project(row: sqlite3.Row) -> ProjectRecord:
+    return ProjectRecord(
+        id=row["id"],
+        user_id=row["user_id"],
+        name=row["name"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
     )

@@ -12,6 +12,7 @@ from pypdf import PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from router.app.aliases import Bean, BeanRegistry
+from router.app.auth import get_current_user
 from router.app.config import Settings
 from router.app.ledger import LedgerRow, RouterLedger
 from router.app.main import (
@@ -24,8 +25,28 @@ from router.app.main import (
 from router.app.openrouter_client import StreamChunk
 from router.app.preferences import PreferenceStore
 from router.app.routing import RoutingPolicy
-from router.app.sessions import SessionStore
+from router.app.sessions import SessionStore, UserRecord
 from router.app.uploads import UploadRecord, new_attachment_id, save_upload
+
+# Brew 43 (docs/design/auth-projects-chat-management-design.md Section
+# 3.1, Gap 3): every /v1/* endpoint now requires Depends(get_current_user).
+# Rather than adding a real Authorization header to the ~100 existing
+# httpx.AsyncClient call sites in this file, every HTTP-level test class
+# overrides the dependency wholesale via _override_auth(app) right after
+# create_app() - the real header-based path is exercised separately and
+# thoroughly in router/tests/test_auth.py.
+FAKE_USER = UserRecord(
+    id=1,
+    username="test-user",
+    password_hash="",
+    display_name="Test User",
+    created_at="2026-01-01T00:00:00+00:00",
+)
+
+
+def _override_auth(app) -> None:
+    app.dependency_overrides[get_current_user] = lambda: FAKE_USER
+
 
 FIXTURE_POLICY = {
     "task_types": {
@@ -880,6 +901,7 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
             uploads_root=Path(self._tmp_dir.name) / "uploads",
         )
         self.app = create_app(state=self.state)
+        _override_auth(self.app)
 
     async def test_order_endpoint_streams_sse_events(self):
         transport = httpx.ASGITransport(app=self.app)
@@ -1043,7 +1065,7 @@ class FastApiSmokeTests(unittest.IsolatedAsyncioTestCase):
         self.state.settings = self.state.settings.model_copy(
             update={"escalation_cost_cap_usd": 0.0}
         )
-        session_id = self.state.session_store.create_session("project-a")
+        session_id = self.state.session_store.create_session("project-a", user_id=FAKE_USER.id)
 
         hold = asyncio.Event()
 
@@ -1369,7 +1391,7 @@ class MemoryProposalEndpointTests(unittest.IsolatedAsyncioTestCase):
             stream_order_fn=self._fake_proposal_stream,
             memory_proposal_repo_root=self.repo_root,
         )
-        self.session_id = session_store.create_session("default")
+        self.session_id = session_store.create_session("default", user_id=FAKE_USER.id)
         session_store.add_message(
             self.session_id, request_id="r1", role="user", content="Implement the widget."
         )
@@ -1377,6 +1399,7 @@ class MemoryProposalEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.session_id, request_id="r1", role="assistant", content="Done, widget implemented."
         )
         self.app = create_app(state=self.state)
+        _override_auth(self.app)
 
     async def test_generate_returns_diffs_for_both_files(self):
         transport = httpx.ASGITransport(app=self.app)
@@ -1523,6 +1546,7 @@ class PolicyRebuildEndpointTests(unittest.IsolatedAsyncioTestCase):
             tasting_notes_path=self.tasting_notes_path,
         )
         self.app = create_app(state=self.state)
+        _override_auth(self.app)
 
     def _append_rating(self, *, bean_alias, rating, escalated=False, task_type="code"):
         self.ledger.append(
@@ -1642,6 +1666,186 @@ class PolicyRebuildEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("code", response.json()["escalation_candidates"])
 
 
+class ProjectEndpointTests(unittest.IsolatedAsyncioTestCase):
+    """Brew 43 (docs/design/auth-projects-chat-management-design.md
+    Section 4): project CRUD endpoints. Uses the single-fixed-FAKE_USER
+    override (Section 3.1, Gap 3) - cross-user isolation for projects is
+    covered separately in test_auth.py with two real logins, since that
+    is what the override pattern is deliberately not designed to
+    exercise."""
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        policy_path = Path(self._tmp_dir.name) / "routing_policy.yaml"
+        with open(policy_path, "w", encoding="utf-8") as handle:
+            yaml.safe_dump(FIXTURE_POLICY, handle)
+
+        registry = _make_bean_registry(with_premium=True)
+        policy = RoutingPolicy.from_yaml(policy_path, bean_registry=registry)
+        settings = Settings(generating_tick_tokens=5, generating_tick_seconds=999)
+        ledger = RouterLedger(Path(self._tmp_dir.name) / "router_requests.csv")
+        session_store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.state = RouterState(
+            bean_registry=registry,
+            routing_policy=policy,
+            settings=settings,
+            ledger=ledger,
+            session_store=session_store,
+            uploads_root=Path(self._tmp_dir.name) / "uploads",
+        )
+        self.app = create_app(state=self.state)
+        _override_auth(self.app)
+
+    async def test_create_and_list_projects(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            create_response = await client.post("/v1/projects", json={"name": "Recipes"})
+            self.assertEqual(create_response.status_code, 200)
+            project_id = create_response.json()["id"]
+
+            list_response = await client.get("/v1/projects")
+        projects = list_response.json()
+        self.assertEqual(len(projects), 1)
+        self.assertEqual(projects[0]["id"], project_id)
+        self.assertEqual(projects[0]["name"], "Recipes")
+
+    async def test_rename_project(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            create_response = await client.post("/v1/projects", json={"name": "Old name"})
+            project_id = create_response.json()["id"]
+
+            rename_response = await client.patch(f"/v1/projects/{project_id}", json={"name": "New name"})
+            self.assertEqual(rename_response.status_code, 200)
+
+            list_response = await client.get("/v1/projects")
+        self.assertEqual(list_response.json()[0]["name"], "New name")
+
+    async def test_rename_unknown_project_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.patch("/v1/projects/999999", json={"name": "New name"})
+        self.assertEqual(response.status_code, 404)
+
+    async def test_delete_project_moves_sessions_to_default(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            project_id = (await client.post("/v1/projects", json={"name": "Temp"})).json()["id"]
+            session_id = (
+                await client.post("/v1/sessions", json={"project_id": project_id})
+            ).json()["id"]
+
+            delete_response = await client.delete(f"/v1/projects/{project_id}")
+            self.assertEqual(delete_response.status_code, 200)
+
+            default_sessions = await client.get("/v1/sessions")
+            all_sessions = await client.get("/v1/sessions", params={"project_id": "all"})
+
+        # Session was moved to default (project_id null), not deleted.
+        self.assertIn(session_id, {s["id"] for s in default_sessions.json()})
+        self.assertIn(session_id, {s["id"] for s in all_sessions.json()})
+
+    async def test_delete_unknown_project_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.delete("/v1/projects/999999")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_create_session_with_unknown_project_id_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/sessions", json={"project_id": 999999})
+        self.assertEqual(response.status_code, 404)
+
+    async def test_list_sessions_filtered_by_project_id(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            project_id = (await client.post("/v1/projects", json={"name": "A project"})).json()["id"]
+            project_session = (
+                await client.post("/v1/sessions", json={"project_id": project_id})
+            ).json()["id"]
+            default_session = (await client.post("/v1/sessions", json={})).json()["id"]
+
+            project_list = await client.get("/v1/sessions", params={"project_id": str(project_id)})
+            default_list = await client.get("/v1/sessions")
+            all_list = await client.get("/v1/sessions", params={"project_id": "all"})
+
+        self.assertEqual({s["id"] for s in project_list.json()}, {project_session})
+        self.assertEqual({s["id"] for s in default_list.json()}, {default_session})
+        self.assertEqual({s["id"] for s in all_list.json()}, {project_session, default_session})
+
+
+class ChatManagementEndpointTests(unittest.IsolatedAsyncioTestCase):
+    """Brew 43 (docs/design/auth-projects-chat-management-design.md
+    Section 5): PATCH/DELETE /v1/sessions/{id}."""
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        policy_path = Path(self._tmp_dir.name) / "routing_policy.yaml"
+        with open(policy_path, "w", encoding="utf-8") as handle:
+            yaml.safe_dump(FIXTURE_POLICY, handle)
+
+        registry = _make_bean_registry(with_premium=True)
+        policy = RoutingPolicy.from_yaml(policy_path, bean_registry=registry)
+        settings = Settings(generating_tick_tokens=5, generating_tick_seconds=999)
+        ledger = RouterLedger(Path(self._tmp_dir.name) / "router_requests.csv")
+        session_store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.state = RouterState(
+            bean_registry=registry,
+            routing_policy=policy,
+            settings=settings,
+            ledger=ledger,
+            session_store=session_store,
+            uploads_root=Path(self._tmp_dir.name) / "uploads",
+        )
+        self.app = create_app(state=self.state)
+        _override_auth(self.app)
+
+    async def test_rename_session(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id = (await client.post("/v1/sessions", json={})).json()["id"]
+
+            rename_response = await client.patch(
+                f"/v1/sessions/{session_id}", json={"title": "Renamed chat"}
+            )
+            self.assertEqual(rename_response.status_code, 200)
+
+            list_response = await client.get("/v1/sessions")
+        self.assertEqual(list_response.json()[0]["title"], "Renamed chat")
+
+    async def test_rename_unknown_session_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.patch("/v1/sessions/nonexistent-id", json={"title": "x"})
+        self.assertEqual(response.status_code, 404)
+
+    async def test_delete_session_excludes_from_list(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            session_id = (await client.post("/v1/sessions", json={})).json()["id"]
+
+            delete_response = await client.delete(f"/v1/sessions/{session_id}")
+            self.assertEqual(delete_response.status_code, 200)
+
+            list_response = await client.get("/v1/sessions")
+            messages_response = await client.get(f"/v1/sessions/{session_id}/messages")
+
+        self.assertEqual(list_response.json(), [])
+        # Soft delete - the endpoint still 404s (excluded from queries),
+        # but the underlying row/messages are never physically removed
+        # (verified directly against SessionStore in test_sessions.py).
+        self.assertEqual(messages_response.status_code, 404)
+
+    async def test_delete_unknown_session_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.delete("/v1/sessions/nonexistent-id")
+        self.assertEqual(response.status_code, 404)
+
+
 class UploadEndpointTests(unittest.IsolatedAsyncioTestCase):
     """Brew 38: POST /v1/upload - validation, PDF extraction happy/scanned
     paths, and storage under uploads_root."""
@@ -1666,6 +1870,7 @@ class UploadEndpointTests(unittest.IsolatedAsyncioTestCase):
             uploads_root=self.uploads_root,
         )
         self.app = create_app(state=self.state)
+        _override_auth(self.app)
 
     async def _upload(self, filename, content, content_type, request_id="req-upload-1"):
         transport = httpx.ASGITransport(app=self.app)

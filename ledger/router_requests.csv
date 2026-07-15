@@ -11,3 +11,12 @@ timestamp,request_id,task_type,bean_alias,raw_model_id,tokens_in,tokens_out,cost
 2026-07-14T17:34:19.125560+00:00,77016843-3690-49da-ac60-4a3f53959569,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,881,0.0,7297,False,n/a,,0,0
 2026-07-15T02:45:19.421477+00:00,0636e173-2230-42aa-971a-15967adce9c4,code,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,223,598,0.0,5062,False,n/a,,0,0
 2026-07-15T02:45:38.049598+00:00,ae25dec9-fd83-4dc6-90a8-9ab0322b97e5,code,Second Pour,cohere/north-mini-code:free,223,1169,0.0,7875,False,n/a,,0,0
+2026-07-15T05:48:54.215597+00:00,57a3c949-c0a7-447f-bd21-af3265aaf7d3,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,16,2234,0.0,23375,False,n/a,good,0,0
+2026-07-15T05:56:19.427114+00:00,c335751f-a58e-41a1-838b-3bb8e55ff1ae,explain,Reserve Blend,anthropic/claude-sonnet-4-6,6,645,unknown,16827,True,n/a,good,0,0
+2026-07-15T05:56:57.581282+00:00,516c3602-d29e-4ac6-bde8-762f335fe306,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,5,2484,0.0,22750,False,n/a,,0,0
+2026-07-15T16:59:12.691030+00:00,544d8b75-516c-40ed-8a1b-c87a407713ae,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,30,2243,0.0,47046,False,n/a,,0,0
+2026-07-15T17:00:22.211796+00:00,694e5f6d-5596-4d5f-b9d0-d0658b67b696,explain,Reserve Blend,anthropic/claude-sonnet-4-6,24,175,unknown,6594,False,n/a,needed_fixing,1,10879
+2026-07-15T17:00:53.857648+00:00,54ce77d7-35b7-4fde-b2d3-efe8e76429f9,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,24,77,0.0,3218,False,n/a,,0,0
+2026-07-15T17:01:27.367163+00:00,445ffe98-eb5f-4ab9-b6a8-8266f99cbae0,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,24,476,0.0,18000,False,n/a,needed_fixing,1,10879
+2026-07-15T17:22:28.199789+00:00,1dbee97a-b4bd-479a-88a4-74dca79e9714,explain,Reserve Blend,anthropic/claude-sonnet-4-6,9,80,unknown,5655,True,n/a,,0,0
+2026-07-15T17:23:20.965869+00:00,189d0fa1-a174-4ec2-8d0b-45ebb10b45fb,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,1,2472,0.0,40813,False,n/a,,1,10879

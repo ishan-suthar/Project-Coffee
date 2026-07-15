@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "@/lib/uuid";
 import * as api from "@/lib/api";
+import type { ProjectSummary } from "@/lib/api";
 import type { Rating, SessionSummary } from "@/lib/events";
 import {
   AttachmentSummary,
@@ -17,7 +18,11 @@ import {
 const RECOVERED_ESCALATION_POLL_INTERVAL_MS = 2000;
 const RECOVERED_ESCALATION_POLL_MAX_ATTEMPTS = 30;
 
-const DEFAULT_PROJECT = "default";
+// Brew 43 (docs/design/auth-projects-chat-management-design.md Section
+// 4.2, Question 3): an explicit discriminated selection rather than a
+// bare string, so "All chats" and a real project a user happened to name
+// "default" can never collide with the sentinel.
+export type ProjectFilter = "all" | "default" | ProjectSummary;
 
 interface SendPromptOptions {
   beanAliasOverride?: string;
@@ -36,7 +41,8 @@ interface SendPromptOptions {
 }
 
 interface ChatState {
-  project: string;
+  projectFilter: ProjectFilter;
+  projects: ProjectSummary[];
   activeSessionId: string | null;
   sessions: SessionSummary[];
   sessionsLoaded: boolean;
@@ -62,10 +68,22 @@ interface ChatState {
   // card renders even though this client never saw the live
   // escalation_pending event. No-ops if nothing is pending.
   recoverPendingEscalation: (sessionId: string) => Promise<void>;
+
+  // Brew 43 (docs/design/auth-projects-chat-management-design.md
+  // Section 4): project CRUD + selecting which project's sessions are
+  // shown. Chat management (rename/delete a session) lives here too.
+  setProjectFilter: (filter: ProjectFilter) => void;
+  loadProjects: () => Promise<void>;
+  createProject: (name: string) => Promise<void>;
+  renameProject: (projectId: number, name: string) => Promise<void>;
+  deleteProject: (projectId: number) => Promise<void>;
+  renameSession: (sessionId: string, title: string) => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  project: DEFAULT_PROJECT,
+  projectFilter: "default",
+  projects: [],
   activeSessionId: null,
   sessions: [],
   sessionsLoaded: false,
@@ -74,7 +92,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   abortController: null,
 
   loadSessions: async () => {
-    const sessions = await api.listSessions(get().project);
+    const filter = get().projectFilter;
+    const projectId = filter === "all" ? "all" : filter === "default" ? undefined : filter.id;
+    const sessions = await api.listSessions(projectId);
     set({ sessions, sessionsLoaded: true });
   },
 
@@ -119,7 +139,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sendPrompt: async (prompt: string, options: SendPromptOptions = {}) => {
     let sessionId = get().activeSessionId;
     if (sessionId === null) {
-      const created = await api.createSession(get().project);
+      const filter = get().projectFilter;
+      const projectId = filter === "all" || filter === "default" ? null : filter.id;
+      const created = await api.createSession(projectId);
       sessionId = created.id;
       set({ activeSessionId: sessionId });
       await get().loadSessions();
@@ -242,6 +264,57 @@ export const useChatStore = create<ChatState>((set, get) => ({
       pendingEscalationRecovered: true,
     };
     appendMessage(set, sessionId, message);
+  },
+
+  setProjectFilter: (filter: ProjectFilter) => {
+    set({ projectFilter: filter, sessionsLoaded: false });
+    get().loadSessions();
+  },
+
+  loadProjects: async () => {
+    const projects = await api.listProjects();
+    set({ projects });
+  },
+
+  createProject: async (name: string) => {
+    await api.createProject(name);
+    await get().loadProjects();
+  },
+
+  renameProject: async (projectId: number, name: string) => {
+    await api.renameProject(projectId, name);
+    await get().loadProjects();
+    const filter = get().projectFilter;
+    if (filter !== "all" && filter !== "default" && filter.id === projectId) {
+      set({ projectFilter: { ...filter, name } });
+    }
+  },
+
+  deleteProject: async (projectId: number) => {
+    await api.deleteProject(projectId);
+    await get().loadProjects();
+    // The router moves this project's sessions to "default" - if it was
+    // the active filter, fall back to "default" rather than pointing at
+    // a project that no longer exists.
+    const filter = get().projectFilter;
+    if (filter !== "all" && filter !== "default" && filter.id === projectId) {
+      get().setProjectFilter("default");
+    } else {
+      await get().loadSessions();
+    }
+  },
+
+  renameSession: async (sessionId: string, title: string) => {
+    await api.renameSession(sessionId, title);
+    await get().loadSessions();
+  },
+
+  deleteSession: async (sessionId: string) => {
+    await api.deleteSession(sessionId);
+    if (get().activeSessionId === sessionId) {
+      set({ activeSessionId: null });
+    }
+    await get().loadSessions();
   },
 }));
 

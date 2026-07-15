@@ -1,4 +1,5 @@
 import type { RouterEvent } from "@/lib/events";
+import { authHeader, redirectToLogin } from "@/lib/authFetch";
 
 /**
  * Streams Server-Sent Events from a POST endpoint using fetch() + a
@@ -19,11 +20,14 @@ export async function* streamSSE(
 ): AsyncGenerator<RouterEvent> {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify(body),
     signal,
   });
 
+  if (response.status === 401) {
+    redirectToLogin();
+  }
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(`Request to ${url} failed with ${response.status}: ${detail}`);
