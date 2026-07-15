@@ -44,10 +44,20 @@ beans:
 
   - alias: "Reserve Blend"
     role: premium
-    model_id: null
+    model_id: "anthropic/claude-sonnet-4-6"
     capabilities:
-      vision: false
+      vision: true
       code: true
-    price_per_1k_input_usd: null
-    price_per_1k_output_usd: null
-    status: not_yet_selected
+    price_per_1k_input_usd: 0.003
+    price_per_1k_output_usd: 0.015
+    status: active
+
+  - alias: "Single Origin"
+    role: specialist
+    model_id: "anthropic/claude-3.5-haiku"
+    capabilities:
+      vision: true
+      code: true
+    price_per_1k_input_usd: 0.001
+    price_per_1k_output_usd: 0.005
+    status: active
