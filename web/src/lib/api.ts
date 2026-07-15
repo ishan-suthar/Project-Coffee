@@ -167,6 +167,32 @@ export async function discardMemoryProposal(
   return postJSON(`/v1/memory_proposals/${proposalId}/discard`, {});
 }
 
+export interface PolicyRebuildPreviewResult {
+  proposal_id: string;
+  diff: string;
+  escalation_candidates: string[];
+}
+
+/** POST /v1/policy/rebuild_preview (Brew 42) - computes a proposed
+ * router/config/routing_policy.yaml rebuild (Roastery Cup Test evidence
+ * blended with real accumulated ratings) and returns a diff. Never
+ * writes anything - only rebuildPolicyApply() does that. */
+export async function rebuildPolicyPreview(): Promise<PolicyRebuildPreviewResult> {
+  return postJSON("/v1/policy/rebuild_preview", {});
+}
+
+export async function rebuildPolicyApply(
+  proposalId: string
+): Promise<{ proposal_id: string; status: string }> {
+  return postJSON(`/v1/policy/rebuild_apply/${proposalId}`, {});
+}
+
+export async function rebuildPolicyDiscard(
+  proposalId: string
+): Promise<{ proposal_id: string; status: string }> {
+  return postJSON(`/v1/policy/rebuild_discard/${proposalId}`, {});
+}
+
 async function postJSON<T = unknown>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${ROUTER_BASE_URL}${path}`, {
     method: "POST",

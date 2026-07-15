@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import * as api from "@/lib/api";
 import type { MemoryProposalFile } from "@/lib/api";
+import { DiffView } from "@/components/Settings/DiffView";
 
 interface MemoryProposalPanelProps {
   sessionId: string;
@@ -10,36 +11,6 @@ interface MemoryProposalPanelProps {
 }
 
 type Status = "loading" | "ready" | "error" | "submitting";
-
-/** Renders a unified diff string as colored +/- lines (stdlib
- * difflib.unified_diff output from the router - approved Question 2: no
- * new dependency, no side-by-side view). */
-function DiffView({ diff }: { diff: string }) {
-  if (!diff.trim()) {
-    return <p className="text-xs italic text-medium-roast">No changes proposed for this file.</p>;
-  }
-  return (
-    <pre className="overflow-x-auto rounded bg-espresso/5 p-2 font-mono text-xs" data-testid="diff-view">
-      {diff.split("\n").map((line, index) => {
-        let className = "text-espresso";
-        if (line.startsWith("+++") || line.startsWith("---")) {
-          className = "text-medium-roast";
-        } else if (line.startsWith("+")) {
-          className = "text-green-700";
-        } else if (line.startsWith("-")) {
-          className = "text-red-700";
-        } else if (line.startsWith("@@")) {
-          className = "text-medium-roast";
-        }
-        return (
-          <div key={index} className={className}>
-            {line || " "}
-          </div>
-        );
-      })}
-    </pre>
-  );
-}
 
 /** Brew 41 (docs/design/memory-and-pantry-design.md Section 3): generates
  * a memory proposal for `sessionId` on mount and lets a human review the
@@ -132,7 +103,7 @@ export function MemoryProposalPanel({ sessionId, onClose }: MemoryProposalPanelP
             {files.map((file) => (
               <div key={file.path} className="mb-4">
                 <p className="mb-1 font-mono text-xs text-espresso">{file.path}</p>
-                <DiffView diff={file.diff} />
+                <DiffView diff={file.diff} emptyMessage="No changes proposed for this file." />
               </div>
             ))}
             <div className="flex justify-end gap-2">

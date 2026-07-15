@@ -59,3 +59,37 @@ describe("Sidebar - Close out this session", () => {
     expect(useChatStore.getState().activeSessionId).toBeNull();
   });
 });
+
+describe("Sidebar - Settings", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.listSessions).mockResolvedValue([]);
+    useChatStore.setState({
+      project: "default",
+      sessions: [],
+      sessionsLoaded: true,
+      activeSessionId: null,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useChatStore.setState({ sessions: [], sessionsLoaded: false, activeSessionId: null });
+  });
+
+  it("opens the SettingsPanel via the gear icon", () => {
+    render(<Sidebar />);
+
+    expect(screen.queryByTestId("settings-panel-overlay")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("open-settings-button"));
+    expect(screen.getByTestId("settings-panel-overlay")).toBeInTheDocument();
+  });
+
+  it("closes the SettingsPanel via its Close button", () => {
+    render(<Sidebar />);
+
+    fireEvent.click(screen.getByTestId("open-settings-button"));
+    fireEvent.click(screen.getByLabelText("Close settings"));
+    expect(screen.queryByTestId("settings-panel-overlay")).not.toBeInTheDocument();
+  });
+});

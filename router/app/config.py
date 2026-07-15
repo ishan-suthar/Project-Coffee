@@ -49,6 +49,9 @@ class Settings(BaseModel):
     pantry_chunk_size_chars: int = 1200
     pantry_chunk_overlap_chars: int = 200
     pantry_top_k: int = 5
+    min_rating_sample_size: int = 5
+    policy_roastery_weight: float = 0.6
+    escalation_rate_flag_threshold: float = 0.3
 
     @classmethod
     def from_yaml(cls, path: Path = DEFAULT_SETTINGS_PATH) -> "Settings":

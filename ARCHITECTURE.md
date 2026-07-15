@@ -7,6 +7,16 @@ Date: 2026-07-02
 
 Project Coffee must remain tool-agnostic, model-agnostic, and vendor-portable. Cursor is the current primary Coffee Counter, but Coffee should be designed so another editor, agent, or model gateway can replace it later.
 
+> **Naming note (added Brew 42):** "Coffee Counter" in this document (Layer
+> 1 below) means the *editor/IDE layer* - Cursor, VS Code, a terminal, or
+> any future coding environment a human works in. Starting Brew 37, this
+> repository also shipped a literal browser chat client called the
+> **Coffee Counter Chat UI** (`web/`, backed by the Coffee Core Router in
+> `router/`) - a real naming collision, not the same thing as this
+> document's Layer 1. The Chat UI is a *client* of Layer 3 (see the router
+> note below), not a new architectural layer of its own. See
+> `docs/design/coffee-counter-chat-ui-design.md` and `web/README.md`.
+
 ## Layered architecture
 
 ```text
@@ -26,7 +36,7 @@ Project Coffee
 |   |-- Future Claude Code / Codex / local agents
 |
 |-- Layer 3: Coffee Core
-|   |-- Barista orchestrator
+|   |-- Barista orchestrator             (router/, as of Brew 36 - see router/README.md)
 |   |-- House Blend routing policy
 |   |-- model configuration
 |   |-- approval policy

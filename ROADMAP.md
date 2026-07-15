@@ -11,11 +11,14 @@ Living roadmap for Phase 1 and beyond. Update this file as shots complete.
 | Field | Value |
 | --- | --- |
 | Phase | 1 — Working daily AI coding environment |
-| Current shot | Brew 35 - Approval Gate Dry Run UI complete |
-| Current milestone | Coffee Counter can simulate the remote-call approval flow locally without sending data anywhere |
-| Next step | Brew 36 - OpenRouter integration behind explicit approval, if chosen |
-| Recent foundation result | Brew 35B dogfooded and closed dry-run approval states, blocked safety gates, checklist completion, Ledger preview, cancel/reset, and active-root scenarios |
-| Blockers | No blocker for Brew 36 planning; remote model routing remains disabled until a future explicitly approved implementation |
+| Current shot | Brew 42 - Learning loop (ratings-weighted policy rebuild) + release pass |
+| Current milestone | The Coffee Core Router (`router/`) and Coffee Counter Chat UI (`web/`) are implemented, tested, and demoed live end-to-end: routing, escalation approval, attachments, the animated scene, session memory proposals, Pantry retrieval with citations, and a ratings-weighted routing policy rebuild reviewable via a Settings panel diff |
+| Next step | Human review and staging of the Brew 40-42 changesets, then whatever Brew is chosen next - see `docs/releases/brew-42-release-summary.md` for recommended next work |
+| Recent foundation result | Brew 42 extended `tools/generate_policy.py` to blend Roastery Cup Test evidence with real accumulated `POST /v1/rate` outcomes (once a (task_type, Bean) pair clears a minimum sample size), added a reviewable policy-rebuild diff to the UI, flagged high-escalation-rate task types advisorily, and closed out the performance/release pass (asset budget, bundle size report, README rewrites, this doc) |
+| Blockers | No premium Bean and no vision-capable Bean have ever been selected or Roastery-tested (open since Brew 36/38) - still the single most-repeated gap across Brews. No other blocker; nothing is staged or committed yet for Brews 40-42, pending human review |
+
+*(This table previously read "Brew 35" - stale since Brew 36 shipped; the
+dated history table below was kept current every Brew in the meantime.)*
 
 ## Phase 1 goal
 
@@ -187,4 +190,10 @@ Reference: `PHASE_0_ROADMAP.md` (Phase 1 preview).
 | Brew 33 | Remote Call Approval Design | Complete | 2026-07-08 |
 | Brew 34 | Remote Context Package Builder | Complete | 2026-07-08 |
 | Brew 35 | Dry-run Approval UI | Complete | 2026-07-09 |
-| Brew 36 | OpenRouter integration behind explicit approval | Recommended next, if chosen | TBD |
+| Brew 36 | Coffee Core Router (`router/`): FastAPI SSE service, generated routing policy, event contract v1.0 | Complete | 2026-07-09 |
+| Brew 37 | Coffee Counter Chat UI (`web/`): Next.js frontend, router sessions/rate/cancel/beans, event contract v1.1 | Complete | 2026-07-10 |
+| Brew 38 | File/image attachments: upload/extraction, vision routing (ships inert - no vision Bean yet), event contract v1.2 | Complete | 2026-07-11 |
+| Brew 39 | Animated Coffee Counter scene, device-wide preferences, 300 KB asset budget | Complete | 2026-07-11 |
+| Brew 40 | Escalation approval gate UI: background-task decoupling, reload recovery, event contract v1.3 | Complete (not yet staged) | 2026-07-14 |
+| Brew 41 | Session memory proposals + Pantry retrieval with citations, event contract v1.4 | Complete (not yet staged) | 2026-07-14 |
+| Brew 42 | Learning loop (ratings-weighted policy rebuild, advisory escalation-rate flagging) + performance/release pass | Complete (not yet staged) | 2026-07-15 |

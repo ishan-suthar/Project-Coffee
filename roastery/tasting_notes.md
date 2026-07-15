@@ -2859,3 +2859,74 @@ Needs improvement:
   render/error-state logic, but a real browser session (same class of
   gap as this Brew skipping a UI-driven demo entirely) would still add
   independent confirmation.
+
+### 2026-07-15 - Brew 42: House Blend vs. Second Pour, `002-tiny-python-fix.md`, through the router pipeline
+
+Scope: a real two-Bean comparison on one identical real task, run through
+the actual Coffee Core Router (`POST /v1/order` with `bean_alias_override`)
+rather than the standalone synchronous Roastery Cup Test runner - the
+"new pipeline" Requirement 8 asked for. Task file:
+
+```
+roastery/cup_tests/002-tiny-python-fix.md
+```
+
+Order text sent verbatim (unchanged from the Cup Test file) to both Beans
+in the same session's router process, real `OPENROUTER_API_KEY`, real
+OpenRouter calls, real `ledger/router_requests.csv` rows.
+
+| Bean | Model | Tokens in | Tokens out | Latency | Cost | Test assertions |
+| --- | --- | --- | --- | --- | --- | --- |
+| House Blend | `nvidia/nemotron-3-ultra-550b-a55b:free` | 223 | 598 | 5062 ms | $0.00 | 4 |
+| Second Pour | `cohere/north-mini-code:free` | 223 | 1169 | 7875 ms | $0.00 | 1 |
+
+Correctness (Success Criteria from the Cup Test file, independently
+verified by actually running both submitted functions - not just read -
+against the file's own example plus three additional edge cases: extra
+whitespace-only tags, mixed-case duplicates, and an empty input list):
+
+- **Fixes the membership check**: both. Each replaced the buggy `if tag
+  not in tags` (checking the *original* list) with a check against an
+  accumulator (`seen`/`normalized`) built during the loop.
+- **Does not sort the result**: both. Neither response's corrected
+  function calls `sorted()` - first-seen order is preserved.
+- **Skips empty normalized tags**: both, via slightly different phrasing
+  (House Blend: `if normalized_tag and normalized_tag not in seen`;
+  Second Pour: an explicit `if not tag: continue`).
+- **Uses only standard library**: both - no imports beyond `unittest`.
+- **Includes one meaningful test**: both, but not equally thorough (see
+  below).
+- All 4 test cases (the Cup Test's own example plus 3 more) passed
+  against both submitted functions when actually executed - full
+  correctness score for both.
+
+What worked / differed:
+
+- House Blend's test case covered 4 distinct scenarios (the Cup Test's
+  own example, a mixed-case-duplicate case, an empty-and-whitespace-tag
+  case, and an empty-list case) in a single `unittest.TestCase` method.
+  Second Pour's test covered only the Cup Test's own example - a real,
+  observable thoroughness gap, not a correctness gap (both fixes are
+  equally correct; House Blend proved it more).
+- House Blend used roughly half the output tokens (598 vs. 1169) and
+  responded faster (5.06s vs. 7.88s) for a response that was *more*
+  thorough, not less - Second Pour's higher token count did not buy
+  proportionally more test coverage or a materially different
+  explanation. Both bugs explanations (one sentence each, as the Order
+  requested) correctly identified all three real defects (membership
+  check against the wrong collection, missing empty-tag skip, unwanted
+  sort) - the Cup Test's own instructions ask for one sentence, and both
+  Beans complied instead of padding the explanation.
+- This is a small sample (one run per Bean, no repeated trials) - a
+  single comparison is directional evidence for `tools/generate_policy.py`'s
+  existing `code` task_type ranking, not a full re-run of the Brew 14
+  Cup Test pack. Worth a repeated/larger comparison in a future Brew
+  before treating token-efficiency as a settled finding rather than one
+  data point.
+
+Cost and token evidence:
+
+- Both calls: `$0.00` (free-tier Beans). Real Ledger rows: request
+  `0636e173-2230-42aa-971a-15967adce9c4` (House Blend) and
+  `ae25dec9-fd83-4dc6-90a8-9ab0322b97e5` (Second Pour), both `task_type=code`,
+  in `ledger/router_requests.csv`.

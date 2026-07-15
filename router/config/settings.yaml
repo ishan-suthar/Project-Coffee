@@ -58,3 +58,10 @@ memory_proposal_max_transcript_chars: 20000  # transcript truncates from the sta
 pantry_chunk_size_chars: 1200
 pantry_chunk_overlap_chars: 200
 pantry_top_k: 5  # number of top-ranked chunks injected per request
+
+# Learning loop (Brew 42). See tools/generate_policy.py, the
+# POST /v1/policy/rebuild_preview and /rebuild_apply endpoints in
+# router/app/main.py, and docs/design/learning-loop-and-release-design.md.
+min_rating_sample_size: 5  # a (task_type, Bean) pair needs at least this many real ratings before they influence ranking
+policy_roastery_weight: 0.6  # Roastery Cup Test evidence's share of the blended score once ratings clear the threshold; ratings get (1 - this)
+escalation_rate_flag_threshold: 0.3  # task_types with a higher real escalation rate are flagged (advisory only) in the policy rebuild diff

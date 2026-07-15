@@ -13,7 +13,7 @@ from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from router.app.aliases import Bean, BeanRegistry
 from router.app.config import Settings
-from router.app.ledger import RouterLedger
+from router.app.ledger import LedgerRow, RouterLedger
 from router.app.main import (
     EscalationContext,
     RouterState,
@@ -1474,6 +1474,172 @@ class MemoryProposalEndpointTests(unittest.IsolatedAsyncioTestCase):
             "line six",
             (self.repo_root / "brew-log" / "active_context.md").read_text(encoding="utf-8"),
         )
+
+
+FIXTURE_TASTING_NOTES = """# Tasting Notes
+
+### 2026-07-14 - Fixture Entry
+
+Task file:
+
+roastery/cup_tests/002-tiny-python-fix.md
+
+| Bean | Status | Latency | Tokens | Cost | Captured | Reviewed | Score | Use again? |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `vendor/default:free` | ok | 1000ms | 500 total | $0.00 | yes | yes | 7 | yes |
+| `vendor/fallback:free` | ok | 900ms | 400 total | $0.00 | yes | yes | 6 | yes |
+"""
+
+
+class PolicyRebuildEndpointTests(unittest.IsolatedAsyncioTestCase):
+    """Brew 42 (docs/design/learning-loop-and-release-design.md Section
+    3.2): the policy rebuild preview/apply/discard endpoints.
+    routing_policy_path/tasting_notes_path always point at temp fixtures,
+    never the real repo files - these tests must never write to the real
+    router/config/routing_policy.yaml or roastery/tasting_notes.md."""
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        policy_path = Path(self._tmp_dir.name) / "routing_policy.yaml"
+        with open(policy_path, "w", encoding="utf-8") as handle:
+            yaml.safe_dump(FIXTURE_POLICY, handle)
+
+        self.tasting_notes_path = Path(self._tmp_dir.name) / "tasting_notes.md"
+        self.tasting_notes_path.write_text(FIXTURE_TASTING_NOTES, encoding="utf-8")
+        self.routing_policy_path = Path(self._tmp_dir.name) / "generated_routing_policy.yaml"
+
+        registry = _make_bean_registry(with_premium=True)
+        policy = RoutingPolicy.from_yaml(policy_path, bean_registry=registry)
+        settings = Settings(generating_tick_tokens=5, generating_tick_seconds=999)
+        self.ledger = RouterLedger(Path(self._tmp_dir.name) / "router_requests.csv")
+        self.state = RouterState(
+            bean_registry=registry,
+            routing_policy=policy,
+            settings=settings,
+            ledger=self.ledger,
+            uploads_root=Path(self._tmp_dir.name) / "uploads",
+            routing_policy_path=self.routing_policy_path,
+            tasting_notes_path=self.tasting_notes_path,
+        )
+        self.app = create_app(state=self.state)
+
+    def _append_rating(self, *, bean_alias, rating, escalated=False, task_type="code"):
+        self.ledger.append(
+            LedgerRow(
+                timestamp="2026-07-14T00:00:00+00:00",
+                request_id=f"req-{bean_alias}-{rating}-{escalated}",
+                task_type=task_type,
+                bean_alias=bean_alias,
+                raw_model_id="vendor/x:free",
+                tokens_in=10,
+                tokens_out=10,
+                cost_usd=0.0,
+                latency_ms=100,
+                escalated=escalated,
+                escalation_approved=None,
+                rating=rating,
+            )
+        )
+
+    async def test_preview_computes_diff_against_current_on_disk_file(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/policy/rebuild_preview")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("proposal_id", body)
+        self.assertIn("task_types:", body["diff"])
+        self.assertEqual(body["escalation_candidates"], [])
+        self.assertIn(body["proposal_id"], self.state.policy_rebuild_proposals)
+        # Never written by preview.
+        self.assertFalse(self.routing_policy_path.is_file())
+
+    async def test_preview_below_rating_threshold_does_not_shift_primary_bean(self):
+        for _ in range(4):
+            self._append_rating(bean_alias="Second Pour", rating="good")
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/policy/rebuild_preview")
+
+        body = response.json()
+        self.assertNotIn("shifted the primary Bean", body["diff"])
+
+    async def test_preview_at_threshold_can_shift_primary_bean_and_apply_hot_swaps_policy(self):
+        for _ in range(5):
+            self._append_rating(bean_alias="House Blend", rating="failed")
+        for _ in range(5):
+            self._append_rating(bean_alias="Second Pour", rating="good")
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            preview_response = await client.post("/v1/policy/rebuild_preview")
+            proposal_id = preview_response.json()["proposal_id"]
+            self.assertIn("shifted the primary Bean", preview_response.json()["diff"])
+
+            apply_response = await client.post(f"/v1/policy/rebuild_apply/{proposal_id}")
+
+        self.assertEqual(apply_response.status_code, 200)
+        self.assertTrue(self.routing_policy_path.is_file())
+        self.assertNotIn(proposal_id, self.state.policy_rebuild_proposals)
+        # Hot-swapped without a restart - a fresh route selection reflects
+        # the newly written policy.
+        route = self.state.routing_policy.select_route("code")
+        self.assertEqual(route.bean_alias, "Second Pour")
+
+    async def test_apply_unknown_proposal_id_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/policy/rebuild_apply/does-not-exist")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_apply_refuses_when_file_changed_since_preview(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            preview_response = await client.post("/v1/policy/rebuild_preview")
+            proposal_id = preview_response.json()["proposal_id"]
+
+            # Simulate a concurrent edit/apply landing between preview and
+            # this apply call.
+            self.routing_policy_path.write_text("# raced\n", encoding="utf-8")
+
+            apply_response = await client.post(f"/v1/policy/rebuild_apply/{proposal_id}")
+
+        self.assertEqual(apply_response.status_code, 422)
+        self.assertEqual(self.routing_policy_path.read_text(encoding="utf-8"), "# raced\n")
+        self.assertNotIn(proposal_id, self.state.policy_rebuild_proposals)
+
+    async def test_discard_clears_proposal_and_writes_nothing(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            preview_response = await client.post("/v1/policy/rebuild_preview")
+            proposal_id = preview_response.json()["proposal_id"]
+
+            discard_response = await client.post(f"/v1/policy/rebuild_discard/{proposal_id}")
+
+        self.assertEqual(discard_response.status_code, 200)
+        self.assertNotIn(proposal_id, self.state.policy_rebuild_proposals)
+        self.assertFalse(self.routing_policy_path.is_file())
+
+    async def test_discard_unknown_proposal_id_404(self):
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/policy/rebuild_discard/does-not-exist")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_escalation_candidates_surfaced_in_preview(self):
+        for _ in range(4):
+            self._append_rating(bean_alias="House Blend", rating="good", escalated=True)
+        for _ in range(6):
+            self._append_rating(bean_alias="House Blend", rating="good", escalated=False)
+
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/policy/rebuild_preview")
+
+        self.assertIn("code", response.json()["escalation_candidates"])
 
 
 class UploadEndpointTests(unittest.IsolatedAsyncioTestCase):

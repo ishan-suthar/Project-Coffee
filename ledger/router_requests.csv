@@ -9,3 +9,5 @@ timestamp,request_id,task_type,bean_alias,raw_model_id,tokens_in,tokens_out,cost
 2026-07-10T23:15:29.899019+00:00,672e87bb-52cc-4930-91bf-d800cac93d4f,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,86,0.0,1781,False,n/a,,0,0
 2026-07-14T17:33:52.945141+00:00,b4ffab73-79db-4d00-9008-6a8a512d1226,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,718,0.0,22890,False,n/a,,0,0
 2026-07-14T17:34:19.125560+00:00,77016843-3690-49da-ac60-4a3f53959569,explain,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,13,881,0.0,7297,False,n/a,,0,0
+2026-07-15T02:45:19.421477+00:00,0636e173-2230-42aa-971a-15967adce9c4,code,House Blend,nvidia/nemotron-3-ultra-550b-a55b:free,223,598,0.0,5062,False,n/a,,0,0
+2026-07-15T02:45:38.049598+00:00,ae25dec9-fd83-4dc6-90a8-9ab0322b97e5,code,Second Pour,cohere/north-mini-code:free,223,1169,0.0,7875,False,n/a,,0,0

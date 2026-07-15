@@ -5,6 +5,7 @@ import { useChatStore } from "@/store/chatStore";
 import { formatRelativeTime } from "@/lib/relativeTime";
 import { SessionMenu } from "@/components/Sidebar/SessionMenu";
 import { MemoryProposalPanel } from "@/components/MemoryProposal/MemoryProposalPanel";
+import { SettingsPanel } from "@/components/Settings/SettingsPanel";
 
 /**
  * Sessions grouped by project, collapsible to an icon rail. Fetched AFTER
@@ -17,6 +18,7 @@ import { MemoryProposalPanel } from "@/components/MemoryProposal/MemoryProposalP
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [closeOutSessionId, setCloseOutSessionId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const sessions = useChatStore((s) => s.sessions);
   const sessionsLoaded = useChatStore((s) => s.sessionsLoaded);
   const activeSessionId = useChatStore((s) => s.activeSessionId);
@@ -68,14 +70,25 @@ export function Sidebar() {
     <aside className="flex w-64 flex-col border-r border-caramel bg-latte">
       <div className="flex items-center justify-between border-b border-caramel px-3 py-2">
         <span className="text-sm font-medium text-espresso">{project}</span>
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label="Collapse sidebar"
-          className="rounded px-2 py-1 text-espresso transition hover:bg-cream"
-        >
-          &larr;
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Open settings"
+            data-testid="open-settings-button"
+            className="rounded px-2 py-1 text-espresso transition hover:bg-cream"
+          >
+            &#9881;
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label="Collapse sidebar"
+            className="rounded px-2 py-1 text-espresso transition hover:bg-cream"
+          >
+            &larr;
+          </button>
+        </div>
       </div>
 
       <button
@@ -120,6 +133,7 @@ export function Sidebar() {
           onClose={() => setCloseOutSessionId(null)}
         />
       )}
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
     </aside>
   );
 }

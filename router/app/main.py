@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import difflib
 import os
 import time
 import uuid
@@ -70,7 +71,7 @@ from router.app.pantry import (
 )
 from router.app.pantry import connect as pantry_connect
 from router.app.preferences import PreferenceStore
-from router.app.routing import NoVisionBeanError, RoutingError, RoutingPolicy
+from router.app.routing import DEFAULT_ROUTING_POLICY_PATH, NoVisionBeanError, RoutingError, RoutingPolicy
 from router.app.sessions import SessionStore
 from router.app.uploads import (
     DEFAULT_UPLOADS_ROOT,
@@ -86,6 +87,7 @@ from router.app.uploads import (
     truncate_inline_text,
     validate_upload,
 )
+from tools.generate_policy import DEFAULT_TASTING_NOTES, build_policy, parse_tasting_notes, render_policy_yaml
 
 DEFAULT_PROJECT = "default"
 
@@ -137,6 +139,22 @@ class EscalationContext:
     decision_deadline: str
     resolved: bool = False
     resolution: Optional[str] = None  # "approved" | "declined" | "timed_out" | "cancelled"
+
+
+@dataclass(frozen=True)
+class PolicyRebuildProposal:
+    """A rebuilt router/config/routing_policy.yaml proposal (Brew 42,
+    docs/design/learning-loop-and-release-design.md Section 3.2) - never
+    applied without an explicit POST .../rebuild_apply/{id} call, which
+    re-reads the on-disk file and refuses if it no longer matches
+    `based_on_policy_yaml` (defense against a race, same pattern as Brew
+    41's memory-proposal approve-time guardrail re-check)."""
+
+    proposal_id: str
+    new_policy_yaml: str
+    diff: str
+    escalation_candidates: List[str]
+    based_on_policy_yaml: str
 
 
 StreamOrderFn = Callable[..., AsyncIterator[StreamChunk]]
@@ -194,6 +212,16 @@ class RouterState:
     # pantry_index_path, so tests never touch the real brew-log/ files -
     # defaults to the real repo root only for the actual running router.
     memory_proposal_repo_root: Path = field(default=MEMORY_PROPOSALS_REPO_ROOT)
+    # Brew 42 (docs/design/learning-loop-and-release-design.md Section 3.2):
+    # a generated-but-not-yet-applied-or-discarded routing_policy.yaml
+    # rebuild, keyed by proposal_id. Same in-memory/no-TTL-sweep precedent
+    # as memory_proposals. routing_policy_path/tasting_notes_path are
+    # fields (not hardcoded constants), matching every other Brew 41/42
+    # path override, so tests never touch the real routing_policy.yaml or
+    # tasting_notes.md.
+    policy_rebuild_proposals: Dict[str, PolicyRebuildProposal] = field(default_factory=dict)
+    routing_policy_path: Path = field(default=DEFAULT_ROUTING_POLICY_PATH)
+    tasting_notes_path: Path = field(default=DEFAULT_TASTING_NOTES)
 
 
 async def _consume_stream(
@@ -1340,6 +1368,104 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
         if proposal_id not in state.memory_proposals:
             raise HTTPException(status_code=404, detail="Unknown proposal_id.")
         state.memory_proposals.pop(proposal_id, None)
+        return {"proposal_id": proposal_id, "status": "discarded"}
+
+    @app.post("/v1/policy/rebuild_preview")
+    async def policy_rebuild_preview():
+        """Brew 42 (docs/design/learning-loop-and-release-design.md
+        Section 3.2): computes a proposed router/config/routing_policy.yaml
+        rebuild (Roastery Cup Test evidence blended with real accumulated
+        ratings once a (task_type, Bean) pair clears
+        settings.min_rating_sample_size) and returns a diff against the
+        current on-disk file. Never writes anything - only
+        POST .../rebuild_apply/{id} does that."""
+
+        state = app.state.coffee
+        tasting_notes_text = state.tasting_notes_path.read_text(encoding="utf-8")
+        beans_config = {
+            "beans": [
+                {"alias": bean.alias, "role": bean.role, "model_id": bean.model_id}
+                for bean in state.bean_registry.all_beans()
+            ]
+        }
+        ledger_rows = state.ledger.read_all_rows()
+
+        evidence = parse_tasting_notes(tasting_notes_text)
+        policy = build_policy(
+            evidence,
+            beans_config,
+            ledger_rows=ledger_rows,
+            min_rating_sample_size=state.settings.min_rating_sample_size,
+            roastery_weight=state.settings.policy_roastery_weight,
+            escalation_rate_flag_threshold=state.settings.escalation_rate_flag_threshold,
+        )
+        new_policy_yaml = render_policy_yaml(policy)
+        current_policy_yaml = (
+            state.routing_policy_path.read_text(encoding="utf-8")
+            if state.routing_policy_path.is_file()
+            else ""
+        )
+        diff = "".join(
+            difflib.unified_diff(
+                current_policy_yaml.splitlines(keepends=True),
+                new_policy_yaml.splitlines(keepends=True),
+                fromfile=str(state.routing_policy_path),
+                tofile=f"{state.routing_policy_path} (proposed)",
+            )
+        )
+
+        proposal = PolicyRebuildProposal(
+            proposal_id=str(uuid.uuid4()),
+            new_policy_yaml=new_policy_yaml,
+            diff=diff,
+            escalation_candidates=policy["escalation_candidates"],
+            based_on_policy_yaml=current_policy_yaml,
+        )
+        state.policy_rebuild_proposals[proposal.proposal_id] = proposal
+        return {
+            "proposal_id": proposal.proposal_id,
+            "diff": proposal.diff,
+            "escalation_candidates": proposal.escalation_candidates,
+        }
+
+    @app.post("/v1/policy/rebuild_apply/{proposal_id}")
+    async def policy_rebuild_apply(proposal_id: str):
+        state = app.state.coffee
+        proposal = state.policy_rebuild_proposals.get(proposal_id)
+        if proposal is None:
+            raise HTTPException(status_code=404, detail="Unknown proposal_id.")
+
+        current_policy_yaml = (
+            state.routing_policy_path.read_text(encoding="utf-8")
+            if state.routing_policy_path.is_file()
+            else ""
+        )
+        if current_policy_yaml != proposal.based_on_policy_yaml:
+            state.policy_rebuild_proposals.pop(proposal_id, None)
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "routing_policy.yaml changed on disk since this proposal was "
+                    "generated. Discard this proposal and request a fresh preview."
+                ),
+            )
+
+        state.routing_policy_path.write_text(proposal.new_policy_yaml, encoding="utf-8")
+        # Hot-swap - no router restart needed (RouterState is a plain
+        # mutable dataclass, same pattern every other endpoint already
+        # relies on to mutate state in place).
+        state.routing_policy = RoutingPolicy.from_yaml(
+            state.routing_policy_path, bean_registry=state.bean_registry
+        )
+        state.policy_rebuild_proposals.pop(proposal_id, None)
+        return {"proposal_id": proposal_id, "status": "applied"}
+
+    @app.post("/v1/policy/rebuild_discard/{proposal_id}")
+    async def policy_rebuild_discard(proposal_id: str):
+        state = app.state.coffee
+        if proposal_id not in state.policy_rebuild_proposals:
+            raise HTTPException(status_code=404, detail="Unknown proposal_id.")
+        state.policy_rebuild_proposals.pop(proposal_id, None)
         return {"proposal_id": proposal_id, "status": "discarded"}
 
     return app

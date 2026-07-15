@@ -16,6 +16,9 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.memory_proposal_bean_alias, "House Blend")
         self.assertGreater(settings.pantry_chunk_size_chars, 0)
         self.assertGreater(settings.pantry_top_k, 0)
+        self.assertGreater(settings.min_rating_sample_size, 0)
+        self.assertGreater(settings.policy_roastery_weight, 0)
+        self.assertGreater(settings.escalation_rate_flag_threshold, 0)
 
     def test_defaults_when_field_missing(self):
         settings = Settings(**{})
@@ -27,6 +30,9 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.pantry_chunk_size_chars, 1200)
         self.assertEqual(settings.pantry_chunk_overlap_chars, 200)
         self.assertEqual(settings.pantry_top_k, 5)
+        self.assertEqual(settings.min_rating_sample_size, 5)
+        self.assertEqual(settings.policy_roastery_weight, 0.6)
+        self.assertEqual(settings.escalation_rate_flag_threshold, 0.3)
 
 
 class StartupSafetyTests(unittest.TestCase):
