@@ -6,34 +6,78 @@ Phase 1 - Working daily AI coding environment
 
 ## Current milestone
 
-Brew 46 - conversation memory. The router was genuinely single-turn:
-prior session messages were persisted and rendered but never sent back
-to the model, and extracted attachment text was request-scoped and
-gone by the next message. Fixed both, behind a new per-session
-user-controlled `remember_chat` toggle (default ON for new sessions,
-resolved server-side so the client can never drift it from what's
-actually billed). New `router/app/history.py` assembles windowed
-conversation history (whole-turn trimming, oldest-first, current
-prompt always reserved first); `sessions.py` persists extracted
-PDF/text attachment content (never image bytes - images require a
-re-upload on a later turn by design) alongside each message;
-`CompleteEvent`/the Ledger both gained history-cost fields so "what did
-Remember Chat cost me" is answerable from the Ledger alone. A new
-`RememberChatToggle.tsx` in `ResponseSection` shows the toggle plus a
-turns/tokens-carried hint (optimistic PATCH with rollback). Implemented,
-fully tested (412 router tests + 187 Vitest, `tsc`/`eslint`/`next
-build`/e2e all clean), and demoed live end-to-end with a real PDF
-upload, a real cross-turn follow-up answered with no re-upload, the
-toggle flipped OFF mid-session with confirmed memory loss, and a real
-Ledger row proving both toggle states; not yet staged or committed,
-same as Brews 44 (response layout/Markdown formatting fix) and 45
-(vertical Coffee Counter scene assets), both also still unstaged from
-prior sessions. Brews 40-43 are staged and committed (`84070f9`,
-`a55c07d`, `889c5f0`, `3fd814a`). Separately (outside any Brew in this
-log), `router/config/beans.yaml` gained a real premium/vision Bean
-(`Reserve Blend` -> `anthropic/claude-sonnet-4-6`) and a specialist Bean
-(`Single Origin`) - the "no premium/vision Bean" gap repeated since
-Brew 36 is now closed.
+Brew 47, all four sections now complete - an OpenAI-compatible endpoint
+plus real-usage measurement (retry detection, opt-in shadow mode, and a
+Ledger analysis report), answering "what fraction of my coding tasks
+actually needed a premium model?" with real data. `POST
+/v1/chat/completions` (Section 1) reuses Coffee's classification/routing/
+escalation/Ledger machinery under its own orchestration function
+(`_run_chat_completion`, not a reuse of `run_order`), is stateless
+w.r.t. the session store, and surfaces `draft_quality` via
+`system_fingerprint` since it can't pause for escalation approval. The
+Ledger's 10-column Brew 47 schema (Section 3) migrated in one pass.
+
+Sections 2 and 4, done this session: a new `api_requests` SQLite table
+(`router/app/sessions.py`) backs retry-detection lookups (matched on
+user + client fingerprint + last-message hash, only against an
+already-*completed* prior request - which is what makes genuine
+parallelism structurally distinct from a retry, no extra bookkeeping
+needed) and shadow-mode response-pair storage. `RouterLedger.
+increment_retry_count()` makes the CSV's `retry_count` column live
+(rewrite-the-file, same pattern `update_rating()` already used) - a
+human's explicit instruction superseding the original design doc's
+write-time-snapshot framing. Shadow mode (off by default, API-only, never
+`/v1/order`) fires a background `asyncio.create_task` strictly after the
+client already has its response (`shadow_context` is an out-parameter an
+async generator mutates in place, since it can't `return` through
+`async for`); `_run_shadow` calls the raw streaming helper directly,
+never `_run_chat_completion` again, making "never recursive" structural
+rather than flag-gated. Shadow Ledger rows get a *real* computed dollar
+`cost_usd` (necessary - otherwise the daily cap could never trip, since
+every other paid-Bean row in this router still writes "unknown") - a
+deliberate, narrow, flagged inconsistency (see `roastery/
+tasting_notes.md`). `tools/ledger_summary.py --mode model-usage` (Section
+4) is a genuinely separate code path reading the CSV directly, sliced by
+`task_type`/`client_source`, always closing with a "what this cannot tell
+you" footer. `router/tools/prune_api_requests.py` does manual-only
+`api_requests` retention.
+
+Fully tested (764 tests via `tools/run_all_tests.py`, same 2 pre-existing
+vision-Bean fixture failures, unrelated) and demoed live end-to-end
+against the real router with real OpenRouter calls: a real retry
+detected and linked, a real shadow pair captured with confirmed-
+unaffected client latency, the prune CLI's both paths, and the analysis
+report run against real accumulated data.
+
+**A real bug found live during the shadow-mode demo is now fixed**: an
+auto-escalated `/v1/chat/completions` request used to stream the cheap
+draft's and the premium re-run's content to the client back to back with
+no reset (`_run_against()`'s internal accumulator reset correctly per
+call, but every chunk it yielded was relayed regardless of which run
+produced it) - live example: `"Hello there youHello there, friend!"`.
+Buffering the draft on every request was rejected (it would cost every
+potentially-escalating streamed request its time-to-first-token to
+correctly serve the ~1-in-8 that actually escalate). Fixed instead by
+making escalation mode-dependent: `_run_chat_completion` gained a
+`stream: bool` param; `stream=false` buffers the draft internally and
+discards it entirely on escalation, emitting only the premium response
+as one buffered chunk (escalation still works exactly as designed);
+`stream=true` streams the draft live as before but never escalates,
+logging a new `would_have_escalated` Ledger column instead so the
+measurement signal survives even though the action doesn't - surfaced to
+the client via the same `system_fingerprint: "draft_quality"` mechanism
+over-cap declines already used, no second signal invented. Reproduced
+the exact bug prompt live in both stream modes; both now return clean,
+non-concatenated output, confirmed against real Ledger rows. See
+`brew-log/progress.md`'s 2026-07-16 "Escalation-concatenation fix"
+entries for the full writeup.
+
+Not yet staged or committed. Brews 40-46 are staged and committed
+(`84070f9`, `a55c07d`, `889c5f0`, `3fd814a`, `4539de1`). Separately
+(outside any Brew in this log), `router/config/beans.yaml` gained a real
+premium/vision Bean (`Reserve Blend` -> `anthropic/claude-sonnet-4-6`)
+and a specialist Bean (`Single Origin`) - the "no premium/vision Bean"
+gap repeated since Brew 36 is now closed.
 
 ## What matters right now
 

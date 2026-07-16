@@ -229,6 +229,25 @@ def load_ledger_rows(ledger_path: Path) -> List[Dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def routing_evidence_rows(ledger_rows: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Brew 47 (docs/design/openai-compat-endpoint-design.md Section 5,
+    "What this Brew deliberately does not do"): excludes shadow-mode rows
+    and non-chat_ui (/v1/chat/completions) traffic from routing evidence.
+    Retry-as-signal is too weak to reshape routing policy and shadow pairs
+    are unjudged - getting that data in cleanly was Brew 47's job, letting
+    it move routing is a deliberate later decision, not an accident of
+    this function forgetting to filter. A blank client_source (every row
+    written before Brew 47) is treated as chat_ui, matching that column's
+    documented migration default."""
+
+    return [
+        row
+        for row in ledger_rows
+        if (row.get("is_shadow") or "").strip().lower() != "true"
+        and (row.get("client_source") or "chat_ui").strip() in ("chat_ui", "")
+    ]
+
+
 def load_rating_evidence(
     ledger_rows: List[Dict[str, str]],
 ) -> Dict[Tuple[str, str], RatingEvidence]:
@@ -319,7 +338,7 @@ def build_policy(
     roastery_weight: float = DEFAULT_ROASTERY_WEIGHT,
     escalation_rate_flag_threshold: float = DEFAULT_ESCALATION_RATE_FLAG_THRESHOLD,
 ) -> dict:
-    ledger_rows = ledger_rows or []
+    ledger_rows = routing_evidence_rows(ledger_rows or [])
     rating_evidence = load_rating_evidence(ledger_rows)
     escalation_rates = compute_escalation_rates(ledger_rows)
 

@@ -15,9 +15,11 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator, List, Optional
+
+from router.app.uploads import truncate_inline_text
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "sessions.db"
 
@@ -71,6 +73,34 @@ CREATE TABLE IF NOT EXISTS projects (
     name TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+);
+
+-- Brew 47 Section 2 (docs/design/openai-compat-endpoint-design.md): a
+-- durable per-request record for POST /v1/chat/completions traffic only -
+-- retry-detection lookups and shadow-mode response pairs, neither of
+-- which belongs in the ephemeral in-memory RouterState or the append-only
+-- Ledger CSV (a Ledger row is written once and never holds full response
+-- text). completed_at is distinct from created_at: retry_detection_window_
+-- seconds measures time since the ORIGINAL finished, not since it started
+-- (a slow original shouldn't get a wider retry window). A row for a
+-- request that ultimately errored stays with response_text NULL forever -
+-- never eligible as a retry match (mirrors Brew 46's "never persist a
+-- failed turn"), and not cleaned up specially - only a manual
+-- router/tools/prune_api_requests.py run removes anything from this table.
+CREATE TABLE IF NOT EXISTS api_requests (
+    request_id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    completed_at TEXT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    client_fingerprint TEXT NOT NULL,
+    last_user_message_hash TEXT NOT NULL,
+    response_text TEXT,
+    is_shadow INTEGER NOT NULL DEFAULT 0,
+    shadow_of TEXT,
+    shadow_response_text TEXT,
+    shadow_bean_alias TEXT,
+    retry_of TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0
 );
 """
 
@@ -170,6 +200,28 @@ class MessageRecord:
     @property
     def has_attachments(self) -> bool:
         return self.attachments_json is not None
+
+
+@dataclass(frozen=True)
+class ApiRequestRecord:
+    """Brew 47 Section 2 - a row from `api_requests`. `response_text`/
+    `shadow_response_text` are None until the corresponding generation
+    completes; `retry_of`/`shadow_of` are None unless this row matched a
+    prior request or was itself a shadow run."""
+
+    request_id: str
+    created_at: str
+    completed_at: Optional[str]
+    user_id: int
+    client_fingerprint: str
+    last_user_message_hash: str
+    response_text: Optional[str]
+    is_shadow: bool
+    shadow_of: Optional[str]
+    shadow_response_text: Optional[str]
+    shadow_bean_alias: Optional[str]
+    retry_of: Optional[str]
+    retry_count: int
 
 
 @dataclass(frozen=True)
@@ -615,6 +667,125 @@ class SessionStore:
             conn.execute("UPDATE sessions SET project_id = NULL WHERE project_id = ?", (project_id,))
             conn.execute(f"DELETE FROM projects WHERE {' AND '.join(clauses)}", params)
             return True
+
+    # --- API requests (Brew 47) -----------------------------------------
+
+    def create_api_request(
+        self, request_id: str, *, user_id: int, client_fingerprint: str, last_user_message_hash: str
+    ) -> None:
+        """Inserted before generation starts, not after - a concurrent
+        duplicate request arriving in the same instant must see this row
+        as in-flight (response_text IS NULL), never as a prior completed
+        answer to match a retry against (docs/design/
+        openai-compat-endpoint-design.md Section 2, the parallelism-vs-
+        retry edge case)."""
+
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO api_requests (request_id, created_at, user_id, client_fingerprint, "
+                "last_user_message_hash) VALUES (?, ?, ?, ?, ?)",
+                (request_id, _iso_now(), user_id, client_fingerprint, last_user_message_hash),
+            )
+
+    def complete_api_request(self, request_id: str, response_text: str, *, max_stored_chars: int) -> None:
+        """Only called on the real success path - an errored request's
+        row stays with response_text NULL forever (never persist a failed
+        turn, same precedent as Brew 46's message persistence)."""
+
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE api_requests SET response_text = ?, completed_at = ? WHERE request_id = ?",
+                (truncate_inline_text(response_text, max_inline_text_chars=max_stored_chars), _iso_now(), request_id),
+            )
+
+    def find_retry_candidate(
+        self,
+        *,
+        user_id: int,
+        client_fingerprint: str,
+        last_user_message_hash: str,
+        exclude_request_id: str,
+        window_seconds: float,
+    ) -> Optional[str]:
+        """The Signal A match rule (docs/design/
+        openai-compat-endpoint-design.md Section 2): same user_id +
+        client_fingerprint + last_user_message_hash, already completed
+        (response_text IS NOT NULL - this is what tells a retry apart
+        from parallelism, see create_api_request's docstring), within
+        window_seconds of ITS completion (not its start). Most recent
+        match wins. Returns None when nothing matches."""
+
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=window_seconds)).isoformat(timespec="microseconds")
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT request_id FROM api_requests
+                WHERE user_id = ? AND client_fingerprint = ? AND last_user_message_hash = ?
+                  AND request_id != ? AND response_text IS NOT NULL AND completed_at >= ?
+                ORDER BY completed_at DESC LIMIT 1
+                """,
+                (user_id, client_fingerprint, last_user_message_hash, exclude_request_id, cutoff),
+            ).fetchone()
+        return row["request_id"] if row is not None else None
+
+    def set_retry_of(self, request_id: str, retry_of: str) -> None:
+        with self._connect() as conn:
+            conn.execute("UPDATE api_requests SET retry_of = ? WHERE request_id = ?", (retry_of, request_id))
+
+    def increment_retry_count(self, request_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE api_requests SET retry_count = retry_count + 1 WHERE request_id = ?", (request_id,)
+            )
+
+    def record_shadow_result(
+        self, primary_request_id: str, shadow_response_text: str, shadow_bean_alias: str, *, max_stored_chars: int
+    ) -> None:
+        """Written to the PRIMARY request's row, not a separate row - a
+        human reading a pair reads one row, not a join (Section 2)."""
+
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE api_requests SET shadow_response_text = ?, shadow_bean_alias = ? WHERE request_id = ?",
+                (
+                    truncate_inline_text(shadow_response_text, max_inline_text_chars=max_stored_chars),
+                    shadow_bean_alias,
+                    primary_request_id,
+                ),
+            )
+
+    def get_api_request(self, request_id: str) -> Optional[ApiRequestRecord]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM api_requests WHERE request_id = ?", (request_id,)).fetchone()
+        return _row_to_api_request(row) if row is not None else None
+
+    def prune_api_requests_older_than(self, cutoff_iso: str) -> int:
+        """Manual only, never automatic (docs/design/
+        openai-compat-endpoint-design.md Section 2, resolved open question
+        3) - called only from router/tools/prune_api_requests.py. Returns
+        the number of rows deleted."""
+
+        with self._connect() as conn:
+            cursor = conn.execute("DELETE FROM api_requests WHERE created_at < ?", (cutoff_iso,))
+            return cursor.rowcount
+
+
+def _row_to_api_request(row: sqlite3.Row) -> ApiRequestRecord:
+    return ApiRequestRecord(
+        request_id=row["request_id"],
+        created_at=row["created_at"],
+        completed_at=row["completed_at"],
+        user_id=row["user_id"],
+        client_fingerprint=row["client_fingerprint"],
+        last_user_message_hash=row["last_user_message_hash"],
+        response_text=row["response_text"],
+        is_shadow=bool(row["is_shadow"]),
+        shadow_of=row["shadow_of"],
+        shadow_response_text=row["shadow_response_text"],
+        shadow_bean_alias=row["shadow_bean_alias"],
+        retry_of=row["retry_of"],
+        retry_count=row["retry_count"],
+    )
 
 
 def _row_to_message(row: sqlite3.Row) -> MessageRecord:

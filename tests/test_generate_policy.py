@@ -8,6 +8,7 @@ from tools.generate_policy import (
     compute_escalation_rates,
     load_rating_evidence,
     render_policy_yaml,
+    routing_evidence_rows,
 )
 
 BEANS_CONFIG = {
@@ -72,6 +73,38 @@ class LoadRatingEvidenceTests(unittest.TestCase):
         self.assertAlmostEqual(result[("code", "House Blend")].avg_rating, 1.0)
         self.assertAlmostEqual(result[("explain", "House Blend")].avg_rating, 0.0)
         self.assertAlmostEqual(result[("code", "Second Pour")].avg_rating, 0.0)
+
+
+class RoutingEvidenceRowsTests(unittest.TestCase):
+    """docs/design/openai-compat-endpoint-design.md Section 5 ("what this
+    Brew deliberately does not do"): shadow-mode rows and non-chat_ui
+    (/v1/chat/completions) traffic never reach routing evidence."""
+
+    def test_excludes_shadow_rows(self):
+        rows = [
+            {"task_type": "code", "client_source": "chat_ui", "is_shadow": "False"},
+            {"task_type": "code", "client_source": "chat_ui", "is_shadow": "True"},
+        ]
+        self.assertEqual(len(routing_evidence_rows(rows)), 1)
+
+    def test_excludes_openai_api_client_source(self):
+        rows = [
+            {"task_type": "code", "client_source": "chat_ui", "is_shadow": "False"},
+            {"task_type": "code", "client_source": "openai_api", "is_shadow": "False"},
+            {"task_type": "code", "client_source": "cursor/1.0", "is_shadow": "False"},
+        ]
+        self.assertEqual(len(routing_evidence_rows(rows)), 1)
+
+    def test_blank_client_source_treated_as_chat_ui(self):
+        """Every row written before Brew 47 has no client_source column at
+        all - must be kept, not excluded as if it were openai_api."""
+
+        rows = [{"task_type": "code", "client_source": "", "is_shadow": ""}]
+        self.assertEqual(len(routing_evidence_rows(rows)), 1)
+
+    def test_missing_columns_treated_the_same_as_blank(self):
+        rows = [{"task_type": "code"}]
+        self.assertEqual(len(routing_evidence_rows(rows)), 1)
 
 
 class ComputeEscalationRatesTests(unittest.TestCase):
@@ -157,6 +190,51 @@ class BuildPolicyRatingsWeightingTests(unittest.TestCase):
             evidence, BEANS_CONFIG, ledger_rows=ledger_rows, escalation_rate_flag_threshold=0.3
         )
         self.assertNotIn("code", policy["escalation_candidates"])
+
+    def test_build_policy_excludes_openai_api_and_shadow_rows(self):
+        """End-to-end version of RoutingEvidenceRowsTests: a real
+        openai_api/shadow row must not shift ratings or escalation rate,
+        even though it carries a real task_type/bean_alias."""
+
+        evidence = _evidence_with_two_beans(house_score=7, second_score=6)
+        contaminating_rows = (
+            [
+                {
+                    "task_type": "code",
+                    "bean_alias": "House Blend",
+                    "rating": "failed",
+                    "escalated": "True",
+                    "client_source": "openai_api",
+                    "is_shadow": "False",
+                }
+            ]
+            * 10
+        )
+        real_rows = [
+            {
+                "task_type": "code",
+                "bean_alias": "House Blend",
+                "rating": "good",
+                "escalated": "False",
+                "client_source": "chat_ui",
+                "is_shadow": "False",
+            }
+        ] * 5
+
+        policy = build_policy(
+            evidence,
+            BEANS_CONFIG,
+            ledger_rows=contaminating_rows + real_rows,
+            min_rating_sample_size=5,
+            roastery_weight=0.6,
+        )
+        entry = policy["task_types"]["code"]
+        # Only the 5 real chat_ui rows should count - all "good", so the
+        # blended rating average should reflect that, not the 10
+        # openai_api "failed" rows that would otherwise dominate.
+        self.assertEqual(entry["ratings"]["House Blend"]["rating_count"], 5)
+        self.assertAlmostEqual(entry["ratings"]["House Blend"]["avg_rating"], 1.0)
+        self.assertEqual(entry["escalation_rate"], 0.0)
 
     def test_render_policy_yaml_round_trips_through_yaml_safe_load(self):
         import yaml

@@ -28,6 +28,9 @@ Use model scorecards to record model performance.
 | 2026-07-15 | No remote Bean; `web/` frontend only (Vitest + real-Chromium Playwright), no `router/` changes | Brew 44 verification - response layout/Markdown formatting fix and barista-panel-to-right restructure | COMPLETE PER AUTOMATED SUITE (179 Vitest + 6 Playwright e2e, `tsc`/`eslint`/`next build` clean) - no manual visual/screenshot check performed, no browser/screenshot tool was available this session; not a Bean quality comparison, no scores to record | Full narrative below |
 | 2026-07-15 | No remote Bean; `web/` frontend/SVG asset work only, no `router/` changes | Brew 45 verification - vertical Coffee Counter scene placeholder art (scene_bg, barista_static, collapse chevron) for the Brew 44 right-side panel | COMPLETE PER AUTOMATED SUITE (180 Vitest + 6 Playwright e2e, `tsc`/`eslint`/`next build` clean, 14.9 KB/300 KB asset budget) - no manual visual/screenshot check performed, no browser/screenshot tool was available this session; not a Bean quality comparison, no scores to record | Full narrative below |
 | 2026-07-15 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend, via Coffee Core Router), four real `/v1/order` calls | Brew 46 live demo - real PDF upload, cross-turn recall with no re-upload, toggle flipped OFF mid-session, real Ledger row for both states | COMPLETE - correct cross-turn recall from persisted attachment text with the toggle ON, correct memory loss confirmed with the toggle OFF, real Ledger row shows `remember_chat=False`/`history_tokens_est=unknown`; single-Bean functional verification, not a Bean quality comparison, no scores to record | Full narrative below |
+| 2026-07-15 | No remote Bean call this session - `router/` implementation only (fakes/mocks in every test) | Brew 47 (Sections 1+3 only) verification - `POST /v1/chat/completions` and the full Ledger schema migration | COMPLETE PER AUTOMATED SUITE (673 `router/tests`+`tests` passing, same 2 pre-existing vision-Bean fixture failures unrelated) - **no live demo performed**, deliberately: the curl/OpenAI-SDK/Cursor live demo is Section 2/4 scope, explicitly deferred to a later session per instruction; not a Bean quality comparison, no scores to record | Full narrative below |
+| 2026-07-16 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend) + `anthropic/claude-sonnet-4-6` (Reserve Blend, via Coffee Core Router), real `/v1/chat/completions` calls including one real shadow run | Brew 47 (Sections 2+4) live demo - real retry detection, real shadow mode on/off, real prune CLI, `ledger_summary.py --mode model-usage` against real data | COMPLETE - retry correctly linked and `retry_count` live-incremented; shadow mode captured a real, distinct response pair with confirmed-unaffected client latency and a real computed shadow cost; prune verified both non-destructive and destructive; analysis report produced correct output including the blind-spot footer. **A real bug was found live (not fixed, reported separately)**: auto-escalation concatenates the cheap draft and the premium re-run's streamed content instead of replacing it. Not a Bean quality comparison, no scores to record | Full narrative below |
+| 2026-07-16 | `nvidia/nemotron-3-ultra-550b-a55b:free` (House Blend) + `anthropic/claude-sonnet-4-6` (Reserve Blend, via Coffee Core Router), real `/v1/chat/completions` calls reproducing the exact bug prompt in both stream modes | Brew 47 escalation-concatenation fix - live demo re-running "say hello in exactly three words" against the fixed code | COMPLETE - `stream=true` returned only the draft's clean content with `system_fingerprint: "draft_quality"` and `would_have_escalated=True` logged, no premium text appended; `stream=false` returned only the premium response with the draft text provably absent and `usage.completion_tokens` reflecting the premium call's own count; both confirmed against real Ledger rows. Not a Bean quality comparison, no scores to record | Full narrative below |
 
 ## Cup Test Notes
 
@@ -3234,3 +3237,361 @@ from `router/data/sessions.db` afterward; `git status` confirmed
 `router/data/` stayed untracked/ignored throughout, and the
 hand-crafted demo PDF (scratchpad-only, never part of the repo) was
 deleted.
+
+### 2026-07-15 - Brew 47 (Sections 1+3): OpenAI-Compatible Endpoint + Ledger Migration
+
+Goal, stated plainly in the Decaf plan: answer "what fraction of my
+coding tasks actually needed a premium model?" with real data. Cursor/
+Continue.dev compatibility is the delivery mechanism, not the point.
+This session implements only Sections 1 (the endpoint) and 3 (the
+Ledger schema) of the full Brew 47 request - Sections 2 (retry
+detection, shadow mode) and 4 (the `ledger_summary.py` analysis mode)
+are explicitly deferred to a separate session, per instruction.
+
+Preconditions:
+
+- Full test suite green: `router/tests` + `tests` at 673 passing (23
+  new `ChatCompletionsEndpointTests`, 10 new `openrouter_client` tests,
+  5 new `ledger.py` tests, 5 new `generate_policy.py` tests) - same 2
+  pre-existing `test_routing.py`/`test_aliases.py` failures from the
+  external vision-Bean commit, unrelated to this Brew.
+- No live OpenRouter call was made this session - every test uses a
+  fake `stream_order_fn` (`httpx.MockTransport` at the
+  `openrouter_client` layer, plain async-generator fakes at the `main.py`
+  orchestration layer), matching this repo's consistent "no live network
+  call in a test" discipline.
+
+What was built:
+
+- `POST /v1/chat/completions` - the standard OpenAI shape
+  (`model`/`messages`/`stream`/`temperature`/`max_tokens`/`tools`/
+  `tool_choice`), reusing `classify()`, `RoutingPolicy`, `check_for_failure()`/
+  `decide_escalation()`, and `RouterLedger` under a **new**
+  orchestration function (`_run_chat_completion`), not a reuse of
+  `run_order()`/`_run_order_body()` - the latter's `_consume_stream()`
+  batches into `generating` ticks and silently drops a chunk whose only
+  content is a tool-call delta, and its session-store/Pantry/escalation-
+  pause machinery doesn't apply to a stateless endpoint. `messages_override`
+  on `stream_order()` bypasses the prompt/history assembly entirely so
+  the client's own OpenAI-shape history is relayed verbatim.
+- Over-cap escalation, which cannot pause for approval on this endpoint
+  (no UI to render the card), is treated as an immediate decline -
+  `draft_quality` is surfaced via `system_fingerprint: "draft_quality"`
+  on the final SSE chunk, chosen over a response header (would require
+  buffering the entire generation before the first byte, defeating real
+  streaming) or a trailing text note (would land inside code Cursor
+  inserts directly into a file).
+- `config/beans.yaml`/`aliases.py` gained a `tool_calling` capability
+  flag (`Reserve Blend`/`Single Origin` set `True` on public Anthropic
+  tool-calling support, the three free-tier Beans stay `False` unverified)
+  - data only this Brew; a warning is logged, not blocked, when `tools`
+  are sent to a Bean without it.
+- The Ledger (`router/app/ledger.py`) gained 10 new columns in one
+  migration via the existing Brew 38 auto-migration mechanism:
+  `client_source`, `requested_model`, `over_cap_declined`,
+  `has_code_fence`, `message_count`, `total_input_chars` (populated for
+  real starting this session, for both `/v1/order` and the new
+  endpoint), plus `retry_of`, `retry_count`, `is_shadow`, `shadow_of`
+  (columns exist now, defaulted blank/`0`/`False`, not populated by real
+  logic until Section 2's later session) - one migration for the whole
+  Brew, per explicit instruction, not two.
+- `tools/generate_policy.py` gained `routing_evidence_rows()`, excluding
+  `is_shadow`/non-`chat_ui` rows from rating/escalation-rate evidence -
+  applied now, not deferred, since the contamination risk starts the
+  moment `/v1/chat/completions` is used for real, even though shadow
+  mode itself isn't built yet.
+
+A real bug found during test-writing, not anticipated in the plan:
+`check_for_failure()` predates tool calling and treats any empty `text`
+as the `"empty"` failure reason - a tool_calls-only response (no prose,
+which is the *correct* shape for a tool-calling turn) was silently
+triggering an unwanted auto-escalation re-run, doubling the merged
+`tool_calls` (caught as `"get_weatherget_weather"` by
+`test_tools_passthrough_round_trip`). Fixed by skipping the failure
+check entirely when `tool_calls` were produced; a regression test
+(`test_tool_calls_only_response_never_triggers_escalation`) locks it in.
+
+What was deliberately not done this session (Sections 2/4, later
+session): the `api_requests` SQLite table, retry detection (Signal A),
+shadow mode (Signal C) and its settings/daily cost cap, the `--older-than`
+prune CLI, and the `ledger_summary.py --mode model-usage` analysis
+report. The curl / real OpenAI SDK / real Cursor live demo described in
+the original request is also Section 2/4-adjacent work (the endpoint
+functions today, but demoing it meaningfully against real coding tasks
+is more useful once the measurement signals exist to interpret the
+results) - deferred to the same later session.
+
+Cost and token evidence: none - no remote Bean was called this session.
+
+### 2026-07-16 - Brew 47 (Sections 2+4): Retry Detection, Shadow Mode, Analysis Tool
+
+Sections 2 (the three measurement signals) and 4 (the analysis tool) of
+Brew 47, completing the Brew - retry detection and shadow mode built
+exactly as specified in the plan doc, `tools/ledger_summary.py --mode
+model-usage`, and the `--older-than` prune CLI. Re-read the plan doc and
+the as-shipped Section 1+3 code before starting, per instruction; the
+as-built `_run_chat_completion`, the (nonexistent) `api_requests` store,
+and `tools/ledger_summary.py` were all re-verified against the real
+current code, not assumed from the design doc.
+
+Preconditions:
+
+- Full test suite green: `python tools/run_all_tests.py` - 761 tests,
+  same 2 pre-existing vision-Bean fixture failures unrelated to this
+  Brew.
+- `OPENROUTER_API_KEY` already present in the shell environment; never
+  pasted into chat or written to a file.
+- A demo user (`demo47`) created directly via `hash_password()`/
+  `create_user()` (the same Windows `getpass` piping limitation found in
+  every prior live demo) - removed afterward via `manage_users.py
+  remove`, with 5 orphaned `tokens` rows for that user_id cleaned up
+  directly since user removal doesn't cascade-delete tokens.
+
+What was built:
+
+- New `api_requests` SQLite table (`router/app/sessions.py`) - did not
+  exist before this session (confirmed by re-reading `sessions.py`'s
+  `SCHEMA` first, not assumed from the design doc's SQL sketch). Gained a
+  `completed_at` column distinct from `created_at` that the original
+  sketch omitted - the retry window measures time since the original
+  *completed*, not since it started.
+- Retry matching (`SessionStore.find_retry_candidate`): same user +
+  client fingerprint (`sha256(user_id|User-Agent)`, falling back to
+  `"unknown"`) + last-message hash, matched only against an
+  already-*completed* prior request. The `api_requests` row is inserted
+  *before* generation starts, so a genuinely concurrent duplicate request
+  sees the original as still in-flight and can never match it - this is
+  the entire mechanism that keeps parallelism structurally distinct from
+  a retry, with no extra bookkeeping.
+- `RouterLedger.increment_retry_count()` - reuses `update_rating()`'s
+  exact rewrite-the-whole-file pattern, making the CSV's own
+  `retry_count` column live rather than a write-time snapshot. This
+  supersedes what the original design doc's Section 3 said (`retry_count`
+  would never retroactively update) - a human's explicit instruction in
+  this session overrode that earlier framing, on the reasoning that one
+  more full-CSV rewrite per detected retry is cheap at this router's real
+  volume, and a live column is simply more useful than a decorative one.
+- Shadow mode (off by default, `shadow_mode_enabled: false`,
+  `shadow_mode_sample_rate: 0.1`, `shadow_mode_daily_cost_cap_usd: 1.00`)
+  - API-only, never `/v1/order`, per the approved decision that the chat
+  UI's rating buttons are already a strictly better signal. `_run_chat_
+  completion` fills an optional `shadow_context` out-parameter in place
+  (an async generator can't `return` a value through `async for`) right
+  before writing its own Ledger row; the endpoint handler reads it back
+  only after the client has the full response (in a `finally` block, both
+  stream modes) and decides whether to `asyncio.create_task` a shadow
+  run. `_run_shadow` calls the raw streaming helper directly, never
+  `_run_chat_completion` again - a structurally stronger "never
+  recursive" guarantee than a boolean flag, since there is no code path
+  back into anything that schedules a shadow.
+- **A deliberate, narrow, flagged inconsistency**: shadow Ledger rows get
+  a *real* computed dollar `cost_usd` (`_real_cost_usd()`, tokens times
+  the premium Bean's actual `beans.yaml` pricing) - the first time this
+  router has ever computed a real dollar figure for a paid Bean anywhere.
+  Every other paid-Bean row (primary `/v1/chat/completions` rows,
+  `/v1/order` rows) still writes `cost_usd` as `"unknown"`, per the
+  pre-existing `_is_free_tier()`-only convention this session did not
+  touch. This was necessary, not optional: without a real number here,
+  summing "unknown" cells across `is_shadow=true` rows would always total
+  $0, and `shadow_mode_daily_cost_cap_usd` could never trip in practice -
+  silently defeating the entire point of the cap. **Flagging this as a
+  known inconsistency worth resolving in a future Brew**: it is a
+  defensible narrow scope today, but `tools/ledger_summary.py`'s own
+  counterfactual-cost math will eventually want real costs on primary
+  paid-Bean rows too, and right now it cannot have them - the router only
+  learned how to compute a real dollar figure for one narrow row type
+  this session, not everywhere it would help.
+- `tools/ledger_summary.py --mode model-usage` (`--mode cost-log` stays
+  the unchanged default) - confirmed by re-reading the file first that it
+  still only parsed the hand-maintained Markdown `cost_log.md`, exactly
+  as the Section 1+3 session's plan said. Reads `ledger/router_requests.csv`
+  directly via `csv.DictReader`, sliced by `task_type` and
+  `client_source`, each slice's escalation/decline/retry rates and
+  counterfactual cost printed together (never separated), a shadow
+  section only when shadow rows exist, and an always-printed "what this
+  cannot tell you" footer whose no-quality-signal fraction is computed
+  purely from the CSV (a shadow row's own `shadow_of` cell already points
+  at its primary, so no SQLite import was needed to answer "was this
+  request shadowed").
+- `router/tools/prune_api_requests.py` (new) - `--older-than <Nd|Nh|Nm>`,
+  required, no default, manual only.
+
+Commands (router started fresh with current code):
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765
+```
+
+Driven via direct `curl` calls against the real router, same rationale
+as the Section 1+3 demo - the mechanism itself, not a UI, is what needed
+proving.
+
+Observed behavior:
+
+- **Retry detection**: two identical real `/v1/chat/completions` calls
+  ("Explain what a Python decorator is in one sentence.") - the real
+  `ledger/router_requests.csv` showed the second row's `retry_of`
+  pointing at the first row's real `request_id`, and the first row's
+  `retry_count` live-incremented to `1`.
+- **Shadow mode**: `shadow_mode_enabled`/`shadow_mode_sample_rate`
+  temporarily flipped to `true`/`1.0` directly in `config/settings.yaml`,
+  router restarted. A first timed request ("Say hello in exactly three
+  words") happened to auto-escalate on its own (a short answer tripped
+  `truncation_min_expected_tokens`) before shadow logic even had a
+  chance to run (an already-premium primary is correctly skipped for
+  shadowing) - this is also where the escalation-concatenation bug below
+  was first noticed. A second, longer-prompt request stayed on House
+  Blend as intended: client-perceived latency measured at 5.39s; the real
+  Ledger gained a second row for the same request with `is_shadow=True`,
+  `bean_alias=Reserve Blend`, and `cost_usd=0.007146` (27 tokens in / 471
+  tokens out × Reserve Blend's real `beans.yaml` pricing - not an
+  estimate). `router/data/sessions.db`'s `api_requests` table held two
+  distinct, real stored responses (House Blend's vs. Reserve Blend's)
+  under the same primary `request_id`, confirmed readable directly.
+  Settings reverted to `false`/`0.1`, router restarted again; a further
+  request confirmed no new shadow row appeared.
+- **Prune CLI**: run twice for real - `--older-than 90d` deleted 0 rows
+  (nothing that old yet), `--older-than 0m` deleted the real 5 demo
+  `api_requests` rows.
+- **`ledger_summary.py --mode model-usage`**: run against the real
+  accumulated Ledger, full output shown verbatim, including a real
+  shadow section (1 pair, $0.0071 total spend, pointing at the exact
+  `sessions.db` query) and the complete blind-spot footer.
+
+**A real bug was found live during the shadow-mode demo, not fixed this
+session, per explicit instruction**: an auto-escalated
+`/v1/chat/completions` request streams the cheap draft's and the premium
+re-run's content to the client back to back with no reset in between.
+`_run_against()`'s internal `text` accumulator *is* correctly reset
+between the two calls (server-side Ledger/failure-check logic is
+unaffected), but every chunk it yields to the client is relayed
+regardless of which run produced it. Live evidence: the "say hello in
+three words" request above returned `"Hello there youHello there,
+friend!"` to the client - the truncated cheap draft glued directly to
+the premium run's own greeting, with no separator or reset signal. The
+original Section 1 design doc called this an "inherited quirk" from
+`/v1/order` and treated it as accepted precedent; that undersold it for
+an endpoint that specifically claims OpenAI compatibility, where real
+clients (the SDK, Cursor, Continue.dev) are entitled by spec to assume
+content deltas concatenate into one coherent message. The only
+spec-correct fix identified - buffer the cheap draft internally instead
+of streaming it in real time, only emitting real chunks once the failure
+check has run - trades away time-to-first-token on every request that
+might escalate (unknowable in advance) for correctness, which is a
+real, deliberate trade-off warranting its own small Brew and a human
+decision, not a same-session patch. Full writeup in `brew-log/
+progress.md`'s 2026-07-16 entries.
+
+Cost and token evidence: real calls, mostly free-tier ($0.00) plus one
+real premium-Bean shadow call. Retry demo: req-1 (House Blend, free)
+12 in / 58 out; req-2 (retry, House Blend, free) same shape. Shadow demo
+primary: House Blend (free), 27 in / 381 out; its shadow: Reserve Blend,
+27 in / 471 out, real cost $0.007146 (the first real, non-"unknown"
+dollar figure this router has ever recorded for a paid Bean).
+
+Cleanup: `demo47` removed via `manage_users.py remove`; 5 orphaned
+`tokens` rows for that user_id deleted directly (user removal does not
+cascade); the Ledger's own migration-backup file
+(`router_requests.csv.bak-2026-07-16T07-39-48+00-00`, created when the
+real CSV picked up the already-code-complete Brew 47 schema for the
+first time) deleted as a transient artifact, matching the Brew 46
+precedent of not committing migration backups. The demo's real Ledger
+rows themselves were kept, same convention as every prior live demo.
+
+### 2026-07-16 - Brew 47: Escalation-Concatenation Fix
+
+Fixed the bug reported (not fixed) in the Section 2+4 entry above:
+`_run_chat_completion`'s auto-escalate path streamed the cheap draft's
+and the premium re-run's content to the client back to back with no
+reset. Re-read the "Known issue" writeup, `_run_against()`, and the
+streaming path before starting, per instruction - the as-shipped code,
+not the design doc's original framing, was the source of truth.
+
+The buffer-always fix (hold every response internally until the failure
+check completes, regardless of stream mode) was explicitly rejected:
+losing time-to-first-token on every potentially-escalating request to
+correctly serve the ~1-in-8 that actually escalate is a bad trade for an
+endpoint whose entire point is being a transparent drop-in for coding
+tools like Cursor. Fixed by making escalation **mode-dependent**
+instead:
+
+- `stream=false`: escalation works fully, as originally designed. The
+  draft's per-chunk deltas are captured internally but never yielded
+  live; on `auto_escalate`, the premium re-run replaces the draft
+  entirely (discarded, never reaching the client) and the winning
+  response is emitted as one buffered `_openai_chunk`. Buffering here is
+  free - a non-streamed response was already being assembled into one
+  JSON body at the edge regardless of this fix.
+- `stream=true`: never escalates. The draft streams live exactly as
+  before (this fix does not touch that path's latency at all); the
+  failure check and `decide_escalation()` still run for measurement, but
+  on `auto_escalate` the premium call is skipped and a new Ledger column,
+  `would_have_escalated`, is set instead - the measurement signal
+  survives even though the action doesn't.
+- Surfaced to the client via the *same* mechanism `over_cap_declined`
+  already used - `system_fingerprint: "draft_quality"` - reusing
+  `draft_quality`'s existing meaning ("you got the draft, not the ideal
+  answer") rather than inventing a second signal.
+- `EVENT_CONTRACT.md` read and confirmed unaffected - it documents
+  `/v1/order`'s named SSE events, which this fix does not touch;
+  `/v1/chat/completions` was already outside that contract.
+
+Preconditions: `python tools/run_all_tests.py` green before starting
+(764 tests including the Section 2+4 work, same 2 pre-existing unrelated
+failures); `OPENROUTER_API_KEY` already present in the shell environment.
+
+Commands:
+
+```powershell
+python -m uvicorn router.app.main:app --port 8765
+```
+
+A fresh demo user (`demo47b`) created directly via `hash_password()`/
+`create_user()` (same Windows `getpass` piping limitation as every prior
+live demo), logged in via the real `/v1/login` endpoint for a real
+bearer token, kept in-memory only within a single shell command chain.
+
+Observed behavior - reproducing the exact bug prompt, "say hello in
+exactly three words," in both stream modes against the fixed code:
+
+- **`stream=true`**: House Blend's draft ("Hello there friend", 17
+  completion tokens per the router's own token estimate) tripped the
+  same truncation check that triggered the original bug and would have
+  auto-escalated - but the client received only the clean draft content
+  and `system_fingerprint: "draft_quality"` on the final chunk. No
+  premium text appended, no concatenation. The real Ledger row confirms
+  `bean_alias=House Blend`, `escalated=False`,
+  `would_have_escalated=True`.
+- **`stream=false`**: the identical prompt returned only Reserve Blend's
+  premium response, `"Hello there, friend!"` (8 completion tokens) - the
+  draft text is provably absent from the body. The real Ledger row
+  confirms `bean_alias=Reserve Blend`, `escalated=True`,
+  `would_have_escalated=False`, `tokens_out=8` - the premium call's own
+  real count, not the discarded draft's, which is exactly where cost
+  under-reporting would have hidden if the fix had gotten this wrong.
+
+Cost and token evidence: two real calls, both free-tier ($0.00 - House
+Blend and Reserve Blend are both zero-cost Beans in this router's real
+`beans.yaml` today, so this demo could not exercise a real dollar figure
+the way the Section 2+4 shadow-mode demo did). `stream=true` request: 8
+in / 17 out (House Blend). `stream=false` request: 8 in / 8 out (Reserve
+Blend, actual premium output, not the draft's).
+
+**Known inconsistency carried forward from the Section 2+4 entry above,
+still unresolved**: shadow rows now carry real computed dollar costs
+while primary paid-Bean rows still write "unknown", which is a known
+inconsistency worth resolving in a future Brew, and one
+`tools/ledger_summary.py`'s counterfactual math will eventually need
+fixed. This session's fix does not touch that gap either way - it is
+noted here again so it does not get lost between Brew entries.
+
+Cleanup: `demo47b` removed via `manage_users.py remove`; its 1 orphaned
+`tokens` row and 2 orphaned `api_requests` rows deleted directly, scoped
+to that user's own `id` only - pre-existing unrelated orphan rows from
+earlier sessions were confirmed present and deliberately left untouched,
+out of this session's scope. The Ledger's own migration-backup file
+(created on this session's first write, once the new
+`would_have_escalated` column changed `CSV_HEADER`) deleted as a
+transient artifact, matching every prior Brew's precedent. The two real
+demo Ledger rows themselves were kept, same convention as every prior
+live demo.

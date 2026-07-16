@@ -49,6 +49,24 @@ class ParseSseLineTests(unittest.TestCase):
     def test_malformed_json_returns_none(self):
         self.assertIsNone(_parse_sse_line("data: {not valid json"))
 
+    def test_parses_tool_calls_delta(self):
+        """Brew 47 (docs/design/openai-compat-endpoint-design.md Section
+        1): previously silently dropped - a tool-call-only delta chunk
+        has content_delta == "" but must still surface its tool_calls."""
+
+        chunk = _parse_sse_line(
+            'data: {"choices": [{"delta": {"tool_calls": '
+            '[{"index": 0, "id": "call_1", "type": "function", '
+            '"function": {"name": "get_weather", "arguments": "{\\"city\\""}}]}}]}'
+        )
+        self.assertEqual(chunk.content_delta, "")
+        self.assertEqual(chunk.tool_calls_delta[0]["id"], "call_1")
+        self.assertEqual(chunk.tool_calls_delta[0]["function"]["name"], "get_weather")
+
+    def test_no_tool_calls_leaves_field_none(self):
+        chunk = _parse_sse_line('data: {"choices": [{"delta": {"content": "hi"}}]}')
+        self.assertIsNone(chunk.tool_calls_delta)
+
 
 class HttpErrorMessageTests(unittest.TestCase):
     def test_structured_error_body(self):
@@ -282,6 +300,132 @@ class StreamOrderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(payload["messages"]), 3)
         self.assertEqual(payload["messages"][0], {"role": "user", "content": "earlier"})
         self.assertIsInstance(payload["messages"][2]["content"], list)
+
+    async def test_messages_override_sent_verbatim_ignoring_prompt(self):
+        """Brew 47 (docs/design/openai-compat-endpoint-design.md Section
+        1): a caller-assembled messages array (as /v1/chat/completions
+        builds from the client's own OpenAI-shape request) is sent as-is -
+        prompt/image_data_urls/history_messages are ignored entirely."""
+
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        override = [
+            {"role": "system", "content": "be terse"},
+            {"role": "user", "content": "hello"},
+        ]
+        async for _ in stream_order(
+            "vendor/model:free",
+            "this prompt should be ignored",
+            api_key="k",
+            http_client=client,
+            history_messages=[{"role": "user", "content": "also ignored"}],
+            messages_override=override,
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(payload["messages"], override)
+
+    async def test_tools_and_tool_choice_passed_through_unchanged(self):
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        tools = [{"type": "function", "function": {"name": "get_weather", "parameters": {}}}]
+        async for _ in stream_order(
+            "vendor/model:free",
+            "what's the weather",
+            api_key="k",
+            http_client=client,
+            tools=tools,
+            tool_choice="auto",
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(payload["tools"], tools)
+        self.assertEqual(payload["tool_choice"], "auto")
+
+    async def test_no_tools_omits_tools_field_entirely(self):
+        """Never send an empty/absent tools key - some providers reject
+        an explicit empty array."""
+
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        async for _ in stream_order("vendor/model:free", "hi", api_key="k", http_client=client):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertNotIn("tools", payload)
+        self.assertNotIn("tool_choice", payload)
+
+    async def test_temperature_and_max_tokens_passed_through(self):
+        import json as json_module
+
+        seen_bodies = []
+
+        async def handler(request):
+            seen_bodies.append(request.content)
+            return httpx.Response(200, content=_sse_body("[DONE]"))
+
+        client = _mock_client(handler)
+        async for _ in stream_order(
+            "vendor/model:free", "hi", api_key="k", http_client=client, temperature=0.2, max_tokens=256
+        ):
+            pass
+        await client.aclose()
+
+        payload = json_module.loads(seen_bodies[0])
+        self.assertEqual(payload["temperature"], 0.2)
+        self.assertEqual(payload["max_tokens"], 256)
+
+    async def test_tool_calls_delta_relayed_through_the_stream(self):
+        body = _sse_body(
+            '{"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_1", '
+            '"type": "function", "function": {"name": "get_weather", "arguments": ""}}]}}]}',
+            '{"choices": [{"delta": {"tool_calls": [{"index": 0, '
+            '"function": {"arguments": "{\\"city\\": \\"NYC\\"}"}}]}}]}',
+            '{"choices": [{"delta": {}, "finish_reason": "tool_calls"}]}',
+            "[DONE]",
+        )
+
+        async def handler(request):
+            return httpx.Response(200, content=body)
+
+        client = _mock_client(handler)
+        chunks = [
+            chunk
+            async for chunk in stream_order(
+                "vendor/model:free", "hi", api_key="k", http_client=client
+            )
+        ]
+        await client.aclose()
+
+        tool_chunks = [c for c in chunks if c.tool_calls_delta]
+        self.assertEqual(len(tool_chunks), 2)
+        self.assertEqual(tool_chunks[0].tool_calls_delta[0]["id"], "call_1")
 
 
 if __name__ == "__main__":

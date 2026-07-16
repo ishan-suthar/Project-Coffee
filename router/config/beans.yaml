@@ -18,6 +18,10 @@ beans:
     capabilities:
       vision: false
       code: true
+      # Brew 47: unverified/free-tier - default false until real evidence
+      # says otherwise. See docs/design/openai-compat-endpoint-design.md
+      # Section 1.
+      tool_calling: false
     price_per_1k_input_usd: 0.0
     price_per_1k_output_usd: 0.0
     status: active
@@ -28,6 +32,7 @@ beans:
     capabilities:
       vision: false
       code: true
+      tool_calling: false
     price_per_1k_input_usd: 0.0
     price_per_1k_output_usd: 0.0
     status: active
@@ -38,6 +43,7 @@ beans:
     capabilities:
       vision: false
       code: true
+      tool_calling: false
     price_per_1k_input_usd: 0.0
     price_per_1k_output_usd: 0.0
     status: active
@@ -48,6 +54,9 @@ beans:
     capabilities:
       vision: true
       code: true
+      # Anthropic models via OpenRouter have solid, well-documented
+      # tool-calling support.
+      tool_calling: true
     price_per_1k_input_usd: 0.003
     price_per_1k_output_usd: 0.015
     status: active
@@ -58,6 +67,7 @@ beans:
     capabilities:
       vision: true
       code: true
+      tool_calling: true
     price_per_1k_input_usd: 0.001
     price_per_1k_output_usd: 0.005
     status: active

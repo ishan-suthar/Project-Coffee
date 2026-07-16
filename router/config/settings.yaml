@@ -73,3 +73,12 @@ history_max_messages: 20  # role-tagged messages (10 turns), not 20 turns - olde
 history_max_chars: 24000  # sum of included historical turns' chars (user + assistant + reattached attachment text); never trims the current prompt itself
 attachment_max_stored_chars: 50000  # cap on extracted PDF/text attachment content persisted per attachment, truncated with a clear marker
 classifier_long_history_turns: 10  # history_turn_count at/above this pushes complexity to cold_brew - only checked when remember_chat assembled real history
+
+# Real-usage measurement for /v1/chat/completions (Brew 47 Section 2). See
+# router/app/sessions.py's api_requests table and docs/design/
+# openai-compat-endpoint-design.md.
+retry_detection_window_seconds: 300.0  # a request matching a prior completed one's last message, within this many seconds of its completion, is flagged as a probable retry
+shadow_mode_enabled: false  # off by default - doubles the cost of sampled requests. API-only (POST /v1/chat/completions), never /v1/order, since the chat UI already has rating buttons
+shadow_mode_sample_rate: 0.1  # fraction of eligible (non-premium-routed) requests that also get silently re-run against the premium Bean
+shadow_mode_daily_cost_cap_usd: 1.00  # once today's real shadow spend (UTC day) reaches this, sampling is skipped and logged, never failing the primary request
+shadow_response_max_stored_chars: 20000  # cap on response text persisted per api_requests row (primary or shadow), truncated with a clear marker

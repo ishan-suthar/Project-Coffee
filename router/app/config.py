@@ -56,6 +56,11 @@ class Settings(BaseModel):
     history_max_chars: int = 24_000
     attachment_max_stored_chars: int = 50_000
     classifier_long_history_turns: int = 10
+    retry_detection_window_seconds: float = 300.0
+    shadow_mode_enabled: bool = False
+    shadow_mode_sample_rate: float = 0.1
+    shadow_mode_daily_cost_cap_usd: float = 1.00
+    shadow_response_max_stored_chars: int = 20_000
 
     @classmethod
     def from_yaml(cls, path: Path = DEFAULT_SETTINGS_PATH) -> "Settings":

@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import unittest
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -366,6 +367,27 @@ class RunOrderTestCase(unittest.IsolatedAsyncioTestCase):
         complete = events[-1]
         self.assertFalse(complete.escalated)
         self.assertTrue(complete.draft_quality)
+
+    async def test_escalation_pending_declined_sets_over_cap_declined_in_ledger(self):
+        """Brew 47 Section 2/resolved question 4: a human declining a real
+        /v1/order approval card ("keep the cheap cup") is the strongest
+        quality signal in the system - must be logged, not just the
+        forced-decline case on /v1/chat/completions."""
+
+        state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.0)
+
+        async def decline(request_id):
+            return "declined"
+
+        await self._collect(state, _fake_stream_empty, wait_for_approval=decline)
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["over_cap_declined"], "True")
+
+    async def test_auto_escalate_leaves_over_cap_declined_false(self):
+        state = self._make_state(with_premium=True, escalation_cost_cap_usd=0.50)
+        await self._collect(state, _fake_stream_empty)
+        rows = state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["over_cap_declined"], "False")
 
     async def test_escalation_pending_carries_decision_deadline(self):
         """Contract v1.3: decision_deadline lets a UI render a countdown
@@ -2183,6 +2205,779 @@ class UploadEndpointTests(unittest.IsolatedAsyncioTestCase):
         record = self.state.uploads[attachment_id]
         self.assertEqual(record.file_path.parent, self.uploads_root / "req-scope-1")
         self.assertTrue(record.file_path.is_file())
+
+
+async def _fake_openai_stream_healthy(model_id, prompt="", **kwargs):
+    # completion_tokens must clear RunOrderTestCase-style fixtures'
+    # truncation_min_expected_tokens=10 - otherwise check_for_failure()
+    # flags this as truncated and triggers an unwanted auto-escalation
+    # re-run, same as _fake_stream_healthy's own "world " * 20 padding.
+    for word in ["Hello ", "world"]:
+        yield StreamChunk(content_delta=word)
+    yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 50})
+    yield StreamChunk(is_final=True)
+
+
+async def _fake_openai_stream_with_tool_call(model_id, prompt="", **kwargs):
+    yield StreamChunk(
+        tool_calls_delta=[
+            {"index": 0, "id": "call_1", "type": "function", "function": {"name": "get_weather", "arguments": ""}}
+        ]
+    )
+    yield StreamChunk(
+        tool_calls_delta=[{"index": 0, "function": {"arguments": '{"city": "NYC"}'}}]
+    )
+    yield StreamChunk(finish_reason="tool_calls", usage={"completion_tokens": 50})
+    yield StreamChunk(is_final=True)
+
+
+async def _fake_openai_stream_empty(model_id, prompt="", **kwargs):
+    """No content, no failure keywords - triggers check_for_failure's
+    "empty" path, same fixture role as _fake_stream_empty for /v1/order."""
+
+    yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 0})
+    yield StreamChunk(is_final=True)
+
+
+async def _fake_openai_stream_by_model(model_id, prompt="", **kwargs):
+    """Draft (House Blend, vendor/default:free) is truncated/empty enough
+    to trigger auto_escalate; premium (Reserve Blend, vendor/premium)
+    returns distinct content and a distinct completion_tokens count, so
+    tests can assert the client/Ledger reflect the premium call's own
+    output rather than the discarded draft's - this is what the live
+    "Hello there youHello there, friend!" concatenation bug looked like
+    before the fix (docs/design/openai-compat-endpoint-design.md)."""
+
+    if model_id == "vendor/premium":
+        for word in ["Hello there, ", "friend!"]:
+            yield StreamChunk(content_delta=word)
+        yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 99})
+        yield StreamChunk(is_final=True)
+    else:
+        for word in ["Hello ", "there ", "you"]:
+            yield StreamChunk(content_delta=word)
+        yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 1})
+        yield StreamChunk(is_final=True)
+
+
+class ChatCompletionsEndpointTests(unittest.IsolatedAsyncioTestCase):
+    """POST /v1/chat/completions (Brew 47, docs/design/
+    openai-compat-endpoint-design.md Section 1). Deliberately mirrors
+    FastApiSmokeTests' create_app()/_override_auth() pattern rather than
+    calling _run_chat_completion() directly, since the shape of what a
+    client actually receives (SSE frames vs. a single JSON body) is the
+    thing under test."""
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory()
+        self.addCleanup(self._tmp_dir.cleanup)
+        policy_path = Path(self._tmp_dir.name) / "routing_policy.yaml"
+        with open(policy_path, "w", encoding="utf-8") as handle:
+            yaml.safe_dump(FIXTURE_POLICY, handle)
+        self.policy_path = policy_path
+        self.ledger_path = Path(self._tmp_dir.name) / "router_requests.csv"
+
+    def _make_app(
+        self,
+        stream_fn=_fake_openai_stream_healthy,
+        with_premium=True,
+        escalation_cost_cap_usd=0.50,
+        with_session_store=False,
+        **settings_overrides,
+    ):
+        registry = _make_bean_registry(with_premium=with_premium)
+        policy = RoutingPolicy.from_yaml(self.policy_path, bean_registry=registry)
+        settings = Settings(
+            escalation_cost_cap_usd=escalation_cost_cap_usd,
+            generating_tick_tokens=5,
+            generating_tick_seconds=999,
+            truncation_min_expected_tokens=10,
+            refusal_keywords=["i cannot help"],
+            **settings_overrides,
+        )
+        ledger = RouterLedger(self.ledger_path)
+        session_store = (
+            SessionStore(Path(self._tmp_dir.name) / "sessions.db") if with_session_store else None
+        )
+        self.state = RouterState(
+            bean_registry=registry,
+            routing_policy=policy,
+            settings=settings,
+            ledger=ledger,
+            stream_order_fn=stream_fn,
+            uploads_root=Path(self._tmp_dir.name) / "uploads",
+            session_store=session_store,
+        )
+        app = create_app(state=self.state)
+        _override_auth(app)
+        return app
+
+    async def _post(self, app, body, headers=None):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.post("/v1/chat/completions", json=body, headers=headers or {})
+
+    async def _stream_chunks(self, app, body, headers=None):
+        transport = httpx.ASGITransport(app=app)
+        chunks = []
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with client.stream(
+                "POST", "/v1/chat/completions", json=body, headers=headers or {}
+            ) as response:
+                status = response.status_code
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    raw = line[len("data: "):]
+                    if raw == "[DONE]":
+                        continue
+                    chunks.append(json.loads(raw))
+        return status, chunks
+
+    async def test_auth_rejected_without_bearer_token(self):
+        app = self._make_app()
+        app.dependency_overrides.clear()  # undo _override_auth for this one test
+        response = await self._post(app, {"messages": [{"role": "user", "content": "hi"}]})
+        self.assertEqual(response.status_code, 401)
+
+    async def test_stream_true_yields_sse_chunks_ending_in_done(self):
+        app = self._make_app()
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with client.stream(
+                "POST",
+                "/v1/chat/completions",
+                json={"messages": [{"role": "user", "content": "hi"}], "stream": True},
+            ) as response:
+                self.assertEqual(response.status_code, 200)
+                raw_lines = [line async for line in response.aiter_lines() if line.startswith("data: ")]
+        self.assertEqual(raw_lines[-1], "data: [DONE]")
+        content = "".join(
+            json.loads(line[len("data: "):]).get("choices", [{}])[0].get("delta", {}).get("content", "")
+            for line in raw_lines[:-1]
+        )
+        self.assertEqual(content, "Hello world")
+
+    async def test_stream_false_returns_single_json_body(self):
+        app = self._make_app()
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["object"], "chat.completion")
+        self.assertEqual(body["choices"][0]["message"]["content"], "Hello world")
+        self.assertEqual(body["choices"][0]["message"]["role"], "assistant")
+
+    async def test_stream_true_and_false_accumulate_identical_content(self):
+        """Section 1: the two modes must produce byte-identical
+        accumulated content - only the flush-per-chunk-vs-buffer edge
+        differs, never the underlying generation."""
+
+        app = self._make_app()
+        _, chunks = await self._stream_chunks(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": True}
+        )
+        streamed_content = "".join(
+            c.get("choices", [{}])[0].get("delta", {}).get("content", "") for c in chunks
+        )
+
+        app2 = self._make_app()
+        response = await self._post(
+            app2, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        buffered_content = response.json()["choices"][0]["message"]["content"]
+
+        self.assertEqual(streamed_content, buffered_content)
+
+    async def test_usage_and_model_present_on_final_chunk(self):
+        app = self._make_app()
+        _, chunks = await self._stream_chunks(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": True}
+        )
+        final = chunks[-1]
+        self.assertIn("usage", final)
+        self.assertGreater(final["usage"]["completion_tokens"], 0)
+        self.assertEqual(final["choices"][0]["finish_reason"], "stop")
+
+    async def test_model_field_is_always_a_bean_alias_never_a_raw_model_id(self):
+        """docs/design/openai-compat-endpoint-design.md Section 1: the
+        raw model ID (`vendor/default:free`) must never leave the router
+        in an API-visible field, same invariant router/app/aliases.py
+        enforces everywhere else."""
+
+        app = self._make_app()
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        self.assertEqual(response.json()["model"], "House Blend")
+        self.assertNotIn("vendor/default:free", json.dumps(response.json()))
+
+    async def test_client_model_field_ignored_for_routing_when_not_a_bean_alias(self):
+        app = self._make_app()
+        response = await self._post(
+            app,
+            {
+                "messages": [{"role": "user", "content": "hi"}],
+                "model": "gpt-4o",
+                "stream": False,
+            },
+        )
+        self.assertEqual(response.json()["model"], "House Blend")
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["requested_model"], "gpt-4o")
+        self.assertEqual(rows[0]["bean_alias"], "House Blend")
+
+    async def test_client_model_field_as_exact_bean_alias_is_a_manual_override(self):
+        app = self._make_app()
+        response = await self._post(
+            app,
+            {
+                "messages": [{"role": "user", "content": "hi"}],
+                "model": "Second Pour",
+                "stream": False,
+            },
+        )
+        self.assertEqual(response.json()["model"], "Second Pour")
+
+    async def test_no_model_field_at_all_routes_normally(self):
+        """Edge case (Section 6): model absent entirely, not just empty."""
+
+        app = self._make_app()
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        self.assertEqual(response.status_code, 200)
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["requested_model"], "")
+
+    async def test_client_source_is_user_agent_when_present(self):
+        app = self._make_app()
+        await self._post(
+            app,
+            {"messages": [{"role": "user", "content": "hi"}], "stream": False},
+            headers={"User-Agent": "Cursor/1.2.3"},
+        )
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["client_source"], "Cursor/1.2.3")
+
+    async def test_client_source_falls_back_to_openai_api_when_user_agent_absent(self):
+        # httpx.AsyncClient always sends its own default User-Agent unless
+        # overridden - simulate a genuinely absent/empty header explicitly.
+        app = self._make_app()
+        await self._post(
+            app,
+            {"messages": [{"role": "user", "content": "hi"}], "stream": False},
+            headers={"User-Agent": ""},
+        )
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["client_source"], "openai_api")
+
+    async def test_tools_passthrough_round_trip(self):
+        """Coffee never interprets tools/tool_calls - full round-trip
+        fidelity, both directions."""
+
+        app = self._make_app(stream_fn=_fake_openai_stream_with_tool_call)
+        tools = [{"type": "function", "function": {"name": "get_weather", "parameters": {}}}]
+        response = await self._post(
+            app,
+            {
+                "messages": [{"role": "user", "content": "weather in NYC?"}],
+                "tools": tools,
+                "tool_choice": "auto",
+                "stream": False,
+            },
+        )
+        body = response.json()
+        tool_calls = body["choices"][0]["message"]["tool_calls"]
+        self.assertEqual(tool_calls[0]["id"], "call_1")
+        self.assertEqual(tool_calls[0]["function"]["name"], "get_weather")
+        self.assertEqual(tool_calls[0]["function"]["arguments"], '{"city": "NYC"}')
+        self.assertEqual(body["choices"][0]["finish_reason"], "tool_calls")
+
+    async def test_tool_calls_only_response_never_triggers_escalation(self):
+        """Regression: check_for_failure() predates tool calling and
+        treats any empty `text` as failed/"empty" - a tool_calls-only
+        turn (no prose) is a well-formed success, not a failure, and must
+        not auto-escalate or double the tool_calls via a rerun."""
+
+        app = self._make_app(stream_fn=_fake_openai_stream_with_tool_call, escalation_cost_cap_usd=0.50)
+        response = await self._post(
+            app,
+            {"messages": [{"role": "user", "content": "weather?"}], "stream": False},
+        )
+        self.assertEqual(response.json()["model"], "House Blend")  # not escalated
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "False")
+
+    async def test_tools_relayed_unchanged_to_stream_order_fn(self):
+        captured = {}
+
+        async def fake(model_id, prompt="", **kwargs):
+            captured["tools"] = kwargs.get("tools")
+            captured["tool_choice"] = kwargs.get("tool_choice")
+            captured["messages_override"] = kwargs.get("messages_override")
+            yield StreamChunk(content_delta="ok")
+            yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 1})
+            yield StreamChunk(is_final=True)
+
+        app = self._make_app(stream_fn=fake)
+        tools = [{"type": "function", "function": {"name": "get_weather", "parameters": {}}}]
+        await self._post(
+            app,
+            {
+                "messages": [{"role": "user", "content": "hi"}],
+                "tools": tools,
+                "tool_choice": "auto",
+                "stream": False,
+            },
+        )
+        self.assertEqual(captured["tools"], tools)
+        self.assertEqual(captured["tool_choice"], "auto")
+        self.assertEqual(captured["messages_override"], [{"role": "user", "content": "hi"}])
+
+    async def test_client_history_sent_as_is_no_session_lookup(self):
+        """Section 1: the client's own messages array is used verbatim -
+        no SQLite session assembly, no remember_chat toggle involved."""
+
+        captured = {}
+
+        async def fake(model_id, prompt="", **kwargs):
+            captured["messages_override"] = kwargs.get("messages_override")
+            yield StreamChunk(content_delta="ok")
+            yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 1})
+            yield StreamChunk(is_final=True)
+
+        app = self._make_app(stream_fn=fake)
+        messages = [
+            {"role": "user", "content": "earlier question"},
+            {"role": "assistant", "content": "earlier answer"},
+            {"role": "user", "content": "follow-up"},
+        ]
+        await self._post(app, {"messages": messages, "stream": False})
+        self.assertEqual(captured["messages_override"], messages)
+
+    async def test_no_session_row_created(self):
+        registry = _make_bean_registry(with_premium=True)
+        policy = RoutingPolicy.from_yaml(self.policy_path, bean_registry=registry)
+        settings = Settings(generating_tick_tokens=5, generating_tick_seconds=999)
+        ledger = RouterLedger(self.ledger_path)
+        session_store = SessionStore(Path(self._tmp_dir.name) / "sessions.db")
+        self.state = RouterState(
+            bean_registry=registry,
+            routing_policy=policy,
+            settings=settings,
+            ledger=ledger,
+            session_store=session_store,
+            stream_order_fn=_fake_openai_stream_healthy,
+            uploads_root=Path(self._tmp_dir.name) / "uploads",
+        )
+        app = create_app(state=self.state)
+        _override_auth(app)
+
+        await self._post(app, {"messages": [{"role": "user", "content": "hi"}], "stream": False})
+
+        self.assertEqual(session_store.list_sessions(), [])
+
+    async def test_auto_escalate_under_cap(self):
+        app = self._make_app(stream_fn=_fake_openai_stream_empty, escalation_cost_cap_usd=0.50)
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        self.assertEqual(response.json()["model"], "Reserve Blend")
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "True")
+        self.assertEqual(rows[0]["over_cap_declined"], "False")
+
+    async def test_streamed_escalation_returns_only_draft_no_concatenation(self):
+        """Escalation-concatenation fix (docs/design/
+        openai-compat-endpoint-design.md "Known issue", resolved): a
+        streamed request that would have auto-escalated must never run
+        the premium re-run - the client gets only the draft's content,
+        cleanly, with no second stream glued onto it."""
+
+        app = self._make_app(stream_fn=_fake_openai_stream_by_model, escalation_cost_cap_usd=0.50)
+        status, chunks = await self._stream_chunks(
+            app,
+            {"messages": [{"role": "user", "content": "say hello in exactly three words"}], "stream": True},
+        )
+        self.assertEqual(status, 200)
+        content = "".join(
+            c.get("choices", [{}])[0].get("delta", {}).get("content", "") for c in chunks
+        )
+        self.assertEqual(content, "Hello there you")  # draft only, never the premium text
+        final = chunks[-1]
+        self.assertEqual(final.get("system_fingerprint"), "draft_quality")
+        self.assertEqual(final["choices"][0]["finish_reason"], "stop")
+        self.assertEqual([c["model"] for c in chunks if c.get("choices")][0], "House Blend")
+
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "False")
+        self.assertEqual(rows[0]["would_have_escalated"], "True")
+        self.assertEqual(rows[0]["bean_alias"], "House Blend")
+
+    async def test_nonstreamed_escalation_returns_only_premium_response(self):
+        """Same fix, stream=False path: the draft is buffered internally
+        and discarded entirely once escalation fires - the client only
+        ever sees the premium response, no draft text present anywhere
+        in the body."""
+
+        app = self._make_app(stream_fn=_fake_openai_stream_by_model, escalation_cost_cap_usd=0.50)
+        response = await self._post(
+            app,
+            {"messages": [{"role": "user", "content": "say hello in exactly three words"}], "stream": False},
+        )
+        body = response.json()
+        self.assertEqual(body["choices"][0]["message"]["content"], "Hello there, friend!")
+        self.assertNotIn("Hello there you", body["choices"][0]["message"]["content"])
+        self.assertEqual(body["model"], "Reserve Blend")
+
+        # The under-reporting risk this fix must not reintroduce: usage
+        # must reflect the premium call's tokens, not the discarded
+        # draft's - that's exactly where cost under-reporting would hide.
+        self.assertEqual(body["usage"]["completion_tokens"], 99)
+
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "True")
+        self.assertEqual(rows[0]["would_have_escalated"], "False")
+        self.assertEqual(rows[0]["bean_alias"], "Reserve Blend")
+        self.assertEqual(rows[0]["tokens_out"], "99")
+
+    async def test_over_cap_forces_immediate_decline_no_waiting(self):
+        """Section 1: cannot pause for human approval on this endpoint -
+        escalation_pending must become an immediate decline, never a
+        hang."""
+
+        app = self._make_app(stream_fn=_fake_openai_stream_empty, escalation_cost_cap_usd=0.0)
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["model"], "House Blend")  # draft, not escalated
+        self.assertEqual(response.json().get("system_fingerprint"), "draft_quality")
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["escalated"], "False")
+        self.assertEqual(rows[0]["over_cap_declined"], "True")
+
+    async def test_draft_quality_absent_when_not_over_cap(self):
+        app = self._make_app()
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}
+        )
+        self.assertNotIn("system_fingerprint", response.json())
+
+    async def test_no_vision_bean_available_returns_error_chunk(self):
+        app = self._make_app()
+        response = await self._post(
+            app,
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "what is this"},
+                            {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAA="}},
+                        ],
+                    }
+                ],
+                "stream": False,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"]["type"], "no_vision_bean_available")
+
+    async def test_ledger_row_has_prompt_shape_facts(self):
+        app = self._make_app()
+        await self._post(
+            app,
+            {
+                "messages": [
+                    {"role": "system", "content": "be terse"},
+                    {"role": "user", "content": "```python\nprint(1)\n```"},
+                ],
+                "stream": False,
+            },
+        )
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(rows[0]["has_code_fence"], "True")
+        self.assertEqual(rows[0]["message_count"], "2")
+        self.assertGreater(int(rows[0]["total_input_chars"]), 0)
+
+    async def test_ledger_row_client_source_is_openai_api_family_not_chat_ui(self):
+        app = self._make_app()
+        await self._post(app, {"messages": [{"role": "user", "content": "hi"}], "stream": False})
+        rows = self.state.ledger.read_all_rows()
+        self.assertNotEqual(rows[0]["client_source"], "chat_ui")
+
+    async def test_long_prior_history_pushes_toward_cold_brew_bean_via_task_type_signal(self):
+        """Section 1: history contributes via turn *count*
+        (classifier_long_history_turns), never via raw char volume of
+        prior turns alone - verified indirectly through task_type/
+        complexity staying stable regardless of a huge prior context, by
+        checking the classifier signal directly is covered in
+        test_classifier.py; here we just confirm a large prior context
+        does not crash routing and total_input_chars reflects it."""
+
+        app = self._make_app()
+        huge_prior = [
+            {"role": "user", "content": "x" * 20000},
+            {"role": "assistant", "content": "y" * 20000},
+        ]
+        response = await self._post(
+            app,
+            {"messages": huge_prior + [{"role": "user", "content": "hi"}], "stream": False},
+        )
+        self.assertEqual(response.status_code, 200)
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(int(rows[0]["total_input_chars"]), 40002)
+
+    # --- Brew 47 Section 2: retry detection -----------------------------
+
+    async def test_retry_detected_and_linked_in_ledger(self):
+        app = self._make_app(with_session_store=True)
+        body = {"messages": [{"role": "user", "content": "same question"}], "stream": False}
+        headers = {"User-Agent": "cursor/1.0"}
+
+        first = await self._post(app, body, headers=headers)
+        second = await self._post(app, body, headers=headers)
+
+        first_id = first.json()["id"][len("chatcmpl-"):]
+        second_id = second.json()["id"][len("chatcmpl-"):]
+
+        rows = {row["request_id"]: row for row in self.state.ledger.read_all_rows()}
+        self.assertEqual(rows[second_id]["retry_of"], first_id)
+        self.assertEqual(rows[first_id]["retry_count"], "1")
+
+    async def test_retry_not_detected_for_different_message(self):
+        app = self._make_app(with_session_store=True)
+        headers = {"User-Agent": "cursor/1.0"}
+        await self._post(
+            app, {"messages": [{"role": "user", "content": "question A"}], "stream": False}, headers=headers
+        )
+        second = await self._post(
+            app, {"messages": [{"role": "user", "content": "question B"}], "stream": False}, headers=headers
+        )
+        second_id = second.json()["id"][len("chatcmpl-"):]
+        rows = {row["request_id"]: row for row in self.state.ledger.read_all_rows()}
+        self.assertEqual(rows[second_id]["retry_of"], "")
+
+    async def test_no_retry_detection_without_session_store(self):
+        """Graceful degradation, matching every other Optional[SessionStore]
+        precedent in this router (Pantry retrieval, remember_chat)."""
+
+        app = self._make_app(with_session_store=False)
+        body = {"messages": [{"role": "user", "content": "same question"}], "stream": False}
+        headers = {"User-Agent": "cursor/1.0"}
+        await self._post(app, body, headers=headers)
+        second = await self._post(app, body, headers=headers)
+        second_id = second.json()["id"][len("chatcmpl-"):]
+        rows = {row["request_id"]: row for row in self.state.ledger.read_all_rows()}
+        self.assertEqual(rows[second_id]["retry_of"], "")
+
+    async def test_concurrent_identical_requests_not_flagged_as_retries(self):
+        """The parallelism-vs-retry edge case (Section 2): two requests
+        fired at the same instant with identical content must not match
+        each other - neither has a completed response yet when the other
+        starts."""
+
+        gate = asyncio.Event()
+
+        async def fake(model_id, prompt="", **kwargs):
+            await gate.wait()
+            yield StreamChunk(content_delta="ok")
+            yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 50})
+            yield StreamChunk(is_final=True)
+
+        app = self._make_app(stream_fn=fake, with_session_store=True)
+        body = {"messages": [{"role": "user", "content": "same question"}], "stream": False}
+        headers = {"User-Agent": "cursor/1.0"}
+
+        task1 = asyncio.create_task(self._post(app, body, headers=headers))
+        await asyncio.sleep(0.05)
+        task2 = asyncio.create_task(self._post(app, body, headers=headers))
+        await asyncio.sleep(0.05)
+        gate.set()
+        await asyncio.gather(task1, task2)
+
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            self.assertEqual(row["retry_of"], "")
+
+    # --- Brew 47 Section 2: shadow mode ----------------------------------
+
+    async def test_shadow_mode_disabled_by_default_schedules_nothing(self):
+        app = self._make_app(with_session_store=True)  # shadow_mode_enabled defaults False
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}
+        )
+        self.assertEqual(response.status_code, 200)
+        await asyncio.gather(*list(self.state.background_tasks))
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(len(rows), 1)
+
+    async def test_shadow_mode_enabled_schedules_a_real_shadow_run(self):
+        app = self._make_app(
+            with_session_store=True, shadow_mode_enabled=True, shadow_mode_sample_rate=1.0
+        )
+        response = await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}
+        )
+        primary_id = response.json()["id"][len("chatcmpl-"):]
+        await asyncio.gather(*list(self.state.background_tasks))
+
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(len(rows), 2)
+        shadow_row = next(r for r in rows if r["is_shadow"] == "True")
+        self.assertEqual(shadow_row["shadow_of"], primary_id)
+        self.assertEqual(shadow_row["bean_alias"], "Reserve Blend")
+
+        record = self.state.session_store.get_api_request(primary_id)
+        self.assertIsNotNone(record.shadow_response_text)
+        self.assertEqual(record.shadow_bean_alias, "Reserve Blend")
+
+    async def test_shadow_mode_never_delays_the_client_response(self):
+        """The client's response must be fully returned before the shadow
+        run's own generation even starts, not merely before it finishes."""
+
+        call_count = {"n": 0}
+        release_shadow = asyncio.Event()
+
+        async def fake(model_id, prompt="", **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] > 1:
+                await release_shadow.wait()
+            yield StreamChunk(content_delta="ok")
+            yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 50})
+            yield StreamChunk(is_final=True)
+
+        app = self._make_app(
+            stream_fn=fake, with_session_store=True, shadow_mode_enabled=True, shadow_mode_sample_rate=1.0
+        )
+        response = await asyncio.wait_for(
+            self._post(app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}),
+            timeout=2.0,
+        )
+        self.assertEqual(response.status_code, 200)
+        # The client response above already completed while the shadow
+        # call (call #2) is still blocked on release_shadow - proves the
+        # client never waited on it.
+        self.assertEqual(len(self.state.background_tasks), 1)
+
+        release_shadow.set()
+        await asyncio.gather(*list(self.state.background_tasks))
+        self.assertEqual(len(self.state.ledger.read_all_rows()), 2)
+
+    async def test_shadow_run_never_recursive(self):
+        app = self._make_app(
+            with_session_store=True, shadow_mode_enabled=True, shadow_mode_sample_rate=1.0
+        )
+        await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}
+        )
+        await asyncio.gather(*list(self.state.background_tasks))
+        # Exactly one shadow row (primary + its one shadow) - a recursive
+        # shadow-of-a-shadow would produce a third row.
+        self.assertEqual(len(self.state.ledger.read_all_rows()), 2)
+        self.assertEqual(len(self.state.background_tasks), 0)
+
+    async def test_shadow_mode_skips_when_primary_already_used_premium_bean(self):
+        app = self._make_app(
+            with_session_store=True, shadow_mode_enabled=True, shadow_mode_sample_rate=1.0
+        )
+        await self._post(
+            app,
+            {"messages": [{"role": "user", "content": "hi"}], "model": "Reserve Blend", "stream": False},
+            headers={"User-Agent": "cursor"},
+        )
+        await asyncio.gather(*list(self.state.background_tasks))
+        self.assertEqual(len(self.state.ledger.read_all_rows()), 1)
+
+    async def test_shadow_run_failure_is_silent_and_logged(self):
+        call_count = {"n": 0}
+
+        async def fake(model_id, prompt="", **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] > 1:
+                raise OpenRouterClientError("simulated shadow failure")
+            yield StreamChunk(content_delta="ok")
+            yield StreamChunk(finish_reason="stop", usage={"completion_tokens": 50})
+            yield StreamChunk(is_final=True)
+
+        app = self._make_app(
+            stream_fn=fake, with_session_store=True, shadow_mode_enabled=True, shadow_mode_sample_rate=1.0
+        )
+        with self.assertLogs("router.app.main", level="WARNING") as log_ctx:
+            response = await self._post(
+                app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}
+            )
+            await asyncio.gather(*list(self.state.background_tasks))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any("shadow run failed" in message for message in log_ctx.output))
+        # The failed shadow never got far enough to append a Ledger row.
+        self.assertEqual(len(self.state.ledger.read_all_rows()), 1)
+
+    async def test_daily_shadow_cost_cap_trips_mid_request_and_is_skipped(self):
+        app = self._make_app(
+            with_session_store=True,
+            shadow_mode_enabled=True,
+            shadow_mode_sample_rate=1.0,
+            shadow_mode_daily_cost_cap_usd=1.00,
+        )
+        # A prior shadow row today that already exhausted the cap.
+        self.state.ledger.append(
+            LedgerRow(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                request_id="shadow-already-ran",
+                task_type="explain",
+                bean_alias="Reserve Blend",
+                raw_model_id="vendor/premium",
+                tokens_in=100,
+                tokens_out=100,
+                cost_usd=2.00,
+                latency_ms=0,
+                escalated=False,
+                escalation_approved=None,
+                is_shadow=True,
+                shadow_of="some-other-request",
+            )
+        )
+
+        with self.assertLogs("router.app.main", level="INFO") as log_ctx:
+            response = await self._post(
+                app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}
+            )
+            await asyncio.gather(*list(self.state.background_tasks))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any("daily cap reached" in message for message in log_ctx.output))
+        # Only the pre-seeded row plus this request's own primary row -
+        # no new shadow row was appended.
+        rows = self.state.ledger.read_all_rows()
+        self.assertEqual(len(rows), 2)
+        self.assertFalse(any(r["shadow_of"] == "" and r["is_shadow"] == "True" for r in rows))
+
+    async def test_shadow_mode_sample_rate_zero_never_schedules(self):
+        app = self._make_app(
+            with_session_store=True, shadow_mode_enabled=True, shadow_mode_sample_rate=0.0
+        )
+        await self._post(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": False}, headers={"User-Agent": "cursor"}
+        )
+        await asyncio.gather(*list(self.state.background_tasks))
+        self.assertEqual(len(self.state.ledger.read_all_rows()), 1)
+
+    async def test_shadow_mode_disabled_stream_true_still_returns_normally(self):
+        """Shadow scheduling is wired into the SSE path's finally block too
+        (not just stream=false) - must not break streaming."""
+
+        app = self._make_app(with_session_store=True)
+        status, chunks = await self._stream_chunks(
+            app, {"messages": [{"role": "user", "content": "hi"}], "stream": True}, headers={"User-Agent": "cursor"}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(len(chunks) > 0)
 
 
 if __name__ == "__main__":

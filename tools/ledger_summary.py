@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import csv
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -17,6 +18,8 @@ from pathlib import Path
 import re
 import sys
 from typing import Any, Sequence, TextIO
+
+import yaml
 
 
 DATE_PATTERN = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
@@ -115,6 +118,27 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--to", dest="to_date", help="Include entries on or before YYYY-MM-DD.")
     parser.add_argument("--max-entries", type=int, default=10, help="Maximum recent entries to print. Default: 10.")
     parser.add_argument("--output", help="Optional Markdown report output path.")
+    parser.add_argument(
+        "--mode",
+        choices=["cost-log", "model-usage"],
+        default="cost-log",
+        help=(
+            "Report mode. cost-log (default, unchanged) summarizes the hand-maintained "
+            "ledger/cost_log.md. model-usage (Brew 47) summarizes the machine-written "
+            "ledger/router_requests.csv - bean distribution, escalation/decline/retry "
+            "rates, counterfactual cost, sliced by task_type and client_source."
+        ),
+    )
+    parser.add_argument(
+        "--router-ledger",
+        default=None,
+        help="router_requests.csv path for --mode model-usage. Default: ledger/router_requests.csv under root.",
+    )
+    parser.add_argument(
+        "--beans",
+        default=None,
+        help="beans.yaml path for --mode model-usage's counterfactual-cost pricing. Default: router/config/beans.yaml under root.",
+    )
     return parser.parse_args(argv)
 
 
@@ -583,6 +607,377 @@ def recent_entry_summaries(entries: Sequence[EntrySummary], *, max_entries: int)
     return [entry for _index, entry in indexed[:max_entries]]
 
 
+# --- Brew 47 Section 4: --mode model-usage -------------------------------
+#
+# A genuinely separate code path from everything above: this file has
+# always parsed the hand-maintained Markdown ledger/cost_log.md, but the
+# question this mode answers (bean distribution, escalation/decline/retry
+# rates, counterfactual cost, sliced by task_type/client_source) can only
+# be answered from the machine-written CSV ledger/router_requests.csv,
+# which has real per-request structured fields. Reads it the same way
+# tools/generate_policy.py already does (plain csv.DictReader, no import
+# from router.app.* - this tool never calls models, external APIs, or
+# router internals). See docs/design/openai-compat-endpoint-design.md
+# Section 4.
+
+
+def resolve_router_ledger_path(root: Path, router_ledger: str | Path | None) -> Path:
+    candidate = Path(router_ledger) if router_ledger is not None else Path("ledger") / "router_requests.csv"
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    validate_safe_parts(candidate, "router-ledger")
+    return candidate
+
+
+def resolve_beans_path(root: Path, beans: str | Path | None) -> Path:
+    candidate = Path(beans) if beans is not None else Path("router") / "config" / "beans.yaml"
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    validate_safe_parts(candidate, "beans")
+    return candidate
+
+
+def read_router_ledger_rows(path: Path) -> list[dict[str, str]]:
+    """[] when the file doesn't exist yet - same graceful-degradation
+    convention RouterLedger.read_all_rows() and generate_policy.
+    load_ledger_rows() already use, not an error. A fresh install with
+    zero requests ever made is a legitimate state for this report to
+    describe (as "0 requests"), not something to crash on."""
+
+    if not path.is_file():
+        return []
+    with open(path, "r", newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def load_premium_bean_pricing(path: Path) -> dict[str, Any] | None:
+    """The premium Bean's real price_per_1k_input_usd/output_usd from
+    beans.yaml, or None when the file/premium Bean/pricing is missing -
+    the counterfactual-cost calculation and the "what this cannot tell
+    you" footer both degrade gracefully on None rather than crashing or
+    inventing a number."""
+
+    if not path.is_file():
+        return None
+    with open(path, "r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+    for bean in data.get("beans", []):
+        if bean.get("role") == "premium":
+            price_in = bean.get("price_per_1k_input_usd")
+            price_out = bean.get("price_per_1k_output_usd")
+            if price_in is None or price_out is None:
+                return None
+            return {
+                "alias": bean.get("alias", "premium"),
+                "price_per_1k_input_usd": price_in,
+                "price_per_1k_output_usd": price_out,
+            }
+    return None
+
+
+def _parse_bool_cell(value: str | None) -> bool:
+    return (value or "").strip().lower() == "true"
+
+
+def _parse_float_cell(value: str | None) -> float | None:
+    stripped = (value or "").strip()
+    if not stripped or stripped.lower() == "unknown":
+        return None
+    try:
+        return float(stripped)
+    except ValueError:
+        return None
+
+
+def _parse_int_cell(value: str | None) -> int | None:
+    stripped = (value or "").strip()
+    if not stripped or stripped.lower() == "unknown":
+        return None
+    try:
+        return int(stripped)
+    except ValueError:
+        return None
+
+
+def normalize_client_source(value: str | None) -> str:
+    """A blank client_source cell means "every row before Brew 47 came
+    through /v1/order" - documented and normalized here explicitly, never
+    silently treated as a different, unlabeled bucket. Matches
+    tools/generate_policy.py's routing_evidence_rows() convention for the
+    same column."""
+
+    stripped = (value or "").strip()
+    return stripped if stripped else "chat_ui"
+
+
+def _row_in_date_range(row: dict[str, str], start_date: date | None, end_date: date | None) -> bool:
+    if start_date is None and end_date is None:
+        return True
+    try:
+        row_date = date.fromisoformat((row.get("timestamp") or "")[:10])
+    except ValueError:
+        return False
+    if start_date and row_date < start_date:
+        return False
+    if end_date and row_date > end_date:
+        return False
+    return True
+
+
+def compute_slice_stats(rows: list[dict[str, str]], *, premium_pricing: dict[str, Any] | None) -> dict[str, Any]:
+    """One slice's (task_type, or client_source, or overall) volume, cost,
+    Bean distribution, and quality signals - is_shadow rows must already
+    be excluded from `rows` by the caller, since a shadow row is not a
+    real request (Section 2)."""
+
+    request_count = len(rows)
+
+    known_costs = [c for c in (_parse_float_cell(r.get("cost_usd")) for r in rows) if c is not None]
+    unknown_cost_count = request_count - len(known_costs)
+    total_cost_usd = sum(known_costs) if known_costs else None
+
+    bean_counts: dict[str, int] = {}
+    for row in rows:
+        alias = row.get("bean_alias") or "unknown"
+        bean_counts[alias] = bean_counts.get(alias, 0) + 1
+    bean_distribution = {
+        alias: {"count": count, "fraction": (count / request_count) if request_count else 0.0}
+        for alias, count in sorted(bean_counts.items(), key=lambda pair: -pair[1])
+    }
+
+    escalated_count = sum(1 for r in rows if _parse_bool_cell(r.get("escalated")))
+    over_cap_count = sum(1 for r in rows if _parse_bool_cell(r.get("over_cap_declined")))
+    retry_count = sum(1 for r in rows if (r.get("retry_of") or "").strip())
+
+    counterfactual_unknown_count = 0
+    counterfactual_cost_usd: float | None = None
+    if premium_pricing is not None:
+        known_counterfactual: list[float] = []
+        for row in rows:
+            tokens_in = _parse_int_cell(row.get("tokens_in"))
+            tokens_out = _parse_int_cell(row.get("tokens_out"))
+            if tokens_in is None or tokens_out is None:
+                counterfactual_unknown_count += 1
+                continue
+            known_counterfactual.append(
+                (tokens_in / 1000) * premium_pricing["price_per_1k_input_usd"]
+                + (tokens_out / 1000) * premium_pricing["price_per_1k_output_usd"]
+            )
+        counterfactual_cost_usd = sum(known_counterfactual) if known_counterfactual else None
+    else:
+        counterfactual_unknown_count = request_count
+
+    return {
+        "request_count": request_count,
+        "total_cost_usd": total_cost_usd,
+        "unknown_cost_count": unknown_cost_count,
+        "bean_distribution": bean_distribution,
+        "escalation_rate": (escalated_count / request_count) if request_count else None,
+        "over_cap_decline_rate": (over_cap_count / request_count) if request_count else None,
+        "retry_rate": (retry_count / request_count) if request_count else None,
+        "counterfactual_cost_usd": counterfactual_cost_usd,
+        "counterfactual_unknown_count": counterfactual_unknown_count,
+    }
+
+
+def build_model_usage_report(
+    root: str | Path,
+    *,
+    router_ledger: str | Path | None = None,
+    beans: str | Path | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> dict[str, Any]:
+    root_path = validate_root(root)
+    ledger_path = resolve_router_ledger_path(root_path, router_ledger)
+    beans_path = resolve_beans_path(root_path, beans)
+
+    start_date = parse_cli_date(from_date, "--from") if from_date else None
+    end_date = parse_cli_date(to_date, "--to") if to_date else None
+    if start_date and end_date and start_date > end_date:
+        raise LedgerSummaryError("--from must be on or before --to")
+
+    all_rows = read_router_ledger_rows(ledger_path)
+    filtered_rows = [r for r in all_rows if _row_in_date_range(r, start_date, end_date)]
+
+    # Brew 47 Section 5 ("what this Brew deliberately does not do") applies
+    # here too, not just to generate_policy.py: a shadow row is not a real
+    # request and must never contaminate volume/cost/rate stats - it gets
+    # its own dedicated section below instead.
+    real_rows = [r for r in filtered_rows if not _parse_bool_cell(r.get("is_shadow"))]
+    shadow_rows = [r for r in filtered_rows if _parse_bool_cell(r.get("is_shadow"))]
+
+    premium_pricing = load_premium_bean_pricing(beans_path)
+
+    by_task_type: dict[str, list[dict[str, str]]] = {}
+    by_client_source: dict[str, list[dict[str, str]]] = {}
+    for row in real_rows:
+        by_task_type.setdefault(row.get("task_type") or "unknown", []).append(row)
+        by_client_source.setdefault(normalize_client_source(row.get("client_source")), []).append(row)
+
+    task_type_stats = {
+        key: compute_slice_stats(rows, premium_pricing=premium_pricing)
+        for key, rows in sorted(by_task_type.items())
+    }
+    client_source_stats = {
+        key: compute_slice_stats(rows, premium_pricing=premium_pricing)
+        for key, rows in sorted(by_client_source.items())
+    }
+    overall_stats = compute_slice_stats(real_rows, premium_pricing=premium_pricing)
+
+    # "No quality signal at all" is computable from the CSV alone - a
+    # shadow row's own shadow_of cell already points back at its primary's
+    # request_id, so set membership is enough; no SQLite import needed
+    # (keeps this tool's existing "never touches anything but the Ledger"
+    # boundary intact).
+    shadowed_request_ids = {row.get("shadow_of") for row in shadow_rows if row.get("shadow_of")}
+    no_signal_count = sum(
+        1
+        for row in real_rows
+        if not (row.get("retry_of") or "").strip()
+        and not _parse_bool_cell(row.get("escalated"))
+        and row.get("request_id") not in shadowed_request_ids
+    )
+    no_signal_fraction = (no_signal_count / len(real_rows)) if real_rows else None
+
+    shadow_summary = None
+    if shadow_rows:
+        shadow_known_costs = [c for c in (_parse_float_cell(r.get("cost_usd")) for r in shadow_rows) if c is not None]
+        shadow_summary = {
+            "pair_count": len(shadow_rows),
+            "total_shadow_cost_usd": sum(shadow_known_costs) if shadow_known_costs else None,
+        }
+
+    return {
+        "root": str(root_path),
+        "router_ledger_path": str(ledger_path),
+        "generated_at": timestamp(),
+        "date_range": {
+            "from": start_date.isoformat() if start_date else None,
+            "to": end_date.isoformat() if end_date else None,
+        },
+        "premium_bean_priced": premium_pricing is not None,
+        "overall": overall_stats,
+        "by_task_type": task_type_stats,
+        "by_client_source": client_source_stats,
+        "no_quality_signal_fraction": no_signal_fraction,
+        "shadow": shadow_summary,
+    }
+
+
+def _format_optional_cost(value: float | None) -> str:
+    return "unknown" if value is None else f"${value:.4f}"
+
+
+def _format_optional_rate(value: float | None) -> str:
+    return "n/a" if value is None else f"{value * 100:.1f}%"
+
+
+def render_model_usage_report(summary: dict[str, Any]) -> str:
+    def render_slice(title: str, stats: dict[str, Any]) -> list[str]:
+        block = [f"## {title}", ""]
+        block.append(f"- Requests: {stats['request_count']}")
+        block.append(
+            f"- Total cost: {_format_optional_cost(stats['total_cost_usd'])} "
+            f"({stats['unknown_cost_count']} row(s) unknown)"
+        )
+        if stats["bean_distribution"]:
+            block.append("- Bean distribution:")
+            for alias, info in stats["bean_distribution"].items():
+                block.append(f"    - {alias}: {info['count']} ({info['fraction'] * 100:.1f}%)")
+        else:
+            block.append("- Bean distribution: no requests in this slice.")
+        # Escalation/decline/retry rates and counterfactual cost are kept
+        # in one grouped block, deliberately never separated - the savings
+        # number is never printed without its quality context in the same
+        # glance (docs/design/openai-compat-endpoint-design.md Section 4).
+        block.append(
+            f"- Escalation rate: {_format_optional_rate(stats['escalation_rate'])}  |  "
+            f"Over-cap decline rate: {_format_optional_rate(stats['over_cap_decline_rate'])}  |  "
+            f"Retry rate: {_format_optional_rate(stats['retry_rate'])} "
+            "(a weak proxy for dissatisfaction - NOT a measurement of it)"
+        )
+        block.append(
+            f"- Counterfactual cost if every request here had gone to the premium Bean: "
+            f"{_format_optional_cost(stats['counterfactual_cost_usd'])} "
+            f"({stats['counterfactual_unknown_count']} row(s) unknown) - read this only "
+            "alongside the rates on the line above, never alone."
+        )
+        block.append("")
+        return block
+
+    lines = [
+        "# Coffee Router Ledger - Model Usage Report",
+        "",
+        f"Generated: {summary['generated_at']}",
+        f"Root: {summary['root']}",
+        f"Router Ledger: {summary['router_ledger_path']}",
+        f"Date range: {format_date_range(summary['date_range'])}",
+        "",
+    ]
+    lines.extend(render_slice("Overall", summary["overall"]))
+
+    lines.append("# By task_type")
+    lines.append("")
+    if summary["by_task_type"]:
+        for key, stats in summary["by_task_type"].items():
+            lines.extend(render_slice(key, stats))
+    else:
+        lines.extend(["No requests found for this date range.", ""])
+
+    lines.append("# By client_source")
+    lines.append("")
+    if summary["by_client_source"]:
+        for key, stats in summary["by_client_source"].items():
+            lines.extend(render_slice(key, stats))
+    else:
+        lines.extend(["No requests found for this date range.", ""])
+
+    if summary["shadow"]:
+        lines.append("## Shadow mode")
+        lines.append("")
+        lines.append(f"- {summary['shadow']['pair_count']} shadow pair(s) captured this period.")
+        lines.append(f"- Total shadow spend: {_format_optional_cost(summary['shadow']['total_shadow_cost_usd'])}")
+        lines.append(
+            "- Read the pairs yourself - no automated scoring or diffing exists (Section 2). "
+            "Query router/data/sessions.db directly:"
+        )
+        lines.append(
+            '    sqlite3 router/data/sessions.db "SELECT request_id, response_text, '
+            'shadow_response_text, shadow_bean_alias FROM api_requests '
+            'WHERE shadow_response_text IS NOT NULL;"'
+        )
+        lines.append("")
+
+    lines.append("## What this cannot tell you")
+    lines.append("")
+    if summary["no_quality_signal_fraction"] is not None:
+        lines.append(
+            f"- {summary['no_quality_signal_fraction'] * 100:.1f}% of real requests in this "
+            "period have NO quality signal at all - not retried, not escalated, no shadow pair."
+        )
+    lines.append(
+        "- over_cap_declined is unreliable for any row written before Brew 47 - it does not "
+        "retroactively reflect a real over-cap decline that happened before this column existed."
+    )
+    lines.append(
+        "- Retry rate is a weak proxy for dissatisfaction, not ground truth - a retry can also "
+        "be a network hiccup, a user testing a different prompt, or a double-click."
+    )
+    if not summary["shadow"]:
+        lines.append(
+            "- No shadow-mode data exists for this period (disabled, or nothing was sampled) - "
+            "zero premium-quality comparison exists for any request shown above."
+        )
+    if not summary["premium_bean_priced"]:
+        lines.append(
+            "- Counterfactual cost is unavailable - no premium Bean with real pricing was found "
+            "in beans.yaml."
+        )
+
+    return "\n".join(lines) + "\n"
+
+
 def render_markdown(summary: dict[str, Any]) -> str:
     totals = summary["totals"]
     lines = [
@@ -659,21 +1054,31 @@ def timestamp() -> str:
 def run(argv: Sequence[str] | None = None) -> int:
     try:
         args = parse_args(argv)
-        summary = build_summary(
-            args.root,
-            ledger=args.ledger,
-            from_date=args.from_date,
-            to_date=args.to_date,
-            max_entries=args.max_entries,
-        )
-        markdown = render_markdown(summary)
+        if args.mode == "model-usage":
+            summary = build_model_usage_report(
+                args.root,
+                router_ledger=args.router_ledger,
+                beans=args.beans,
+                from_date=args.from_date,
+                to_date=args.to_date,
+            )
+            report = render_model_usage_report(summary)
+        else:
+            summary = build_summary(
+                args.root,
+                ledger=args.ledger,
+                from_date=args.from_date,
+                to_date=args.to_date,
+                max_entries=args.max_entries,
+            )
+            report = render_markdown(summary)
         if args.output:
             output_path = resolve_output_path(args.output)
-            output_path.write_text(markdown, encoding="utf-8")
+            output_path.write_text(report, encoding="utf-8")
         if args.json:
             print(json.dumps(summary, indent=2))
         else:
-            print(markdown, end="")
+            print(report, end="")
         return 0
     except LedgerSummaryError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

@@ -63,6 +63,7 @@ All request/response bodies are JSON unless noted. `POST /v1/order` and
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
 | `/v1/order` | POST | Streams the full event contract for one prompt. Body: `{"prompt", "session_id"?, "bean_alias_override"?, "attachment_ids"?, "request_id"?, "use_pantry"?}`. |
+| `/v1/chat/completions` | POST | OpenAI-compatible endpoint (Brew 47) - point Cursor, Continue.dev, Aider, or the OpenAI SDK at this router. See "OpenAI-compatible endpoint" below. |
 | `/v1/upload` | POST | Uploads a file/image attachment (multipart form: `request_id`, `file`) for inclusion in a subsequent `/v1/order` call. |
 | `/v1/retry` | POST | Caller-reports a completed request's result as a failure, re-runs the escalation decision. Body: `{"request_id"}`. |
 | `/v1/approve_escalation` | POST | Resolves a paused `escalation_pending` request. Body: `{"request_id", "approve"}`. |
@@ -80,6 +81,148 @@ All request/response bodies are JSON unless noted. `POST /v1/order` and
 | `/v1/policy/rebuild_preview` | POST | Computes a proposed `routing_policy.yaml` rebuild (Roastery evidence blended with real accumulated ratings) and returns a diff. Never writes anything. |
 | `/v1/policy/rebuild_apply/{id}` | POST | Re-checks the on-disk file hasn't changed since preview, then writes the new policy and hot-swaps it into the running router - no restart needed. |
 | `/v1/policy/rebuild_discard/{id}` | POST | Drops the proposal. Writes nothing. |
+
+## OpenAI-compatible endpoint (Brew 47)
+
+`POST /v1/chat/completions` accepts the standard OpenAI chat-completions
+shape (`model`, `messages`, `stream`, `temperature`, `max_tokens`, `tools`,
+`tool_choice`) so any tool that lets you point at a custom base URL can
+route through Coffee - classification, routing, escalation, and the
+Ledger all apply exactly as they do for `/v1/order`. It is **stateless**
+with respect to Coffee's session store: the client's `messages` array is
+used as-is, no session row is created, and Brew 46's `remember_chat`
+toggle does not apply here (the client already carries its own history
+every turn). See `docs/design/openai-compat-endpoint-design.md` for the
+full design.
+
+A few things behave differently from a real OpenAI/OpenRouter endpoint,
+worth knowing before you point a tool at this:
+
+- The `model` field is ignored for routing unless it exactly matches a
+  Bean alias (e.g. `"Reserve Blend"`) - Coffee always classifies and
+  routes the request itself otherwise. The response's `model` field is
+  always the Bean alias actually used, never a raw model id.
+- An over-the-cost-cap escalation cannot pause for your approval here
+  (there's no UI to render the approval card in) - it's declined
+  immediately and the draft is returned, with `system_fingerprint` set to
+  `"draft_quality"` on the final chunk. Check the Ledger's
+  `over_cap_declined` column to audit these after the fact.
+- `tools`/`tool_calls` are relayed to/from OpenRouter unchanged - Coffee
+  never interprets them. Not every Bean has verified tool-calling support
+  (`config/beans.yaml`'s `capabilities.tool_calling` flag); a warning is
+  logged (not blocked) when `tools` is sent to a Bean without it.
+
+### Getting a token
+
+Same Bearer token as every other endpoint - log in and use the token as
+the "API key":
+
+```powershell
+curl -s -X POST http://localhost:8765/v1/login `
+  -H "Content-Type: application/json" `
+  -d '{"username": "<your-username>", "password": "<your-password>"}'
+```
+
+The response's `token` field is what you paste below. (Users are created
+via `router/tools/manage_users.py`, not a signup endpoint - see that
+module.)
+
+### Cursor
+
+Settings -> Models -> "OpenAI API Key" -> paste the token from above.
+Set the Base URL to `http://localhost:8765/v1`. Any model name works in
+Cursor's model picker - it's ignored for routing unless it's a real Bean
+alias (see above).
+
+### Continue.dev
+
+In `config.yaml`:
+
+```yaml
+models:
+  - name: Coffee
+    provider: openai
+    model: House Blend  # or any string - ignored unless it's a real Bean alias
+    apiBase: http://localhost:8765/v1
+    apiKey: <the token from POST /v1/login>
+```
+
+### Retry detection (always on, no setting)
+
+Every `/v1/chat/completions` request whose last message exactly matches a
+prior *completed* request from the same user/client within
+`retry_detection_window_seconds` (default 300s) is flagged as a probable
+retry - the closest thing to a thumbs-down this endpoint will ever get,
+since there's no rating button in Cursor. The Ledger's `retry_of` column
+points at the original; the original's `retry_count` is incremented for
+real. Two requests fired at the same instant with identical content are
+correctly treated as parallelism, not a retry - matching only happens
+against an *already-completed* original.
+
+### Shadow mode
+
+Off by default (`shadow_mode_enabled: false` in `config/settings.yaml`).
+When on, a sampled fraction (`shadow_mode_sample_rate`, default 0.1) of
+`/v1/chat/completions` requests that routed to a non-premium Bean also
+run silently, in the background, against the premium Bean - after the
+client already has its answer, never delaying or affecting it. This is
+API-only - `/v1/order` is never shadow-sampled, since the Coffee Counter
+chat UI already has rating buttons, a strictly better signal than a
+silent shadow pair.
+
+**What it costs**: a sampled request is billed twice - once for the real
+answer, once for the shadow comparison. `shadow_mode_daily_cost_cap_usd`
+(default $1.00) caps real daily shadow spend (computed from the Ledger's
+own `cost_usd` column on `is_shadow=true` rows); once the cap is hit,
+sampling is skipped for the rest of the day and logged - it never fails
+a real request.
+
+**How to enable**: set `shadow_mode_enabled: true` in
+`config/settings.yaml` (or override `Settings` directly if you're running
+tests/scripts) and restart the router.
+
+**How to read the pairs**: both responses are stored, never scored or
+diffed automatically - that's a deliberate later decision, not built
+this Brew. Query `router/data/sessions.db` directly:
+
+```powershell
+sqlite3 router/data/sessions.db "SELECT request_id, response_text, shadow_response_text, shadow_bean_alias FROM api_requests WHERE shadow_response_text IS NOT NULL;"
+```
+
+Or run `python -m tools.ledger_summary --mode model-usage`, which prints a
+shadow-mode section (pair count, total shadow spend) pointing you at the
+same query whenever real shadow data exists for the period.
+
+### Pruning old request records
+
+`router/data/sessions.db`'s `api_requests` table (retry-matching lookups
+and shadow-mode response pairs) has no automatic deletion, on purpose -
+the alternative is discovering your only evidence is gone the day you
+actually want to analyze it. Prune manually, deliberately:
+
+```powershell
+python router/tools/prune_api_requests.py --older-than 90d
+```
+
+`--older-than` accepts a number followed by `d` (days), `h` (hours), or
+`m` (minutes) - e.g. `90d`, `24h`, `30m`. Required, no default.
+
+### Real-usage analysis
+
+```powershell
+python -m tools.ledger_summary --mode model-usage
+```
+
+Answers "what fraction of my coding tasks actually needed a premium
+model?" from real `ledger/router_requests.csv` data - request volume and
+cost, Bean distribution, escalation/over-cap-decline/retry rates, and
+counterfactual "if every request had gone to the premium Bean" cost,
+sliced by `task_type` and `client_source`. Always ends with a "what this
+cannot tell you" footer naming its own blind spots (retry rate is a weak
+proxy, not a measurement; `over_cap_declined` is unreliable before Brew
+47; shadow mode being off means zero premium comparison exists). The
+existing `--mode cost-log` (default) behavior - the hand-maintained
+`ledger/cost_log.md` summary - is unchanged.
 
 ## Config
 

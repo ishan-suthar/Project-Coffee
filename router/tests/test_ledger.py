@@ -150,6 +150,101 @@ class RouterLedgerTests(unittest.TestCase):
         rows = self.ledger.read_all_rows()
         self.assertEqual(rows[0]["attachment_tokens_est"], "unknown")
 
+    def test_brew_47_columns_default_to_documented_values(self):
+        """docs/design/openai-compat-endpoint-design.md Section 3: a new
+        row that doesn't explicitly set the Brew 47 columns gets the
+        documented "not tracked yet" defaults - blank strings, 0, False -
+        never invented non-empty values."""
+
+        self.ledger.append(_make_row())
+        rows = self.ledger.read_all_rows()
+        row = rows[0]
+        self.assertEqual(row["client_source"], "")
+        self.assertEqual(row["requested_model"], "")
+        self.assertEqual(row["retry_of"], "")
+        self.assertEqual(row["retry_count"], "0")
+        self.assertEqual(row["over_cap_declined"], "False")
+        self.assertEqual(row["is_shadow"], "False")
+        self.assertEqual(row["shadow_of"], "")
+        self.assertEqual(row["has_code_fence"], "False")
+        self.assertEqual(row["message_count"], "0")
+        self.assertEqual(row["total_input_chars"], "0")
+        self.assertEqual(row["would_have_escalated"], "False")
+
+    def test_brew_47_columns_recorded_when_set(self):
+        self.ledger.append(
+            _make_row(
+                client_source="cursor/1.2.3",
+                requested_model="gpt-4o",
+                over_cap_declined=True,
+                has_code_fence=True,
+                message_count=6,
+                total_input_chars=18234,
+            )
+        )
+        rows = self.ledger.read_all_rows()
+        row = rows[0]
+        self.assertEqual(row["client_source"], "cursor/1.2.3")
+        self.assertEqual(row["requested_model"], "gpt-4o")
+        self.assertEqual(row["over_cap_declined"], "True")
+        self.assertEqual(row["has_code_fence"], "True")
+        self.assertEqual(row["message_count"], "6")
+        self.assertEqual(row["total_input_chars"], "18234")
+
+    def test_would_have_escalated_recorded_when_set(self):
+        """Escalation-concatenation fix (docs/design/
+        openai-compat-endpoint-design.md "Known issue", resolved): the
+        measurement signal a streamed request can't act on."""
+
+        self.ledger.append(_make_row(would_have_escalated=True))
+        row = self.ledger.read_all_rows()[0]
+        self.assertEqual(row["would_have_escalated"], "True")
+
+    def test_increment_retry_count_bumps_matching_row(self):
+        """Brew 47 Section 2: retry_count is live, not a write-time
+        snapshot - the original design note was explicitly superseded."""
+
+        self.ledger.append(_make_row(request_id="req-1"))
+        self.ledger.append(_make_row(request_id="req-2"))
+
+        updated = self.ledger.increment_retry_count("req-1")
+
+        self.assertTrue(updated)
+        rows = self.ledger.read_all_rows()
+        by_id = {row["request_id"]: row for row in rows}
+        self.assertEqual(by_id["req-1"]["retry_count"], "1")
+        self.assertEqual(by_id["req-2"]["retry_count"], "0")
+
+    def test_increment_retry_count_twice_reaches_two(self):
+        self.ledger.append(_make_row(request_id="req-1"))
+        self.ledger.increment_retry_count("req-1")
+        self.ledger.increment_retry_count("req-1")
+        rows = self.ledger.read_all_rows()
+        self.assertEqual(rows[0]["retry_count"], "2")
+
+    def test_increment_retry_count_returns_false_when_not_found(self):
+        self.ledger.append(_make_row(request_id="req-1"))
+        self.assertFalse(self.ledger.increment_retry_count("nonexistent"))
+
+    def test_increment_retry_count_preserves_other_fields(self):
+        self.ledger.append(_make_row(request_id="req-1", tokens_in=42, cost_usd=0.05))
+        self.ledger.increment_retry_count("req-1")
+        row = self.ledger.read_all_rows()[0]
+        self.assertEqual(row["tokens_in"], "42")
+        self.assertEqual(row["cost_usd"], "0.05")
+
+    def test_prompt_shape_is_three_separate_columns_not_one_packed_string(self):
+        """Explicit product decision (docs/design/
+        openai-compat-endpoint-design.md, resolved open question 1):
+        slicing is the point, so has_code_fence/message_count/
+        total_input_chars must each be independently readable from the
+        CSV without a parser."""
+
+        self.assertIn("has_code_fence", CSV_HEADER)
+        self.assertIn("message_count", CSV_HEADER)
+        self.assertIn("total_input_chars", CSV_HEADER)
+        self.assertNotIn("prompt_shape", CSV_HEADER)
+
 
 class LedgerMigrationTests(unittest.TestCase):
     OLD_HEADER = [
@@ -262,6 +357,34 @@ class LedgerMigrationTests(unittest.TestCase):
 
         backups = list(self.path.parent.glob(f"{self.path.name}.bak-*"))
         self.assertEqual(len(backups), 1)
+
+    def test_migration_fills_brew_47_columns_blank_for_old_rows(self):
+        """docs/design/openai-compat-endpoint-design.md Section 3's
+        defaults table: every Brew 47 column is blank on a migrated
+        pre-Brew-47 row - callers (ledger_summary.py, generate_policy.py)
+        normalize blank client_source to "chat_ui" themselves, never
+        infer it silently at write/migration time."""
+
+        self._write_old_format_file()
+        ledger = RouterLedger(self.path)
+        ledger.append(_make_row(request_id="req-new-1", client_source="chat_ui"))
+
+        rows = ledger.read_all_rows()
+        old_row = next(r for r in rows if r["request_id"] == "req-old-1")
+        for column in (
+            "client_source",
+            "requested_model",
+            "retry_of",
+            "retry_count",
+            "over_cap_declined",
+            "is_shadow",
+            "shadow_of",
+            "has_code_fence",
+            "message_count",
+            "total_input_chars",
+            "would_have_escalated",
+        ):
+            self.assertEqual(old_row[column], "", column)
 
     def test_migration_also_triggered_by_update_rating(self):
         self._write_old_format_file()

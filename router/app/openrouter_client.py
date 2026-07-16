@@ -33,17 +33,28 @@ class StreamChunk:
     finish_reason: Optional[str] = None
     usage: Optional[Dict[str, Any]] = None
     is_final: bool = False
+    # Brew 47 (docs/design/openai-compat-endpoint-design.md Section 1):
+    # raw OpenAI-shape tool_calls delta objects, parsed straight through
+    # from the provider's own streamed delta - Coffee never interprets
+    # these, only relays them. Previously silently dropped by every caller
+    # of this module (content_delta was "" for a tool-call-only chunk).
+    tool_calls_delta: Optional[List[Dict[str, Any]]] = None
 
 
 async def stream_order(
     model: str,
-    prompt: str,
+    prompt: str = "",
     *,
     api_key: Optional[str] = None,
     timeout_seconds: int = 60,
     http_client: Optional[httpx.AsyncClient] = None,
     image_data_urls: Optional[List[str]] = None,
     history_messages: Optional[List[Dict[str, str]]] = None,
+    messages_override: Optional[List[Dict[str, Any]]] = None,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: Optional[Any] = None,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
 ) -> AsyncIterator[StreamChunk]:
     """Stream one prompt to one OpenRouter model.
 
@@ -67,27 +78,50 @@ async def stream_order(
     None (the default, and every call before Brew 46) sends exactly the
     single-message payload as before - see docs/design/
     conversation-memory-design.md.
+
+    messages_override (Brew 47): a caller-assembled, already OpenAI-shape
+    `messages` list, sent verbatim in place of the prompt/image_data_urls/
+    history_messages assembly below - used by /v1/chat/completions, whose
+    client has already built its own messages array (including any
+    multimodal content-part arrays) and whose history must be relayed
+    as-is, never reassembled from Coffee's own session store. When given,
+    prompt/image_data_urls/history_messages are ignored entirely. See
+    docs/design/openai-compat-endpoint-design.md Section 1.
+
+    tools/tool_choice (Brew 47): relayed to OpenRouter unchanged, only
+    when not None (an empty list is never sent - some providers reject
+    it). Coffee never interprets these.
     """
 
     resolved_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
     if not resolved_key:
         raise OpenRouterClientError("OPENROUTER_API_KEY is not set.")
 
-    content: Any = prompt
-    if image_data_urls:
-        content = [{"type": "text", "text": prompt}] + [
-            {"type": "image_url", "image_url": {"url": url}} for url in image_data_urls
-        ]
+    if messages_override is not None:
+        messages: List[Dict[str, Any]] = list(messages_override)
+    else:
+        content: Any = prompt
+        if image_data_urls:
+            content = [{"type": "text", "text": prompt}] + [
+                {"type": "image_url", "image_url": {"url": url}} for url in image_data_urls
+            ]
+        messages = list(history_messages or [])
+        messages.append({"role": "user", "content": content})
 
-    messages: List[Dict[str, Any]] = list(history_messages or [])
-    messages.append({"role": "user", "content": content})
-
-    payload = {
+    payload: Dict[str, Any] = {
         "model": model,
         "messages": messages,
         "stream": True,
         "usage": {"include": True},
     }
+    if tools is not None:
+        payload["tools"] = tools
+    if tool_choice is not None:
+        payload["tool_choice"] = tool_choice
+    if temperature is not None:
+        payload["temperature"] = temperature
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
     headers = {
         "Authorization": f"Bearer {resolved_key}",
         "Content-Type": "application/json",
@@ -131,15 +165,22 @@ def _parse_sse_line(line: str) -> Optional[StreamChunk]:
     choices = data.get("choices") or []
     content_delta = ""
     finish_reason = None
+    tool_calls_delta = None
     if choices:
         delta = choices[0].get("delta") or {}
         content = delta.get("content")
         if isinstance(content, str):
             content_delta = content
+        tool_calls_delta = delta.get("tool_calls") or None
         finish_reason = choices[0].get("finish_reason")
 
     usage = data.get("usage")
-    return StreamChunk(content_delta=content_delta, finish_reason=finish_reason, usage=usage)
+    return StreamChunk(
+        content_delta=content_delta,
+        finish_reason=finish_reason,
+        usage=usage,
+        tool_calls_delta=tool_calls_delta,
+    )
 
 
 def _http_error_message(status_code: int, body: bytes) -> str:

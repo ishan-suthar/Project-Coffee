@@ -31,6 +31,14 @@ class Bean:
     price_per_1k_input_usd: Optional[float]
     price_per_1k_output_usd: Optional[float]
     status: str
+    # Brew 47 (docs/design/openai-compat-endpoint-design.md Section 1):
+    # whether this Bean has verified tool-calling support - data only this
+    # Brew (a warning is logged when tools are sent to a Bean with this
+    # False, but routing does not yet avoid such Beans automatically).
+    # Defaults False - unverified/free-tier Beans stay conservative, and
+    # every pre-Brew-47 Bean() fixture across the test suite keeps working
+    # unchanged.
+    tool_calling: bool = False
 
     @property
     def is_available(self) -> bool:
@@ -62,6 +70,7 @@ class BeanRegistry:
                     model_id=entry.get("model_id"),
                     vision=bool(capabilities.get("vision", False)),
                     code=bool(capabilities.get("code", False)),
+                    tool_calling=bool(capabilities.get("tool_calling", False)),
                     price_per_1k_input_usd=entry.get("price_per_1k_input_usd"),
                     price_per_1k_output_usd=entry.get("price_per_1k_output_usd"),
                     status=entry.get("status", "active"),

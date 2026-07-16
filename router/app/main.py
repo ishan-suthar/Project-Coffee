@@ -16,9 +16,11 @@ from __future__ import annotations
 import asyncio
 import base64
 import difflib
+import hashlib
 import json
 import logging
 import os
+import random
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -28,15 +30,16 @@ from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Tuple
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from router.app.aliases import BeanRegistry
+from router.app.aliases import AliasError, Bean, BeanRegistry
 from router.app.auth import InvalidCredentialsError, get_current_user, login as auth_login
 from router.app.classifier import Attachment as ClassifierAttachment
 from router.app.classifier import classify
 from router.app.config import Settings, assert_no_key_like_strings, load_router_config_paths
 from router.app.escalation import (
+    FailureCheckResult,
     GenerationResult,
     check_for_failure,
     decide_escalation,
@@ -687,6 +690,16 @@ async def _run_order_body(
     attachment_count = len(upload_records)
     attachment_tokens_est = _estimate_attachment_tokens(upload_records)
 
+    # Brew 47 (docs/design/openai-compat-endpoint-design.md Section 3):
+    # over_cap_declined is True for a real human decline/timeout on the
+    # escalation_pending path - decision/escalated are already in scope
+    # here, no new state needed. prompt_shape facts describe what was
+    # actually sent to the model this request (history + current turn).
+    over_cap_declined = decision is not None and decision.outcome == "escalation_pending" and not escalated
+    has_code_fence = "```" in prompt
+    message_count = len(history_result.messages) + 1
+    total_input_chars = history_result.chars_included + len(outbound_text)
+
     logger.info(
         "request_id=%s remember_chat=%s history_turns=%d history_tokens_est=%d",
         request_id,
@@ -715,6 +728,11 @@ async def _run_order_body(
             remember_chat=remember_chat,
             history_turns=history_result.turns_included if remember_chat else 0,
             history_tokens_est=history_result.tokens_est if remember_chat else None,
+            client_source="chat_ui",
+            over_cap_declined=over_cap_declined,
+            has_code_fence=has_code_fence,
+            message_count=message_count,
+            total_input_chars=total_input_chars,
         )
     )
 
@@ -811,7 +829,7 @@ async def _await_approval(
         state.pending_escalations.pop(request_id, None)
 
 
-def _retrieve_pantry_chunks(state: "RouterState", prompt: str) -> List[PantryChunk]:
+def _retrieve_pantry_chunks(state: RouterState, prompt: str) -> List[PantryChunk]:
     """Brew 41 (docs/design/memory-and-pantry-design.md Section 4.2):
     retrieves the top-k Pantry chunks for `prompt` from the FTS5 index at
     state.pantry_index_path. Degrades gracefully to an empty list - never
@@ -942,6 +960,697 @@ def _estimate_attachment_tokens(upload_records: List[UploadRecord]) -> Optional[
 def _is_free_tier(state: RouterState, bean_alias: str) -> bool:
     bean = state.bean_registry.by_alias(bean_alias)
     return bean.price_per_1k_input_usd == 0.0 and bean.price_per_1k_output_usd == 0.0
+
+
+# --- Brew 47: POST /v1/chat/completions (docs/design/
+# openai-compat-endpoint-design.md) --------------------------------------
+
+
+def _extract_content_text(content: Any) -> str:
+    """OpenAI message content is either a plain string or a list of
+    content-part dicts (`{"type": "text", "text": ...}`,
+    `{"type": "image_url", ...}`). Returns just the text portion,
+    concatenated - used for classification and prompt_shape's
+    has_code_fence/char-count facts only. The original `content` value is
+    always relayed to OpenRouter verbatim via `messages_override`; this
+    extraction never touches what's actually sent."""
+
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(
+            str(part.get("text", ""))
+            for part in content
+            if isinstance(part, dict) and part.get("type") == "text"
+        )
+    return ""
+
+
+def _content_has_image(content: Any) -> bool:
+    if not isinstance(content, list):
+        return False
+    return any(isinstance(part, dict) and part.get("type") == "image_url" for part in content)
+
+
+def _count_prior_turns(messages: List[Dict[str, Any]]) -> int:
+    """The OpenAI-shape analogue of Brew 46's prior_turns count: the
+    number of user messages in everything before the last message,
+    feeding the same classifier `long_history` signal (Section 1) - a
+    request with lots of prior turns is real generation work, independent
+    of the current message's own length."""
+
+    return sum(1 for m in messages[:-1] if m.get("role") == "user")
+
+
+def _client_source_from_user_agent(user_agent: Optional[str]) -> str:
+    """Brew 47 Section 3: the raw User-Agent header (truncated), or the
+    literal "openai_api" fallback when absent - undetectable spoofing is a
+    documented blind spot, not something this function tries to catch."""
+
+    if not user_agent or not user_agent.strip():
+        return "openai_api"
+    return user_agent.strip()[:120]
+
+
+def _client_fingerprint(user_id: int, user_agent: Optional[str]) -> str:
+    """Brew 47 Section 2 (Signal A): sha256(user_id + User-Agent), falling
+    back to the literal "unknown" when the header is absent/blank - widens
+    the match window to per-user rather than narrowing it to zero, since
+    the time-window + exact-message-match conditions in
+    SessionStore.find_retry_candidate still have to hold too, and a false
+    "retry" flag is a soft, non-blocking signal, not a billing or routing
+    decision."""
+
+    basis = user_agent.strip() if user_agent and user_agent.strip() else "unknown"
+    return hashlib.sha256(f"{user_id}|{basis}".encode("utf-8")).hexdigest()
+
+
+def _message_hash(text: str) -> str:
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def _merge_tool_call_deltas(
+    accumulated: List[Dict[str, Any]], deltas: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Merges OpenAI-shape streamed tool_call delta fragments (each keyed
+    by `index`, with `function.arguments` arriving as string fragments to
+    concatenate in order) into whole tool_call objects - needed to
+    reconstruct one `tool_calls` array for a `stream=false` response from
+    the same deltas `stream=true` relays unmerged. Coffee never
+    interprets the merged result, only reassembles it."""
+
+    merged = [
+        {**entry, "function": dict(entry.get("function") or {})} for entry in accumulated
+    ]
+    for delta in deltas:
+        index = delta.get("index", 0)
+        while len(merged) <= index:
+            merged.append({"id": None, "type": "function", "function": {"name": "", "arguments": ""}})
+        entry = merged[index]
+        if delta.get("id"):
+            entry["id"] = delta["id"]
+        if delta.get("type"):
+            entry["type"] = delta["type"]
+        function_delta = delta.get("function") or {}
+        if function_delta.get("name"):
+            entry["function"]["name"] = entry["function"].get("name", "") + function_delta["name"]
+        if function_delta.get("arguments"):
+            entry["function"]["arguments"] = (
+                entry["function"].get("arguments", "") + function_delta["arguments"]
+            )
+    return merged
+
+
+def _openai_chunk(
+    request_id: str,
+    created: int,
+    bean_alias: str,
+    *,
+    role: Optional[str] = None,
+    content: Optional[str] = None,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
+    finish_reason: Optional[str] = None,
+    usage: Optional[Dict[str, Any]] = None,
+    system_fingerprint: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Builds one OpenAI-shape chat.completion.chunk dict. `model` is
+    always the Bean alias, never a raw model id (docs/design/
+    openai-compat-endpoint-design.md Section 1) - the same invariant
+    router/app/aliases.py enforces for every other API-visible field."""
+
+    delta: Dict[str, Any] = {}
+    if role is not None:
+        delta["role"] = role
+    if content is not None:
+        delta["content"] = content
+    if tool_calls is not None:
+        delta["tool_calls"] = tool_calls
+
+    chunk: Dict[str, Any] = {
+        "id": f"chatcmpl-{request_id}",
+        "object": "chat.completion.chunk",
+        "created": created,
+        "model": bean_alias,
+        "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
+    }
+    if usage is not None:
+        chunk["usage"] = usage
+    if system_fingerprint is not None:
+        chunk["system_fingerprint"] = system_fingerprint
+    return chunk
+
+
+async def _stream_raw_openai_chunks(
+    stream_order_fn: StreamOrderFn,
+    model_id: str,
+    messages: List[Dict[str, Any]],
+    *,
+    tools: Optional[List[Dict[str, Any]]],
+    tool_choice: Optional[Any],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+) -> AsyncIterator[StreamChunk]:
+    """True passthrough for /v1/chat/completions - one outbound chunk per
+    inbound provider chunk, tool-call deltas included. Deliberately does
+    NOT reuse _consume_stream(): that helper batches into `generating`
+    ticks to reduce the Coffee Counter chat UI's render frequency, and
+    silently drops a chunk whose only content is a tool_calls delta (its
+    content_delta is "" in that case) - wrong for an OpenAI-compatible
+    endpoint, which needs every provider chunk relayed. See
+    docs/design/openai-compat-endpoint-design.md Section 1."""
+
+    async for chunk in stream_order_fn(
+        model_id,
+        messages_override=messages,
+        tools=tools,
+        tool_choice=tool_choice,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    ):
+        if chunk.is_final:
+            break
+        yield chunk
+
+
+async def _run_chat_completion(
+    state: RouterState,
+    *,
+    request_id: str,
+    messages: List[Dict[str, Any]],
+    requested_model: Optional[str],
+    tools: Optional[List[Dict[str, Any]]],
+    tool_choice: Optional[Any],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+    client_source: str,
+    stream_order_fn: StreamOrderFn,
+    stream: bool = False,
+    user_id: Optional[int] = None,
+    user_agent: Optional[str] = None,
+    shadow_context: Optional[Dict[str, Any]] = None,
+) -> AsyncIterator[Dict[str, Any]]:
+    """Core orchestration for POST /v1/chat/completions (Brew 47). Yields
+    OpenAI-shape chat.completion.chunk dicts (or, on a routing/provider
+    failure, a single `{"error": {...}}` dict) - the endpoint either
+    flushes each one as an SSE frame (stream=true) or accumulates them
+    into one chat.completion JSON body (stream=false).
+
+    Deliberately its own orchestration, not a reuse of run_order()/
+    _run_order_body() - see docs/design/openai-compat-endpoint-design.md
+    Section 1 for the reasoning (no session rows, no Pantry, true
+    passthrough streaming instead of tick-batched SSE events, and no
+    escalation-approval pause since nothing here can render that UI).
+
+    user_id/user_agent (Brew 47 Section 2) feed retry-fingerprinting only
+    - this endpoint still creates no session row. shadow_context, when
+    given, is mutated in place with everything the caller needs to decide
+    whether to schedule a shadow run - an async generator can't `return`
+    a value through `async for`, and shadow scheduling has to happen at
+    the endpoint-handler level (after the client has actually received
+    the response), not from inside this function - see
+    docs/design/openai-compat-endpoint-design.md Section 2.
+
+    `stream` (escalation-concatenation fix, docs/design/
+    openai-compat-endpoint-design.md "Known issue", resolved) governs how
+    an `auto_escalate` decision is acted on:
+    - stream=False: the draft's per-chunk deltas are never yielded live -
+      only captured internally - so if escalation fires, the draft is
+      discarded with nothing having reached the client yet, and a single
+      buffered chunk carrying the premium response's full content is
+      yielded once the outcome is known. Free, since a non-streamed
+      response is already buffered into one JSON body at the edge.
+    - stream=True: the draft streams live as it always has, but an
+      `auto_escalate` decision is never acted on - running a second call
+      and gluing its chunks onto an already-flushed stream is exactly
+      the bug this fix closes. The draft is returned as final, and
+      `would_have_escalated` is logged instead so the measurement signal
+      survives even though the action doesn't."""
+
+    started_at = time.monotonic()
+    created = int(time.time())
+
+    last_user_text = ""
+    for message in reversed(messages):
+        if message.get("role") == "user":
+            last_user_text = _extract_content_text(message.get("content"))
+            break
+
+    has_code_fence = "```" in last_user_text
+    message_count = len(messages)
+    total_input_chars = sum(len(_extract_content_text(m.get("content"))) for m in messages)
+    has_image = any(_content_has_image(m.get("content")) for m in messages)
+    prior_turn_count = _count_prior_turns(messages)
+
+    # Brew 47 Section 2 (Signal A - retry detection): the api_requests row
+    # is inserted now, before generation starts, so a concurrent duplicate
+    # request sees it as in-flight (response_text IS NULL) rather than a
+    # completed answer it could falsely match against - see
+    # SessionStore.create_api_request's docstring for why this ordering is
+    # what makes parallelism structurally distinct from a retry.
+    retry_of: Optional[str] = None
+    if state.session_store is not None and user_id is not None:
+        client_fingerprint = _client_fingerprint(user_id, user_agent)
+        message_hash = _message_hash(last_user_text)
+        state.session_store.create_api_request(
+            request_id,
+            user_id=user_id,
+            client_fingerprint=client_fingerprint,
+            last_user_message_hash=message_hash,
+        )
+        retry_of = state.session_store.find_retry_candidate(
+            user_id=user_id,
+            client_fingerprint=client_fingerprint,
+            last_user_message_hash=message_hash,
+            exclude_request_id=request_id,
+            window_seconds=state.settings.retry_detection_window_seconds,
+        )
+        if retry_of is not None:
+            state.session_store.set_retry_of(request_id, retry_of)
+            state.session_store.increment_retry_count(retry_of)
+            state.ledger.increment_retry_count(retry_of)
+
+    attachments: List[ClassifierAttachment] = (
+        [ClassifierAttachment(filename="(image)", content_type="image/jpeg")] if has_image else []
+    )
+    classification = classify(
+        last_user_text,
+        attachments,
+        model_fallback_enabled=state.settings.classifier_model_fallback_enabled,
+        history_turn_count=prior_turn_count,
+        long_history_turns_threshold=state.settings.classifier_long_history_turns,
+    )
+
+    bean_alias_override: Optional[str] = None
+    if requested_model:
+        try:
+            state.bean_registry.by_alias(requested_model)
+            bean_alias_override = requested_model
+        except AliasError:
+            bean_alias_override = None
+
+    try:
+        if bean_alias_override is not None:
+            route = state.routing_policy.manual_route(
+                classification.task_type, bean_alias_override, needs_vision=classification.needs_vision
+            )
+        else:
+            route = state.routing_policy.select_route(
+                classification.task_type, needs_vision=classification.needs_vision
+            )
+    except NoVisionBeanError as exc:
+        yield {"error": {"message": str(exc), "type": "no_vision_bean_available"}}
+        return
+    except RoutingError as exc:
+        yield {"error": {"message": str(exc), "type": "invalid_bean_override"}}
+        return
+
+    bean = state.bean_registry.by_alias(route.bean_alias)
+    if tools and not bean.tool_calling:
+        logger.warning(
+            "request_id=%s tools sent to bean_alias=%r without verified tool_calling support",
+            request_id,
+            route.bean_alias,
+        )
+
+    tokens_in = max(1, total_input_chars // 4)
+
+    async def _run_against(model_id: str, bean_alias: str, *, send_role: bool) -> AsyncIterator[Any]:
+        text = ""
+        tool_calls: List[Dict[str, Any]] = []
+        finish_reason: Optional[str] = None
+        usage: Optional[Dict[str, Any]] = None
+        role_sent = not send_role
+        async for chunk in _stream_raw_openai_chunks(
+            stream_order_fn,
+            model_id,
+            messages,
+            tools=tools,
+            tool_choice=tool_choice,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ):
+            role = None
+            if not role_sent:
+                role = "assistant"
+                role_sent = True
+            if chunk.content_delta:
+                text += chunk.content_delta
+            if chunk.tool_calls_delta:
+                tool_calls = _merge_tool_call_deltas(tool_calls, chunk.tool_calls_delta)
+            if chunk.finish_reason:
+                finish_reason = chunk.finish_reason
+            if chunk.usage:
+                usage = chunk.usage
+            if role is not None or chunk.content_delta or chunk.tool_calls_delta:
+                yield _openai_chunk(
+                    request_id,
+                    created,
+                    bean_alias,
+                    role=role,
+                    content=chunk.content_delta or None,
+                    tool_calls=chunk.tool_calls_delta,
+                )
+        yield ("__done__", text, tool_calls, finish_reason, usage)
+
+    accumulated_text = ""
+    tool_calls_accum: List[Dict[str, Any]] = []
+    finish_reason: Optional[str] = None
+    usage: Optional[Dict[str, Any]] = None
+
+    try:
+        async for item in _run_against(bean.model_id, route.bean_alias, send_role=True):
+            if isinstance(item, tuple) and item[0] == "__done__":
+                _, accumulated_text, tool_calls_accum, finish_reason, usage = item
+            elif stream:
+                # stream=False: the draft's deltas are held back rather than
+                # relayed live - see this function's docstring - so that an
+                # escalation later in this request has nothing to unwind.
+                yield item
+    except OpenRouterClientError as exc:
+        yield {"error": {"message": str(exc), "type": "provider_error"}}
+        return
+
+    tokens_out = (
+        usage["completion_tokens"]
+        if usage and isinstance(usage.get("completion_tokens"), int)
+        else max(1, len(accumulated_text) // 4)
+        if accumulated_text
+        else 0
+    )
+
+    # A tool_calls-only response (empty `text`, finish_reason "tool_calls")
+    # is a well-formed, successful turn, not a failure - check_for_failure()
+    # was written before tool calling existed and treats any empty `text`
+    # as the "empty" failure reason unconditionally. Coffee never
+    # interprets tool_calls, but it must not punish a Bean for correctly
+    # producing one instead of prose. Skip the failure check entirely when
+    # tool_calls were produced (see docs/design/
+    # openai-compat-endpoint-design.md Section 1 - "Tools passthrough").
+    if tool_calls_accum:
+        failure = FailureCheckResult(failed=False)
+    else:
+        generation = GenerationResult(
+            text=accumulated_text,
+            tokens_out=tokens_out,
+            finish_reason=finish_reason,
+            caller_reported_failure=_force_escalation_enabled(),
+        )
+        failure = check_for_failure(
+            generation,
+            truncation_min_expected_tokens=state.settings.truncation_min_expected_tokens,
+            refusal_keywords=state.settings.refusal_keywords,
+        )
+    premium_bean = state.bean_registry.by_role("premium")
+    premium_alias = premium_bean.alias if premium_bean and premium_bean.is_available else None
+    decision = decide_escalation(
+        failure,
+        premium_bean_alias=premium_alias,
+        est_premium_cost_usd=0.0 if premium_alias else None,
+        escalation_cost_cap_usd=state.settings.escalation_cost_cap_usd,
+    )
+
+    escalated = False
+    draft_quality = False
+    over_cap_declined = False
+    would_have_escalated = False
+    final_bean_alias = route.bean_alias
+    final_model_id = bean.model_id
+
+    if decision is not None:
+        if decision.outcome == "no_premium_available":
+            draft_quality = True
+        elif decision.outcome == "auto_escalate":
+            if stream:
+                # Never act on an escalation once the draft has already
+                # started streaming - see this function's docstring. Log
+                # the outcome that would have fired instead of firing it.
+                would_have_escalated = True
+                draft_quality = True
+            else:
+                try:
+                    async for item in _run_against(
+                        premium_bean.model_id, premium_bean.alias, send_role=False
+                    ):
+                        if isinstance(item, tuple) and item[0] == "__done__":
+                            _, accumulated_text, tool_calls_accum, finish_reason, usage = item
+                except OpenRouterClientError as exc:
+                    yield {"error": {"message": str(exc), "type": "provider_error"}}
+                    return
+                escalated = True
+                final_bean_alias = premium_bean.alias
+                final_model_id = premium_bean.model_id
+                if usage and isinstance(usage.get("completion_tokens"), int):
+                    tokens_out = usage["completion_tokens"]
+        elif decision.outcome == "escalation_pending":
+            # Cannot pause for human approval on this endpoint (Section 1) -
+            # immediate decline, the already-generated draft is returned.
+            draft_quality = True
+            over_cap_declined = True
+
+    if not stream:
+        # The draft's (or, on escalation, the premium run's) deltas were
+        # never yielded live - emit the whole winning response as one
+        # buffered chunk now that the outcome is fully known.
+        yield _openai_chunk(
+            request_id,
+            created,
+            final_bean_alias,
+            role="assistant",
+            content=accumulated_text or None,
+            tool_calls=tool_calls_accum or None,
+        )
+
+    system_fingerprint = "draft_quality" if draft_quality else None
+    yield _openai_chunk(
+        request_id,
+        created,
+        final_bean_alias,
+        finish_reason=finish_reason or "stop",
+        usage={
+            "prompt_tokens": tokens_in,
+            "completion_tokens": tokens_out,
+            "total_tokens": tokens_in + tokens_out,
+        },
+        system_fingerprint=system_fingerprint,
+    )
+
+    latency_ms = int((time.monotonic() - started_at) * 1000)
+    cost_usd = 0.0 if _is_free_tier(state, final_bean_alias) else None
+
+    logger.info(
+        "request_id=%s client_source=%s requested_model=%r bean_alias=%s escalated=%s "
+        "over_cap_declined=%s retry_of=%s would_have_escalated=%s",
+        request_id,
+        client_source,
+        requested_model,
+        final_bean_alias,
+        escalated,
+        over_cap_declined,
+        retry_of,
+        would_have_escalated,
+    )
+
+    if state.session_store is not None and user_id is not None:
+        state.session_store.complete_api_request(
+            request_id, accumulated_text, max_stored_chars=state.settings.shadow_response_max_stored_chars
+        )
+
+    state.ledger.append(
+        LedgerRow(
+            timestamp=_iso_now(),
+            request_id=request_id,
+            task_type=classification.task_type,
+            bean_alias=final_bean_alias,
+            raw_model_id=final_model_id,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            cost_usd=cost_usd,
+            latency_ms=latency_ms,
+            escalated=escalated,
+            escalation_approved=None,
+            attachment_count=1 if has_image else 0,
+            attachment_tokens_est=None if has_image else 0,
+            remember_chat=False,
+            history_turns=0,
+            history_tokens_est=None,
+            client_source=client_source,
+            requested_model=requested_model or "",
+            over_cap_declined=over_cap_declined,
+            has_code_fence=has_code_fence,
+            message_count=message_count,
+            total_input_chars=total_input_chars,
+            retry_of=retry_of or "",
+            would_have_escalated=would_have_escalated,
+        )
+    )
+
+    # Brew 47 Section 2 (Signal C - shadow mode): filled in only now, once
+    # the primary's own outcome is fully known, so the endpoint handler can
+    # decide whether to schedule a shadow run - see this function's
+    # docstring for why that scheduling can't happen from in here.
+    if shadow_context is not None:
+        shadow_context.update(
+            {
+                "request_id": request_id,
+                "messages": messages,
+                "tools": tools,
+                "tool_choice": tool_choice,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "bean_alias": final_bean_alias,
+                "is_premium": premium_bean is not None and final_bean_alias == premium_bean.alias,
+                "task_type": classification.task_type,
+                "client_source": client_source,
+                "requested_model": requested_model or "",
+                "has_code_fence": has_code_fence,
+                "message_count": message_count,
+                "total_input_chars": total_input_chars,
+            }
+        )
+
+
+def _real_cost_usd(bean: Bean, tokens_in: int, tokens_out: int) -> Optional[float]:
+    """Brew 47 Section 2: a real dollar figure from bean.price_per_1k_*
+    (exact config, not an estimate) - used ONLY for shadow Ledger rows.
+    Every other cost_usd in this router (primary /v1/order and
+    /v1/chat/completions rows) stays the existing _is_free_tier()-only
+    convention ("unknown" for any paid Bean) - deliberately not touched
+    here, out of this Brew's scope. Without a real number here, though,
+    shadow_mode_daily_cost_cap_usd could never trip: summing "unknown"
+    cells always totals zero. Flagged in the Tasting Note as a known
+    inconsistency worth resolving (ledger_summary's counterfactual-cost
+    math will eventually want real costs on primary rows too)."""
+
+    if bean.price_per_1k_input_usd is None or bean.price_per_1k_output_usd is None:
+        return None
+    return round(
+        (tokens_in / 1000) * bean.price_per_1k_input_usd + (tokens_out / 1000) * bean.price_per_1k_output_usd, 6
+    )
+
+
+def _todays_shadow_spend_usd(ledger: RouterLedger) -> float:
+    """Cheap sum-over-today's-CSV-rows query (Section 2) - checked
+    immediately before scheduling a shadow task, not after, so "over the
+    cap, skip sampling" never touches the request path. "Today" is the
+    current UTC date, matching every other timestamp this router writes."""
+
+    today = datetime.now(timezone.utc).date().isoformat()
+    total = 0.0
+    for row in ledger.read_all_rows():
+        if (row.get("is_shadow") or "").strip().lower() != "true":
+            continue
+        if not (row.get("timestamp") or "").startswith(today):
+            continue
+        try:
+            total += float(row.get("cost_usd") or 0.0)
+        except ValueError:
+            continue
+    return total
+
+
+async def _run_shadow(state: RouterState, shadow_context: Dict[str, Any], premium_bean: Bean) -> None:
+    """Fire-and-forget: re-runs the same messages/tools payload against
+    the premium Bean, silently, after the primary client already has its
+    answer. Never re-enters _run_chat_completion (or anything that could
+    schedule another shadow run) - it calls _stream_raw_openai_chunks
+    directly, which is a structurally stronger "never recursive" guarantee
+    than a boolean flag would be. Its entire body is wrapped in
+    try/except: a shadow failure must be silent to the client (there is
+    no client waiting on this) and merely logged (docs/design/
+    openai-compat-endpoint-design.md Section 2)."""
+
+    primary_request_id = shadow_context["request_id"]
+    try:
+        text = ""
+        usage: Optional[Dict[str, Any]] = None
+        async for chunk in _stream_raw_openai_chunks(
+            state.stream_order_fn,
+            premium_bean.model_id,
+            shadow_context["messages"],
+            tools=shadow_context["tools"],
+            tool_choice=shadow_context["tool_choice"],
+            temperature=shadow_context["temperature"],
+            max_tokens=shadow_context["max_tokens"],
+        ):
+            if chunk.content_delta:
+                text += chunk.content_delta
+            if chunk.usage:
+                usage = chunk.usage
+
+        tokens_in = max(1, shadow_context["total_input_chars"] // 4)
+        tokens_out = (
+            usage["completion_tokens"]
+            if usage and isinstance(usage.get("completion_tokens"), int)
+            else max(1, len(text) // 4)
+            if text
+            else 0
+        )
+
+        state.ledger.append(
+            LedgerRow(
+                timestamp=_iso_now(),
+                request_id=str(uuid.uuid4()),
+                task_type=shadow_context["task_type"],
+                bean_alias=premium_bean.alias,
+                raw_model_id=premium_bean.model_id,
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                cost_usd=_real_cost_usd(premium_bean, tokens_in, tokens_out),
+                latency_ms=0,
+                escalated=False,
+                escalation_approved=None,
+                client_source=shadow_context["client_source"],
+                requested_model=shadow_context["requested_model"],
+                is_shadow=True,
+                shadow_of=primary_request_id,
+                has_code_fence=shadow_context["has_code_fence"],
+                message_count=shadow_context["message_count"],
+                total_input_chars=shadow_context["total_input_chars"],
+            )
+        )
+
+        if state.session_store is not None:
+            state.session_store.record_shadow_result(
+                primary_request_id,
+                text,
+                premium_bean.alias,
+                max_stored_chars=state.settings.shadow_response_max_stored_chars,
+            )
+    except Exception:
+        logger.warning("shadow run failed for primary request_id=%s", primary_request_id, exc_info=True)
+
+
+def _maybe_schedule_shadow(state: RouterState, shadow_context: Optional[Dict[str, Any]]) -> None:
+    """Called from the endpoint handler only after the primary response
+    has been fully sent to the client (Section 2) - never awaited, only
+    ever asyncio.create_task()'d, so it structurally cannot delay or
+    affect the client response that already went out."""
+
+    if not shadow_context:
+        return  # error path (routing/provider failure) - nothing to shadow
+    if not state.settings.shadow_mode_enabled:
+        return
+    if shadow_context.get("is_premium"):
+        return  # shadowing a premium request against itself is pointless
+    if state.session_store is None:
+        return
+    if random.random() >= state.settings.shadow_mode_sample_rate:
+        return
+    premium_bean = state.bean_registry.by_role("premium")
+    if premium_bean is None or not premium_bean.is_available:
+        return
+    spend_today = _todays_shadow_spend_usd(state.ledger)
+    if spend_today >= state.settings.shadow_mode_daily_cost_cap_usd:
+        logger.info(
+            "shadow sampling skipped: daily cap reached (spend_today_usd=%.4f, cap=%.4f)",
+            spend_today,
+            state.settings.shadow_mode_daily_cost_cap_usd,
+        )
+        return
+
+    task = asyncio.create_task(_run_shadow(state, shadow_context, premium_bean))
+    state.background_tasks.add(task)
+    task.add_done_callback(state.background_tasks.discard)
 
 
 def _iso_now() -> str:
@@ -1095,6 +1804,36 @@ class UpdateSessionRequest(BaseModel):
     remember_chat: Optional[bool] = None
 
 
+class ChatCompletionMessage(BaseModel):
+    """One OpenAI-shape message. `content` is deliberately untyped (`Any`)
+    rather than `str` - a real client's content is either a plain string
+    or a multimodal content-part array, and this router relays it to
+    OpenRouter verbatim (docs/design/openai-compat-endpoint-design.md
+    Section 1) rather than re-validating its internal shape."""
+
+    role: str
+    content: Any = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+    tool_call_id: Optional[str] = None
+
+
+class ChatCompletionRequest(BaseModel):
+    """POST /v1/chat/completions body (Brew 47). `model` is optional and
+    ignored for routing unless it exactly matches a Bean alias (a manual
+    override) - Coffee always classifies and routes as usual otherwise.
+    Extra OpenAI fields this router doesn't use (`top_p`,
+    `presence_penalty`, etc.) are accepted and ignored, not rejected -
+    real clients send more than this router needs."""
+
+    model: Optional[str] = None
+    messages: List[ChatCompletionMessage]
+    stream: bool = True
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    tools: Optional[List[Dict[str, Any]]] = None
+    tool_choice: Optional[Any] = None
+
+
 VALID_RATINGS = {"good", "needed_fixing", "failed"}
 
 
@@ -1216,6 +1955,108 @@ def create_app(state: Optional[RouterState] = None) -> FastAPI:
             ),
             media_type="text/event-stream",
         )
+
+    @app.post("/v1/chat/completions")
+    async def chat_completions(
+        body: ChatCompletionRequest,
+        user_agent: Optional[str] = Header(default=None),
+        current_user: UserRecord = Depends(get_current_user),
+    ):
+        """OpenAI-compatible endpoint (Brew 47, docs/design/
+        openai-compat-endpoint-design.md) - stateless with respect to
+        Coffee's session store (the client carries its own `messages`
+        history every turn; no session row is created). Same Bearer auth
+        as every other endpoint."""
+
+        state = app.state.coffee
+        request_id = str(uuid.uuid4())
+        client_source = _client_source_from_user_agent(user_agent)
+        messages = [m.model_dump(exclude_none=True) for m in body.messages]
+
+        # Brew 47 Section 2: mutated in place by _run_chat_completion once
+        # the primary's outcome is known - read back after the generator is
+        # exhausted (i.e. after the client has actually received the
+        # response) to decide whether to schedule a shadow run. Never
+        # touched at all on an error path (stays {}).
+        shadow_context: Dict[str, Any] = {}
+
+        generator = _run_chat_completion(
+            state,
+            request_id=request_id,
+            messages=messages,
+            requested_model=body.model,
+            tools=body.tools,
+            tool_choice=body.tool_choice,
+            temperature=body.temperature,
+            max_tokens=body.max_tokens,
+            client_source=client_source,
+            stream_order_fn=state.stream_order_fn,
+            stream=body.stream,
+            user_id=current_user.id,
+            user_agent=user_agent,
+            shadow_context=shadow_context,
+        )
+
+        if body.stream:
+
+            async def _sse() -> AsyncIterator[bytes]:
+                try:
+                    async for chunk in generator:
+                        yield f"data: {json.dumps(chunk)}\n\n".encode("utf-8")
+                    yield b"data: [DONE]\n\n"
+                finally:
+                    # Fire-and-forget, scheduled only once every real chunk
+                    # has already been yielded to the client (or the stream
+                    # ended early) - see _maybe_schedule_shadow's docstring.
+                    _maybe_schedule_shadow(state, shadow_context)
+
+            return StreamingResponse(_sse(), media_type="text/event-stream")
+
+        # stream=false (Section 1): every call still streams from
+        # OpenRouter internally via the same generator - only the edge
+        # differs, buffering translated chunks into one JSON body instead
+        # of flushing each as SSE, so stream=true/false are guaranteed to
+        # accumulate byte-identical content/tool_calls/usage.
+        content_parts: List[str] = []
+        tool_calls: List[Dict[str, Any]] = []
+        final_model: Optional[str] = None
+        finish_reason = "stop"
+        usage: Optional[Dict[str, Any]] = None
+        system_fingerprint: Optional[str] = None
+        try:
+            async for chunk in generator:
+                if "error" in chunk:
+                    return JSONResponse(status_code=400, content=chunk)
+                delta = chunk["choices"][0]["delta"]
+                if delta.get("content"):
+                    content_parts.append(delta["content"])
+                if delta.get("tool_calls"):
+                    tool_calls = _merge_tool_call_deltas(tool_calls, delta["tool_calls"])
+                if chunk["choices"][0].get("finish_reason"):
+                    finish_reason = chunk["choices"][0]["finish_reason"]
+                if chunk.get("usage"):
+                    usage = chunk["usage"]
+                if chunk.get("system_fingerprint"):
+                    system_fingerprint = chunk["system_fingerprint"]
+                final_model = chunk["model"]
+        finally:
+            _maybe_schedule_shadow(state, shadow_context)
+
+        message: Dict[str, Any] = {"role": "assistant", "content": "".join(content_parts) or None}
+        if tool_calls:
+            message["tool_calls"] = tool_calls
+
+        response: Dict[str, Any] = {
+            "id": f"chatcmpl-{request_id}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": final_model,
+            "choices": [{"index": 0, "message": message, "finish_reason": finish_reason}],
+            "usage": usage or {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        }
+        if system_fingerprint:
+            response["system_fingerprint"] = system_fingerprint
+        return response
 
     @app.post("/v1/upload", response_model=UploadResponse)
     async def upload(
