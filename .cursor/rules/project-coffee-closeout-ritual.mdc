@@ -1,0 +1,40 @@
+---
+description: Brew Log closeout, Roastery, and Coffee Ledger rituals after meaningful work
+alwaysApply: true
+---
+
+# Session Closeout Ritual
+
+After meaningful work, Barista completes closeout before ending the session.
+
+## Brew Log (required)
+
+Update as applicable:
+
+1. `brew-log/active_context.md` — phase, milestone, next actions, blockers
+2. `brew-log/progress.md` — completed work and up next
+3. `brew-log/lessons_learned.md` — if something reusable or failure-worthy
+4. `brew-log/decisions.md` or `DECISIONS/` — if architecture or policy changed
+
+Report to the human:
+
+- What changed
+- What was verified
+- What remains open
+- What Coffee should remember
+
+## Roastery (when models or workflows were compared)
+
+- Record Tasting Notes in `roastery/model_scorecards/` using `TEMPLATES/model_scorecard.md`
+- Note if House Blend routing should change (defer policy file until Shot 3)
+
+## Coffee Ledger (when API/model cost is known)
+
+- Log entries in `ledger/cost_log.md` and `ledger/token_log.md`
+- Include: date, task, model, estimated or actual cost/tokens, brief value note
+
+## Recipe promotion
+
+If a workflow succeeded twice, consider promoting it to `recipes/` per `TEMPLATES/recipe_template.md`.
+
+Reference: `MEMORY_AND_LEARNING.md`, `EVALUATION_AND_ROASTERY.md`.

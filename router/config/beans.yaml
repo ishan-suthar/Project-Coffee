@@ -1,0 +1,173 @@
+# Coffee Core Router - Bean registry
+#
+# Maps every raw OpenRouter model ID this router may call to a coffee alias,
+# capability flags, and known per-token pricing. Raw model IDs live here,
+# in the Ledger, and in outbound OpenRouter requests only - never in an SSE
+# event or API response field (see router/app/aliases.py enforcement).
+#
+# Seeded from config/house_blend.md's current Bean roles (Brew 14 evidence).
+# Update this file, then rerun tools/generate_policy.py, after any new
+# Roastery evidence changes House Blend roles. Do not hand-edit
+# routing_policy.yaml directly - it is generated from this file plus
+# Roastery/Ledger evidence.
+
+beans:
+  - alias: "House Blend"
+    role: default
+    model_id: "nvidia/nemotron-3-ultra-550b-a55b:free"
+    capabilities:
+      vision: false
+      code: true
+      # Brew 47: unverified/free-tier - default false until real evidence
+      # says otherwise. See docs/design/openai-compat-endpoint-design.md
+      # Section 1.
+      tool_calling: false
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active
+
+  - alias: "Second Pour"
+    role: fallback
+    model_id: "cohere/north-mini-code:free"
+    capabilities:
+      vision: false
+      code: true
+      tool_calling: false
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active
+
+  - alias: "Guest Bean"
+    role: comparison
+    model_id: "poolside/laguna-m.1:free"
+    capabilities:
+      vision: false
+      code: true
+      tool_calling: false
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active
+
+  - alias: "Reserve Blend"
+    role: premium
+    # Dotted form matches the canonical slug in a live GET /v1/models
+    # response (Gemini/Gemma investigation Brew) - the dashed form
+    # ("claude-sonnet-4-6") still resolves today only because OpenRouter
+    # silently normalizes it (confirmed live: a real completions call
+    # with the dashed id returned "model": "anthropic/claude-sonnet-4.6"),
+    # which is undocumented provider leniency, not a guarantee.
+    model_id: "anthropic/claude-sonnet-4.6"
+    capabilities:
+      vision: true
+      code: true
+      # Anthropic models via OpenRouter have solid, well-documented
+      # tool-calling support.
+      tool_calling: true
+    price_per_1k_input_usd: 0.003
+    price_per_1k_output_usd: 0.015
+    status: active
+
+  - alias: "Single Origin"
+    role: specialist
+    model_id: "anthropic/claude-haiku-4.5"
+    capabilities:
+      vision: true
+      code: true
+      tool_calling: true
+    price_per_1k_input_usd: 0.001
+    price_per_1k_output_usd: 0.005
+    status: active
+
+  # Kimi K2 and DeepSeek V3.2 (web search cost optimization Brew): added
+  # specifically as cheaper tool-calling candidates for use_web routing -
+  # see router/app/aliases.py's capable_bean() and settings.yaml's
+  # preferred_web_search_bean_alias. Slugs/pricing verified live against
+  # OpenRouter's /v1/models before adding (the requested names,
+  # "moonshotai/kimi-2" and "deepseek/deepseek-chat-v3.2", do not exist -
+  # same "verify before trusting a remembered slug" lesson as the dead
+  # Single Origin Haiku id found in a prior Brew's live demo).
+  #
+  # DATA GOVERNANCE: both are Chinese-hosted models (Moonshot AI, DeepSeek).
+  # Accepted explicitly for this personal-use instance only - see
+  # router/README.md's "Web search" section and the matching Tasting Note
+  # entry. Reconsider before ever routing real work data through either.
+  - alias: "Kimi K2"
+    role: web_search_primary
+    model_id: "moonshotai/kimi-k2"
+    capabilities:
+      vision: false
+      code: true
+      tool_calling: true
+    price_per_1k_input_usd: 0.00057
+    price_per_1k_output_usd: 0.0023
+    status: active
+
+  - alias: "DeepSeek V3.2"
+    role: web_search_fallback
+    model_id: "deepseek/deepseek-v3.2"
+    capabilities:
+      vision: false
+      code: true
+      tool_calling: true
+    price_per_1k_input_usd: 0.000269
+    price_per_1k_output_usd: 0.0004
+    status: active
+
+  # Gemini/Gemma investigation Brew. Slugs/pricing/capabilities pulled
+  # live from GET /v1/models, not memory or docs - see the matching Brew
+  # Log/Tasting Note entries for the full comparison against the existing
+  # roster. router/app/aliases.py's capable_bean() has no role filter at
+  # all (confirmed by reading it, then by simulating the addition against
+  # the real registry before this Brew touched beans.yaml) - role:
+  # specialist below does NOT hold this Bean back from capable_bean()'s
+  # cheapest-capable selection. It becomes the cheapest
+  # tool-calling-and-vision Bean (beating Single Origin) and the cheapest
+  # tool-calling Bean outright (beating DeepSeek V3.2) the moment this
+  # file is loaded - accepted explicitly, on the condition that the Cup
+  # Test set proposed in the same Brew runs so it earns real Roastery
+  # evidence rather than routing on price alone indefinitely.
+  #
+  # DATA GOVERNANCE: Google-hosted (US) - a materially different posture
+  # than Kimi K2/DeepSeek V3.2 above; no foreign-hosting flag needed here.
+  # Standard OpenRouter data-handling terms apply, same as every other
+  # Bean in this file.
+  - alias: "Flat White"
+    role: specialist
+    model_id: "google/gemini-2.5-flash-lite"
+    capabilities:
+      vision: true
+      code: true
+      tool_calling: true
+    price_per_1k_input_usd: 0.0001
+    price_per_1k_output_usd: 0.0004
+    status: active
+
+  # role: comparison deliberately does NOT exclude this Bean from
+  # capable_bean()'s selection (see the Flat White comment above - role
+  # is not part of that filter for any Bean). What actually keeps it off
+  # every real routing default/fallback path today is
+  # tools/generate_policy.py's own evidence gating: a task_type's
+  # primary/fallback ranking only ever considers Beans with real Cup Test
+  # rows in roastery/tasting_notes.md, and this Bean starts with none -
+  # see build_policy()'s per_bean_averages()-driven ranking. tool_calling
+  # is deliberately left false here despite the catalogue listing
+  # tools/tool_choice as accepted parameters - same "unverified/free-tier,
+  # default false until real evidence says otherwise" caution as every
+  # other free Bean in this file (see House Blend above); flip only after
+  # the Cup Test set proposed in this Brew actually verifies it holds up.
+  # Shared-key rate-limit risk (settings.yaml's per_user_requests_per_minute
+  # coincidentally matches OpenRouter's free-tier per-key ceiling) is the
+  # reason this stays comparison-only rather than any default/fallback
+  # role, on top of OpenRouter's stated free-model repricing/removal risk.
+  #
+  # DATA GOVERNANCE: Google-hosted (US) - same note as Flat White above.
+  - alias: "Day Roast"
+    role: comparison
+    model_id: "google/gemma-4-31b-it:free"
+    capabilities:
+      vision: true
+      code: true
+      tool_calling: false
+    price_per_1k_input_usd: 0.0
+    price_per_1k_output_usd: 0.0
+    status: active

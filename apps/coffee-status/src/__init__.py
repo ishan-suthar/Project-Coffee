@@ -1,0 +1,3 @@
+"""
+Coffee Status source package.
+"""

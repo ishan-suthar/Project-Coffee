@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 800" role="img" aria-label="Coffee counter illustration">
+  <!-- background -->
+  <rect x="0" y="0" width="260" height="800" fill="#f5ede3" />
+  <rect x="0" y="0" width="260" height="360" fill="#ead9c4" />
+  <rect x="0" y="356" width="260" height="6" fill="#c99b6f" />
+
+  <!-- four jars stacked vertically on the shelf, one per real Bean alias
+       (previously side by side across the width - now stacked top to
+       bottom, closest match order to the horizontal left-to-right order) -->
+  <g transform="translate(117,30)">
+    <rect x="0" y="0" width="18" height="8" rx="2" fill="#3e2a1e" />
+    <rect x="-4" y="8" width="26" height="40" rx="6" fill="#c99b6f" stroke="#3e2a1e" stroke-width="2" />
+  </g>
+  <g transform="translate(117,100)">
+    <rect x="0" y="0" width="18" height="8" rx="2" fill="#3e2a1e" />
+    <rect x="-4" y="8" width="26" height="40" rx="6" fill="#8b5e3c" stroke="#3e2a1e" stroke-width="2" />
+  </g>
+  <g transform="translate(117,170)">
+    <rect x="0" y="0" width="18" height="8" rx="2" fill="#3e2a1e" />
+    <rect x="-4" y="8" width="26" height="40" rx="6" fill="#3e2a1e" stroke="#c99b6f" stroke-width="2" />
+  </g>
+  <g transform="translate(117,240)">
+    <rect x="0" y="0" width="18" height="8" rx="2" fill="#3e2a1e" />
+    <rect x="-4" y="8" width="26" height="40" rx="6" fill="#d97e30" stroke="#3e2a1e" stroke-width="2" />
+  </g>
+
+  <!-- barista (simple silhouette, middle of the panel) -->
+  <circle cx="130" cy="410" r="22" fill="#8b5e3c" />
+  <rect x="106" y="432" width="48" height="64" rx="12" fill="#8b5e3c" />
+
+  <!-- machine silhouette, just below the barista -->
+  <rect x="85" y="510" width="90" height="70" rx="6" fill="#3e2a1e" />
+  <rect x="115" y="580" width="10" height="18" fill="#3e2a1e" />
+
+  <!-- cup, mid-panel (beside the machine, clear of the counter below it) -->
+  <rect x="190" y="540" width="34" height="24" rx="4" fill="#3e2a1e" />
+
+  <!-- counter, bottom of the panel -->
+  <rect x="0" y="600" width="260" height="30" fill="#c99b6f" />
+  <rect x="0" y="630" width="260" height="170" fill="#ead9c4" />
+</svg>

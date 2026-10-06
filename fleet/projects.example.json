@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "projects": [
+    {
+      "id": "project-id-goes-here",
+      "name": "Project name goes here.",
+      "path": "relative/path/to/project",
+      "type": "app",
+      "status": "candidate",
+      "notes": "Short local note about onboarding state."
+    }
+  ]
+}

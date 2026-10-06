@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Project Coffee">
+  <rect x="8" y="16" width="20" height="14" rx="3" fill="#3e2a1e" />
+  <path d="M28 19 Q35 19 35 24 Q35 29 28 28" fill="none" stroke="#3e2a1e" stroke-width="3" />
+  <rect x="6" y="30" width="24" height="3" rx="1.5" fill="#3e2a1e" />
+  <circle cx="14" cy="10" r="3" fill="#8b5e3c" />
+  <circle cx="21" cy="8" r="3" fill="#8b5e3c" />
+</svg>

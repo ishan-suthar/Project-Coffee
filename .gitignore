@@ -1,0 +1,63 @@
+# Spill Guard — secrets and credentials
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+**/secrets/**
+**/secret/**
+**/credentials/**
+**/private/**
+**/*key*
+**/*token*
+!ledger/token_log.md
+!PLAN-spill-guard-token-log-fix.md
+**/*password*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+
+# Dependencies and caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Local Roastery raw outputs
+roastery/local_cup_outputs/
+roastery/local_reports/
+
+# Local Coffee Core Router runtime data (session/chat history, not source)
+router/data/
+
+# Local Coffee Core Router uploaded attachments (ephemeral, per-request, not source)
+router/uploads/
+
+# Local config overrides (keep templates in repo)
+config/local.*
+**/local_config.*
+web/tsconfig.tsbuildinfo
+
+# Personal strategic/career context - kept on disk, never tracked.
+# These describe the author's plans rather than the system itself; the
+# repo may become public, and BUILD_SUMMARY.md is the documentation that
+# belongs here instead.
+docs/Project_Coffee_Handoff.md
+docs/Project_Coffee_Documentation.docx

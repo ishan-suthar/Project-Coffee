@@ -1,0 +1,136 @@
+# Coffee Core Router - runtime settings
+#
+# Thresholds, defaults, and the escalation cost cap. Safe to hand-edit.
+
+# Escalation cap: if the estimated premium-Bean cost for a re-run is at or
+# above this value, escalation pauses and emits escalation_pending instead
+# of running automatically. See router/app/escalation.py.
+escalation_cost_cap_usd: 0.50
+
+# How long a paused escalation_pending request waits for a human decision
+# (POST /v1/approve_escalation) before auto-declining and keeping the
+# draft. See router/app/main.py:_await_approval and docs/design/
+# escalation-approval-ui-design.md.
+escalation_approval_timeout_seconds: 600.0
+
+# SSE keep-alive cadence: a heartbeat event is sent if no real event has
+# been queued for this many seconds - long enough to matter mainly during
+# an escalation_pending pause, comfortably under typical proxy/browser
+# idle-connection timeouts. See router/EVENT_CONTRACT.md v1.3.
+sse_heartbeat_interval_seconds: 15.0
+
+# generating SSE tick cadence: emit a tick after this many output tokens OR
+# this many seconds, whichever comes first.
+generating_tick_tokens: 20
+generating_tick_seconds: 2.0
+
+# Outbound OpenRouter request timeout.
+request_timeout_seconds: 60
+
+# Optional cheap-model classification fallback (Requirement 3). Off by
+# default: the heuristic table in router/app/classifier.py runs first and
+# is used unless this is enabled and the heuristic result is low-confidence.
+classifier_model_fallback_enabled: false
+classifier_model_fallback_bean_alias: "House Blend"
+
+# Failure checks (Requirement 5) that trigger an escalation attempt.
+truncation_min_expected_tokens: 32
+refusal_keywords:
+  - "i cannot help with that"
+  - "i can't help with that"
+  - "i'm not able to assist"
+  - "as an ai language model, i cannot"
+
+# File/image attachments (Brew 38). See router/app/uploads.py and
+# docs/design/attachments-design.md.
+max_upload_size_bytes: 20971520  # 20 MB
+pdf_min_extracted_chars: 20  # below this, treat a PDF as scanned/no-text
+max_inline_text_chars: 50000  # cap on extracted text inlined into a prompt
+upload_ttl_seconds: 3600  # abandoned router/uploads/<request_id>/ dirs older than this are swept
+
+# Session memory proposals (Brew 41). See router/app/memory_proposals.py
+# and docs/design/memory-and-pantry-design.md.
+memory_proposal_bean_alias: "House Blend"  # cheap Bean used to draft a proposal
+memory_proposal_max_transcript_chars: 20000  # transcript truncates from the start, keeping the most recent messages
+
+# Pantry retrieval (Brew 41). See router/app/pantry.py,
+# router/tools/index_pantry.py, and docs/design/memory-and-pantry-design.md.
+pantry_chunk_size_chars: 1200
+pantry_chunk_overlap_chars: 200
+pantry_top_k: 5  # number of top-ranked chunks injected per request
+
+# Learning loop (Brew 42). See tools/generate_policy.py, the
+# POST /v1/policy/rebuild_preview and /rebuild_apply endpoints in
+# router/app/main.py, and docs/design/learning-loop-and-release-design.md.
+min_rating_sample_size: 5  # a (task_type, Bean) pair needs at least this many real ratings before they influence ranking
+policy_roastery_weight: 0.6  # Roastery Cup Test evidence's share of the blended score once ratings clear the threshold; ratings get (1 - this)
+escalation_rate_flag_threshold: 0.3  # task_types with a higher real escalation rate are flagged (advisory only) in the policy rebuild diff
+
+# Conversation memory / "Remember chat" (Brew 46). See router/app/history.py,
+# router/app/sessions.py's remember_chat column, and docs/design/
+# conversation-memory-design.md.
+history_max_messages: 20  # role-tagged messages (10 turns), not 20 turns - oldest whole turns are dropped first
+history_max_chars: 24000  # sum of included historical turns' chars (user + assistant + reattached attachment text); never trims the current prompt itself
+attachment_max_stored_chars: 50000  # cap on extracted PDF/text attachment content persisted per attachment, truncated with a clear marker
+classifier_long_history_turns: 10  # history_turn_count at/above this pushes complexity to cold_brew - only checked when remember_chat assembled real history
+
+# Real-usage measurement for /v1/chat/completions (Brew 47 Section 2). See
+# router/app/sessions.py's api_requests table and docs/design/
+# openai-compat-endpoint-design.md.
+retry_detection_window_seconds: 300.0  # a request matching a prior completed one's last message, within this many seconds of its completion, is flagged as a probable retry
+shadow_mode_enabled: false  # off by default - doubles the cost of sampled requests. API-only (POST /v1/chat/completions), never /v1/order, since the chat UI already has rating buttons
+shadow_mode_sample_rate: 0.1  # fraction of eligible (non-premium-routed) requests that also get silently re-run against the premium Bean
+shadow_mode_daily_cost_cap_usd: 1.00  # once today's real shadow spend (UTC day) reaches this, sampling is skipped and logged, never failing the primary request
+shadow_response_max_stored_chars: 20000  # cap on response text persisted per api_requests row (primary or shadow), truncated with a clear marker
+
+# Spend caps - the only thing between a LAN user and your OpenRouter
+# balance. See router/app/main.py's check_spend_cap()/check_rate_limit()
+# and router/README.md's "Spend caps" section. All in real UTC calendar
+# days (this router already timestamps everything in UTC).
+per_user_daily_cost_cap_usd: 1.00  # per user, rolling UTC calendar day. Overridable per user via users.daily_cost_cap_usd (router/tools/manage_users.py set-cap)
+global_daily_cost_cap_usd: 5.00  # across all users, same UTC day - a backstop independent of per-user caps
+per_user_requests_per_minute: 20  # a sanity limit against a runaway loop/tight retry, not a cost control - checked and enforced separately from the cost caps
+spend_cap_assumed_output_tokens: 1000  # pre-call output-token assumption used ONLY for the spend-cap admission estimate (router.app.routing.estimate_cost_usd) when the client gave no max_tokens - deliberately conservative (an overestimate costs an admission, not a dollar)
+
+# Web search (cost optimization Brew). See router/app/main.py's use_web
+# handling and router/README.md's "Web search" section. The
+# openrouter:web_search tool replaced the deprecated plugins:[{id:"web"}]
+# mechanism (confirmed against OpenRouter's live docs) - only the tool form
+# exposes an engine.
+web_search_engine: "parallel"  # OpenRouter engine for the openrouter:web_search tool. "parallel" ($0.001/request, up to 10 results) is the default here - a ~10x reduction from the "auto" default, which picks "native" on a tool-calling-capable Bean and bills at the underlying provider's own rate (e.g. $0.01/request on a Claude Bean). Other documented values: "exa" ($0.005/request), "auto" (provider-native when supported, else exa).
+preferred_web_search_bean_alias: "Kimi K2"  # BeanRegistry.capable_bean()'s prefer_alias for use_web routing only (never affects /v1/chat/completions' own tool-calling constraint, which stays pure cheapest-price) - Kimi K2 is tuned for agentic tool use and wins outright over a cheaper candidate when available; DeepSeek V3.2 (cheaper, see beans.yaml) is the real fallback capable_bean() picks if Kimi K2 is ever unavailable.
+
+# --- Composed system prompt (router/app/system_prompt.py) -------------
+#
+# Two independently-gated parts - date awareness and identity - composed
+# by build_system_message() into ONE leading system message on every
+# /v1/order request. Never injected into /v1/chat/completions, whose
+# clients (Cursor etc.) send their own system prompts and tool
+# instructions that must not be disturbed.
+#
+# BUDGET NOTE, true of BOTH parts: they are added after conversation
+# history is assembled and windowed, so they sit outside the
+# history_max_chars budget above by construction and on purpose - neither
+# is ever a trimming candidate. This means history_max_chars does NOT
+# bound everything sent to OpenRouter, only the conversation-history
+# portion of it.
+
+# Date-awareness system prompt. Every Bean's training cutoff predates
+# "today", so without this a Bean asked a date-sensitive question ("what's
+# today's date", "latest", "this week") answers from training data. A short
+# sentence (~130 chars) carrying the current date/timezone. See the scope
+# and budget notes above.
+system_prompt_include_date: true
+system_prompt_timezone: "local"  # "local" (default) uses the server's own system timezone, labeled as an explicit UTC offset (e.g. "UTC-05:00") - never a bare abbreviation like "CST", which is genuinely ambiguous (US Central vs. China Standard Time). Set to an IANA name (e.g. "America/Los_Angeles") to pin a specific zone regardless of where the router runs.
+
+# Identity block (Brew 56). Without it a Bean has no idea it is running
+# inside Project Coffee at all - asked "what am I using right now?" it
+# describes itself generically. A fixed 344-char statement (see
+# router/app/system_prompt.py's IDENTITY_MESSAGE) naming the project, its
+# author, the routing-and-logging behaviour, and the existence of the
+# fuller Pantry manual. Gated independently of the date above; both
+# compose into one system message. Deliberately short rather than
+# comprehensive - it is billed on EVERY /v1/order request, whereas
+# knowledge/coffee-manual.md costs nothing until the user turns Use
+# Pantry on. Set false to stop sending it entirely.
+system_prompt_include_identity: true

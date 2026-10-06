@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/*
+ * Coffee Counter Chat UI design tokens.
+ * See docs/design/coffee-counter-chat-ui-design.md Section 6.
+ *
+ * Tailwind v4 (installed by `create-next-app`) uses CSS-first
+ * configuration via @theme instead of tailwind.config.ts - the design
+ * plan's tailwind.config.ts excerpt is implemented here in the
+ * equivalent v4 form. Same tokens, different mechanism.
+ */
+
+:root {
+  --color-cream: #f5ede3;
+  --color-latte: #ead9c4;
+  --color-caramel: #c99b6f;
+  --color-medium-roast: #8b5e3c;
+  --color-espresso: #3e2a1e;
+  --color-crema-amber: #d97e30; /* the ONE active-state accent */
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-latte: var(--color-latte);
+  --color-caramel: var(--color-caramel);
+  --color-medium-roast: var(--color-medium-roast);
+  --color-espresso: var(--color-espresso);
+  --color-crema-amber: var(--color-crema-amber);
+
+  --font-sans: var(--font-humanist-sans);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: ease-out;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-espresso);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Dynamic viewport height for the chat shell, with a 100vh fallback for
+ * browsers that don't support dvh - iOS Safari's collapsing toolbar and
+ * the on-screen keyboard both resize the *visual* viewport without dvh,
+ * which would otherwise leave the composer hidden behind them.
+ */
+.app-shell-height {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/*
+ * Nothing animates on page load - only interaction triggers the 150ms
+ * ease-out transitions (hover, tab switch, streaming text reveal). This
+ * global rule disables all transitions/animations until the shell signals
+ * it has mounted by adding data-hydrated="true" to <html> (see
+ * src/app/layout.tsx), which prevents a flash of animated content on the
+ * very first paint without disabling interaction transitions afterward.
+ */
+html:not([data-hydrated="true"]) * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/*
+ * Tips Jar coin-drop (docs/design/counter-scene-design.md Section 3.2 /
+ * TipsJar.tsx) - a coin falls into the jar and fades out. Throttling to
+ * at most one coin per 500ms is pure-function logic in tipsJarMath.ts,
+ * not CSS; this keyframe only controls how one already-decided coin
+ * looks while it falls.
+ */
+@keyframes coin-drop {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.coin-drop {
+  animation: coin-drop 600ms ease-in forwards;
+}

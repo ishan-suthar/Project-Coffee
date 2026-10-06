@@ -1,0 +1,31 @@
+# Agents
+
+Short Barista role cards live here.
+
+Role cards reduce token usage by giving future prompts a compact local reference
+for expected behavior, context, and escalation rules. This folder is for small
+role definitions, not a full agent framework.
+
+## Start Here
+
+- Use `agents/role-selection-guide.md` to choose the smallest role for a task.
+- Use `agents/templates/barista-role-template.md` when creating a new role card.
+- Create specialized roles one at a time only when repeated work justifies them.
+- Keep role cards short and link to source docs instead of copying them.
+- Do not store secrets, credentials, API keys, or private data in role cards.
+
+## Selection Guide
+
+- `agents/role-selection-guide.md`
+
+## Current Roles
+
+| Role card | Use |
+| --- | --- |
+| `agents/barista-main.md` | Main Project Coffee planning, routing, verification, and closeout role. |
+| `agents/espresso-fast-coder.md` | Tiny code fixes, small tests, simple scripts, and minimal refactors. |
+| `agents/mocha-python-ai.md` | Python, AI/ML, data, notebook, Streamlit, and small evaluation utility work. |
+| `agents/cappuccino-research.md` | Source-grounded research summaries, literature maps, and method extraction. |
+| `agents/macchiato-embedded.md` | Embedded firmware planning, review, sensor interfaces, and datasheet-driven reasoning. |
+| `agents/flat-white-code-review.md` | Diff, maintainability, test coverage, security/privacy, and risk review. |
+| `agents/cortado-devops-infra.md` | DevOps, infrastructure config, deployment planning, and cost/risk review. |
